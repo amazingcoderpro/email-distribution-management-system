@@ -130,6 +130,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+WEB_URL = "https://autometa.seamarketings.com/"
+
 AUTH_USER_MODEL = "app.User"
 
 APPEND_SLASH = False
