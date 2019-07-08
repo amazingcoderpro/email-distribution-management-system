@@ -11,10 +11,13 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
 import os
+import datetime
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+MYSQL_PASSWD = os.getenv('MYSQL_PASSWD', None)
+MYSQL_HOST = os.getenv('MYSQL_HOST', None)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
@@ -37,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'app',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
@@ -47,6 +52,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'app.middleware.ResponseMiddleware'
 ]
 
 ROOT_URLCONF = 'edm.urls'
@@ -75,8 +81,13 @@ WSGI_APPLICATION = 'edm.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    'ENGINE': 'django.db.backends.mysql',
+    'NAME': 'edm',
+    'USER': 'edm',
+    'PASSWORD': MYSQL_PASSWD,
+    'HOST': MYSQL_HOST,
+    'PORT': '3306',
+    'OPTIONS': {"init_command": "SET foreign_key_checks = 0;",}
     }
 }
 
@@ -105,7 +116,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
 
@@ -118,3 +129,20 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+AUTH_USER_MODEL = "app.User"
+
+APPEND_SLASH = False
+
+list_str = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 's', 't', 'x', 'y',
+            'z']
+
+# JWT_AUTH_HEADER_PREFIX = "".join(random.sample(list_str, 4))
+JWT_AUTH_HEADER_PREFIX = "JWT"
+
+JWT_AUTH = {
+    'JWT_AUTH_HEADER_PREFIX': JWT_AUTH_HEADER_PREFIX,
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=7),
+    'JWT_SECRET_KEY': 'seo',
+
+}

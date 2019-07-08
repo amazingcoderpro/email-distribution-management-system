@@ -1,0 +1,19 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+django = "==2.1.0"
+log-config = "*"
+requests = "*"
+apscheduler = "*"
+pymysql = "*"
+django-rest-framework = "*"
+django-filter = "*"
+djangorestframework-jwt = "*"
+
+[requires]
+python_version = "3.6"
