@@ -26,15 +26,14 @@ class ProductsApi:
     def get_all_collections(self):
         shop_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}custom_collections.json"
         shop_url2 = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}smart_collections.json"
+        result = requests.get(shop_url)
+        result2 = requests.get(shop_url2)
         try:
-            result = requests.get(shop_url)
-            result2 = requests.get(shop_url2)
-
             if result.status_code == 200 and result2.status_code == 200:
                 logger.info("get shopify all collections info is success")
                 res_dict = json.loads(result.text)
                 res_dict.update(json.loads(result2.text))
-                return {"code": 1, "msg": "", "data": self.parse_collections(res_dict)}
+                return {"code": 1, "msg": "", "data": res_dict}
             else:
                 logger.info("get shopify all collections info is failed")
                 return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
