@@ -123,9 +123,31 @@ class CustomerGroup(models.Model):
 class Customers(models.Model):
     """客户表"""
     name = models.CharField(max_length=255, verbose_name="客户名称")
-    email = models.EmailField(max_length=255, blank=True, null=True, verbose_name="客户邮箱")
-    register_time = models.DateTimeField(blank=True, null=True, verbose_name="客户注册时间")
-    last_cart_time = models.DateTimeField(blank=True, null=True, verbose_name="最近购物时间")
+    customer_email = models.EmailField(max_length=255, blank=True, null=True, verbose_name="客户邮箱")
+
+    subscribe_time = models.DateTimeField(blank=True, null=True, verbose_name="最近购物时间")
+    sign_up_time = models.DateTimeField(blank=True, null=True, verbose_name="客户登陆时间")
+    last_cart_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后一次购物时间")
+    last_order_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后一次订单时间")
+    last_order_status_choices = ((0, 'is paid'), (1, 'is unpaid'))
+    last_order_status = models.SmallIntegerField(db_index=True, choices=last_order_status_choices, blank=True, null=True, verbose_name="客户最后一次订单状态")
+
+    last_cart_status_choices = ((0, 'is empty'), (1, 'is not empty'))
+    last_cart_status = models.SmallIntegerField(db_index=True, choices=last_cart_status_choices, blank=True,
+                                                 null=True, verbose_name="客户最后一次购物车状态")
+
+    accept_marketing_choices = ((0, 'is true'), (1, 'is false'))
+    accept_marketing_status = models.SmallIntegerField(db_index=True, choices=accept_marketing_choices, blank=True,
+                                                null=True, verbose_name="")
+
+    payment_amount = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户付款金额")
+
+    last_opened_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后打开邮箱时间")
+    opened_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户打开邮箱次数")
+
+    last_click_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后单击邮箱时间")
+    clicked_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户单击邮箱次数")
+
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
