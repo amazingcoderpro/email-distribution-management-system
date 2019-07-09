@@ -14,6 +14,7 @@ pymysql = "*"
 django-rest-framework = "*"
 django-filter = "*"
 djangorestframework-jwt = "*"
+xmltodict = "*"
 
 [requires]
 python_version = "3.6"
