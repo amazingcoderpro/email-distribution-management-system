@@ -6,7 +6,7 @@
 import logging
 from log_config import log_config
 
-log_config.init_log_config("logs", "seo")
+log_config.init_log_config("logs", "edm")
 logger = logging.getLogger()
 
 SHOPIFY_CONFIG = {
