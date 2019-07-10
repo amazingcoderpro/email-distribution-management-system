@@ -16,7 +16,8 @@ class ShopifyCallback(APIView):
     def get(self, request):
         code = request.query_params.get("code", None)
         shop = request.query_params.get("shop", None)
-        if not code or not shop:
+        hmac = request.query_params.get("hmac", None)
+        if not code or not shop or not hmac:
             return HttpResponseRedirect(redirect_to="{}aut_state?state=2".format(WEB_URL))
         shop_name = shop.split(".")[0]
         result = ShopifyBase(shop).get_token(code)
@@ -25,6 +26,7 @@ class ShopifyCallback(APIView):
         instance = models.Store.objects.filter(url=shop).first()
         if instance:
             instance.token = result["data"]
+            instance.hmac = hmac
             instance.save()
             user_instance = models.User.objects.filter(id=instance.user_id).first()
             user_instance.is_active = 0
@@ -32,7 +34,7 @@ class ShopifyCallback(APIView):
             user_instance.save()
             email = user_instance.email
         else:
-            store_data = {"name": shop_name, "url": shop, "token": result["data"]}
+            store_data = {"name": shop_name, "url": shop, "token": result["data"], "hmac":hmac}
             instance = models.Store.objects.create(**store_data)
             info = ProductsApi(access_token=result["data"], shop_uri=shop).get_shop_info()
             email = info["data"]["shop"]["email"]

@@ -26,6 +26,7 @@ class Store(models.Model):
         blank=True,
     )
     token = models.CharField(blank=True, null=True, max_length=255, verbose_name="账号使用标识")
+    hmac = models.CharField(blank=True, null=True, max_length=255, verbose_name="hmac")
     # money_format = models.CharField(blank=True, null=True, max_length=255, verbose_name="店铺money标识")
     user = models.OneToOneField(User, on_delete=models.DO_NOTHING, blank=True, null=True, unique=True)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
