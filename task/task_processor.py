@@ -60,30 +60,6 @@ class TaskProcessor:
         self.shopify_collections_job = None
         self.shopify_product_job = None
 
-    def start_job_analyze_rule_job(self, interval=120):
-        # 规则解析任务　
-        logger.info("start_job_analyze_rule_job")
-        self.analyze_rule()
-        self.rule_job = self.bk_scheduler.add_job(self.analyze_rule, 'interval', seconds=interval, max_instances=50)
-
-    def start_job_update_pinterest_data(self, interval=7200):
-        # 定时更新pinterest数据
-        logger.info("start_job_update_pinterest_data")
-        self.update_pinterest_data()
-        self.pinterest_job = self.bk_scheduler.add_job(self.update_pinterest_data, 'interval', seconds=interval)
-
-    def start_job_publish_pin_job(self, interval=240):
-        # # 定时发布pin
-        logger.info("start_job_publish_pin_job")
-        self.publish_pins(interval)
-        self.publish_pin_job = self.bk_scheduler.add_job(self.publish_pins, 'interval', seconds=interval, args=(interval,))
-
-    def start_job_update_shopify_data(self, interval=7200):
-        # 定时更新shopify数据
-        logger.info("start_job_update_shopify_data")
-        # self.update_shopify_data()
-        self.shopify_job = self.bk_scheduler.add_job(self.update_shopify_data, 'cron', day_of_week="*", hour=1, minute=30)
-
     def start_job_update_shopify_collections(self, interval=7200):
         # 定时更新shopify collections数据
         logger.info("start_job_update_shopify_collections")
@@ -126,15 +102,10 @@ class TaskProcessor:
         # update_new()
         self.update_new_job = self.bk_scheduler.add_job(update_new, 'interval', seconds=interval, max_instances=50)
 
-    def start_all(self, rule_interval=120, publish_pin_interval=240, pinterest_update_interval=7200, shopify_update_interval=7200, update_new=120):
+    def start_all(self, shopify_update_interval=7200 ):
         logger.info("TaskProcessor start all work.")
-        self.start_job_update_new(update_new)
-        self.start_job_analyze_rule_job(rule_interval)
-        self.start_job_publish_pin_job(publish_pin_interval)
-        self.start_job_update_pinterest_data(pinterest_update_interval)
         self.start_job_update_shopify_collections(shopify_update_interval)
         self.start_job_update_shopify_product(shopify_update_interval)
-        # self.start_job_update_shopify_data(shopify_update_interval)
 
     def stop_all(self):
         logger.warning("TaskProcessor stop_all work.")
