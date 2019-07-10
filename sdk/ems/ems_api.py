@@ -3,16 +3,19 @@
 # Created on: 2019/7/8
 import datetime
 import json
+import re
+
 import xmltodict
 from config import logger
 import requests
 
 
 class ExpertSender:
-    def __init__(self, apiKey):
+    def __init__(self, apiKey, fromEmail):
         self.api_key = apiKey
         self.host = "https://api6.esv2.com/v2/"
         self.headers = {"Content-Type": "text/xml"}
+        self.from_email = fromEmail
 
     @staticmethod
     def xmltojson(xmlstr, type):
@@ -26,6 +29,11 @@ class ExpertSender:
         # xmltodict库的unparse()json转xml
         xmlstr = xmltodict.unparse(jsonstr)
         return xmlstr
+
+    @staticmethod
+    def delete_space(html):
+        rexp = re.compile("\s")
+        return ''.join(rexp.split(html))
 
     def retrun_result(self, funcname, result):
         """封装return"""
@@ -82,11 +90,10 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def create_and_send_newsletter(self, listId, fromEmail, subject, plain, html, deliveryDate=None, timeZone="UTC+08:00"):
+    def create_and_send_newsletter(self, listId, subject, plain="", html="", deliveryDate=None, timeZone="UTC"):
         """
         创建及发送Newsletter
         :param listId: 发送列表ID
-        :param fromEmail: 发件人邮箱
         :param subject: 邮件主题
         :param plain: 邮件纯文本
         :param html: html格式邮件内容
@@ -99,37 +106,44 @@ class ExpertSender:
                     "Data":{
                         "Recipients": {"SubscriberLists": [{"SubscriberList": listId}, ]},
                         "Content": {
-                            "FromEmail": fromEmail,
+                            "FromEmail": self.from_email,
                             "Subject": subject,
                             "Plain": plain,
-                            "Html": html
+                            "Html": "%s",
+                            # "ContentFromUrl": {"Url": "http://sources.aopcdn.com/edm/html/buzzyly/20190625/1561447955806.html"}
                         },
                         "DeliverySettings": {
                             "ThrottlingMethod": "Auto",
-                            "TimeZone": timeZone,
+                            # "TimeZone": timeZone,
                             "OverrideDeliveryCap": "true"
                         }
                     }
         }}
         if deliveryDate:
-            data["ApiRequest"]["Data"]["DeliverySettings"].update({"DeliveryDate": deliveryDate})
+            data["ApiRequest"]["Data"]["DeliverySettings"].update({"DeliveryDate": deliveryDate.replace(" ", "T")})
         try:
-            result = requests.post(url, self.jsontoxml(data), headers=self.headers)
+            xml_data = self.jsontoxml(data)
+            xml_data = xml_data % ("<![CDATA[%s]]>" % html)
+            result = requests.post(url, xml_data, headers=self.headers)
             return self.retrun_result("create and send newsletter", result)
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def create_subscribers_list(self, name):
+    def create_subscribers_list(self, name, isSeedList=False):
         """
         创建收件人列表
         :param name: 列表名称
+        :param isSeedList: 标记说明创建列表是收件人列表还是测试列表. 选填. 默认值是“false”（收件人列表）
         :return: 列表ID
         """
         url = f"{self.host}Api/Lists"
         data = {"ApiRequest": {
             "ApiKey": self.api_key,
             "Data": {
-                "GeneralSettings": {"Name": name},
+                "GeneralSettings": {
+                    "Name": name,
+                    "isSeedList": str(isSeedList).lower()
+                },
         }}}
         try:
             result = requests.post(url, self.jsontoxml(data), headers=self.headers)
@@ -191,15 +205,87 @@ class ExpertSender:
         url = f"{self.host}Api/Activities?apiKey={self.api_key}&date={date}&type={types}"
         try:
             result = requests.get(url)
-            return result.text
+            return result.text.split("\r\n")
+            # return result.text
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
+    def get_subscriber_statistics(self, listId):
+        """
+        获取列表统计数据
+        :param listId: 收件人列表ID
+        :return:{'SubscriberStatistics': {'SubscriberStatistic': {'IsSummaryRow': 'true', 'ListSize': '1', 'Growth': '1', 'Added': '1', 'AddedUi': '1', 'AddedImport': '0', 'AddedApi': '0', 'AddedWeb': '0', 'Removed': '0', 'RemovedOptOut': '0', 'RemovedUser': '0', 'RemovedBounceLimit': '0', 'RemovedSpam': '0', 'RemovedUserUnknown': '0', 'RemovedBlacklist': '0', 'RemovedApi': '0', 'RemovedImport': '0'}}}
+        """
+        url = f"{self.host}Api/SubscriberStatistics?apiKey={self.api_key}&scope=List&scopeValue={listId}"
+        try:
+            result = requests.get(url)
+            return self.retrun_result("get subscriber statistics", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def get_subscriber_information(self, email):
+        """
+        获取收件人信息
+        :param email: 邮件地址
+        :return:
+        """
+        url = f"{self.host}Api/Subscribers?apiKey={self.api_key}&email={email}&option=Full"
+        try:
+            result = requests.get(url)
+            return self.retrun_result("get subscriber statistics", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def get_summary_statistics(self, segmentId):
+        """
+        获取细分组信息
+        :param segmentId:细分ID
+        :return:
+        """
+        url = f"{self.host}Api/SummaryStatistics?apiKey={self.api_key}&scope=Segment&scopeValue={segmentId}"
+        try:
+            result = requests.get(url)
+            return self.retrun_result("get summary statistics", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def get_subscriber_segments(self):
+        """获取所有细分组"""
+        url = f"{self.host}Api/Segments?apiKey={self.api_key}"
+        try:
+            result = requests.get(url)
+            return self.retrun_result("get summary statistics", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
+
 if __name__ == '__main__':
-    ems = ExpertSender("0x53WuKGWlbq2MQlLhLk")
+    html_b = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>jquery</title>
+
+</head>
+<body>
+
+
+<div style="text-align:center;margin:50px 0; font:normal 50px/24px 'MicroSoft YaHei';color:red">
+<p>fit browers:360,FireFox,Chrome,Opera.</p>
+<p>source:<a href="http://sc.chinaz.com/" target="_blank">ChinaZ</a></p>
+<img src="http://f.hiphotos.baidu.com/image/h%3D300/sign=e6821d0a831001e9513c120f880f7b06/a71ea8d3fd1f4134d244519d2b1f95cad0c85ee5.jpg">
+
+</div>
+</body>
+</html>"""
+    ems = ExpertSender("0x53WuKGWlbq2MQlLhLk", "leemon.li@orderplus.com")
     # print(ems.get_message_statistics(318))
-    print(ems.create_and_send_newsletter(25, "leemon.li@orderplus.com", "HelloWorld","expertsender","<a href='https://www.baidu.com'>baidu</a>",datetime.datetime.now()))
+    # print(ems.create_and_send_newsletter(25, "HelloWorld","expertsender",html_b)) # ,"2019-07-09 21:09:00"
     # print(ems.get_messages(318))
     # print(ems.create_subscribers_list("Test001"))
     # print(ems.add_subscriber(26, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
     # print(ems.get_subscriber_activity("Opens"))
+    print(ems.get_subscriber_information("twobercancan@126.com"))
+    # print(ems.get_subscriber_activity())
+    # print(ems.get_summary_statistics(63))
