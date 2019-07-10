@@ -130,7 +130,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-WEB_URL = "https://autometa.seamarketings.com/"
+WEB_URL = "https://smartsend.seamarketings.com/"
 
 AUTH_USER_MODEL = "app.User"
 
