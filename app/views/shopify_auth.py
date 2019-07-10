@@ -6,7 +6,7 @@ from app.utils import random_code
 from rest_framework.response import Response
 from sdk.shopify.shopify_oauth_info import ShopifyBase
 
-from sdk.shopify.get_shopify_products import ProductsApi
+from sdk.shopify.get_shopify_data import ProductsApi
 from sdk.shopify import shopify_oauth_info
 from edm.settings import WEB_URL
 
