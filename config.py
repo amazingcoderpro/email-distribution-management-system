@@ -10,10 +10,10 @@ log_config.init_log_config("logs", "edm")
 logger = logging.getLogger()
 
 SHOPIFY_CONFIG = {
-    "client_id": "a09fec07bed3a3db749cfed6029dcdef",
-    "client_secret": "ae743a3a05e5a549315cd203e6a35387",
-    "ask_permission_uri": "https://autometa.seamarketings.com/api/v1/auth/shopify/ask_permission/",
-    "redirect_uri": "https://autometa.seamarketings.com/api/v1/auth/shopify/callback/",
+    "client_id": "14afd1038ae052d9f13604af3e5e3ce3",
+    "client_secret": "abbd97d861f25a7d36034ff96f0a2d97",
+    "ask_permission_uri": "https://smartsend.seamarketings.com/api/v1/auth/shopify/ask_permission/",
+    "redirect_uri": "https://smartsend.seamarketings.com/api/v1/auth/shopify/callback/",
     "scopes": ["read_content", "write_content", "read_themes", "write_themes", "read_products",
                "write_products", "read_product_listings", "read_customers", "write_customers",
                "read_orders", "write_orders", "read_shipping", "write_draft_orders", "read_inventory",
