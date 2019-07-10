@@ -1,0 +1,129 @@
+# -*-coding:utf-8-*-
+import requests
+from config import logger
+import json
+from config import SHOPIFY_CONFIG
+
+
+class ProductsApi:
+    def __init__(self, access_token, shop_uri):
+        """
+        :param client_id: api key
+        :param access_token: api password
+        :param shop_URI: 店铺uri
+        :param scopes: 权限
+        :param callback_uri: callback url
+        :param code: 1 状态正确， 2 状态错误， -1 出现异常
+        """
+        self.client_id = SHOPIFY_CONFIG.get("client_id")
+        self.access_token = access_token
+        self.shop_uri = shop_uri
+        self.scopes = SHOPIFY_CONFIG.get("scopes")
+        self.callback_uri = SHOPIFY_CONFIG.get("callback_uri")
+        self.version_url = "/admin/api/2019-04/"
+        self.headers = {'Content-Type': 'application/json'}
+
+    def get_all_collections(self):
+        shop_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}custom_collections.json"
+        shop_url2 = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}smart_collections.json"
+        result = requests.get(shop_url)
+        result2 = requests.get(shop_url2)
+        try:
+            if result.status_code == 200 and result2.status_code == 200:
+                logger.info("get shopify all collections info is success")
+                res_dict = json.loads(result.text)
+                res_dict.update(json.loads(result2.text))
+                return {"code": 1, "msg": "", "data": res_dict}
+            else:
+                logger.info("get shopify all collections info is failed")
+                return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
+        except Exception as e:
+            logger.error("get shopify all collections info is failed info={}".format(str(e)))
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    @classmethod
+    def parse_collections(cls, data):
+        all_collections = []
+        for col in data["custom_collections"] + data["smart_collections"]:
+            if "home" in col.get("title", "").lower():
+                continue
+            all_collections.append(
+                {
+                    "uuid": col.get("id", ""),
+                    "meta_title": col.get("title", ""),
+                    "address": "/collections/" + col.get("title", "").lower().replace("'", "").replace(" ", "-"),
+                    "meta_description": col.get("body_html", ""),
+                }
+            )
+        return all_collections
+
+    def get_shop_info(self):
+        """
+        获取用户信息
+        :return:
+        """
+        shop_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}shop.json"
+        try:
+            result = requests.get(shop_url)
+            if result.status_code == 200:
+                logger.info("get shopify info is success")
+                return {"code": 1, "msg": "", "data": json.loads(result.text)}
+            else:
+                logger.info("get shopify info is failed")
+                return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
+        except Exception as e:
+            logger.error("get shopify info is failed info={}".format(str(e)))
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def get_all_products(self, limit=250, since_id=""):
+        """
+        获取所有商品的信息
+        :return:
+        """
+        if not since_id:
+            products_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}products.json?limit={limit}"
+        if since_id:
+            products_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}products.json?limit={limit}&since_id={since_id}"
+        try:
+            result = requests.get(products_url)
+            if result.status_code == 200:
+                logger.info("get shopify all products is success")
+                # print(result.text)
+                return {"code": 1, "msg": "", "data": json.loads(result.text)}
+            else:
+                logger.info("get shopify all products is failed")
+                return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
+        except Exception as e:
+            logger.error("get shopify all products is failed info={}".format(str(e)))
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def get_product_id(self, id):
+        """
+        通过 id 获取商品的信息
+        :param id: 商品id
+        :return:
+        """
+        products_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}products/{id}.json"
+        try:
+            result = requests.get(products_url)
+            if result.status_code == 200:
+                logger.info("get shopify all prodects by id is success")
+                return {"code": 1, "msg": "", "data": json.loads(result.text)}
+            else:
+                logger.info("get shopify all prodects by id is failed")
+                return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
+        except Exception as e:
+            logger.error("get shopify all prodects by id is failed info={}".format(str(e)))
+            return {"code": -1, "msg": str(e), "data": ""}
+
+
+if __name__ == '__main__':
+    client_id = "7fced15ff9d1a461f10979c3eae2eca8"
+    access_token = "d34263b34fa4eff4003ed20c0d5d3ef3"
+    shop = "mrbeauti.myshopify.com"
+    scopes = "write_orders,read_customers"
+    callback_uri = "http://www.orderplus.com/index.html"
+    id = "3583116148816"
+    shop_uri = "mrbeauti.myshopify.com"
+    products_api = ProductsApi(access_token=access_token, shop_uri=shop_uri)
+    print(products_api.get_shop_info())
