@@ -40,8 +40,8 @@ class ShopifyCallback(APIView):
             instance.name = info["data"]["shop"]["name"]
             instance.sender = info["data"]["shop"]["name"]
             instance.timezone = info["data"]["shop"]["timezone"]
-            instance.customer_shop = shop
-            instance.customer_email = info["data"]["shop"]["customer_email"]
+            # instance.customer_email = info["data"]["shop"]["customer_email"]
+            instance.customer_email = "noreply@letter" + str(info["data"]["shop"]["domain"].split(".")[1:])
             email = info["data"]["shop"]["email"]
             user_data = {"username": shop, "email": email, "is_active": 0, "code": random_code.create_random_code(6, True)}
             user_instance = models.User.objects.create(**user_data)
