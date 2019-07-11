@@ -34,6 +34,7 @@ class Store(models.Model):
     news_domain = models.CharField(blank=True, null=True, max_length=255, verbose_name="news_domain")
     message_domain = models.CharField(blank=True, null=True, max_length=255, verbose_name="message_domain")
     customer_shop = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_shop")
+    customer_email = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_email")
     store_view_id = models.CharField(blank=True, null=True, max_length=100, verbose_name=u"店铺的GA中的view id")
     user = models.OneToOneField(User, on_delete=models.DO_NOTHING, blank=True, null=True, unique=True)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
@@ -198,8 +199,8 @@ class ProductCategory(models.Model):
     url = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品类目标题url")
     category_id = models.CharField(db_index=True, max_length=255,blank=True, null=True, verbose_name="产品类目id")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING, blank=True, null=True)
-    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
         # managed = False
