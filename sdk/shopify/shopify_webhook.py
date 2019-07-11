@@ -28,11 +28,11 @@ class ProductsApi:
                         'X-Shopify-API-Version': '2019-07'
                         }
 
-    def create_webhook(self, topic=None, send_hmac=True):
+    def create_webhook(self, topic, address, send_hmac=True):
         data = {
             "webhook": {
-                "topic": "orders/create",
-                "address": "https://whatever.hostname.com/",
+                "topic": topic,
+                "address": address,
                 "format": "json"
             }}
 
@@ -94,7 +94,9 @@ if __name__ == '__main__':
     callback_uri = "http://www.orderplus.com/index.html"
     id = "3583116148816"
     shop_uri = "charrcter.myshopify.com"
+    address = "https://whatever.hostname.com/"
+    topic = "orders/create"
     products_api = ProductsApi()
-    products_api.create_webhook(topic="orders/create")
+    products_api.create_webhook(topic=topic, address=address)
     # products_api.get_all_webhook()
     # products_api.delete_webhook(webhook_id="503251730505")
