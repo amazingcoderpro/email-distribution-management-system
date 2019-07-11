@@ -34,10 +34,8 @@ class ShopifyCallback(APIView):
             user_instance.save()
             email = user_instance.email
         else:
-            from django.db import connection
             store_data = {"name": shop_name, "url": shop, "token": result["data"], "hmac":hmac}
             instance = models.Store.objects.create(**store_data)
-            print(connection.queries)
             info = ProductsApi(access_token=result["data"], shop_uri=shop).get_shop_info()
             email = info["data"]["shop"]["email"]
             user_data = {"username": shop, "email": email, "is_active": 0, "code": random_code.create_random_code(6, True)}
