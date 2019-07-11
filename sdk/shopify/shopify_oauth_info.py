@@ -71,7 +71,6 @@ if __name__ == '__main__':
     # ShopifyBase = ShopifyBase(shop_uri="ordersea.myshopify.com")
 
     # shopify 授权获取的url
-    ShopifyBase = ShopifyBase(shop_uri="tiptopfree.myshopify.com")
-    url = ShopifyBase.ask_permission(nonce="tiptopfree")
+    ShopifyBase = ShopifyBase(shop_uri="markepink.myshopify.com")
+    url = ShopifyBase.ask_permission(nonce="markepink")
     print(url)
-
