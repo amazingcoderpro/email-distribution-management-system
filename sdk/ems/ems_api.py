@@ -229,7 +229,7 @@ class ExpertSender:
         :param email: 邮件地址
         :return:
         """
-        url = f"{self.host}Api/Subscribers?apiKey={self.api_key}&email={email}&option=Full"
+        url = f"{self.host}Api/Subscribers?apiKey={self.api_key}&email={email}&option=EventsHistory"
         try:
             result = requests.get(url)
             return self.retrun_result("get subscriber statistics", result)
@@ -285,7 +285,7 @@ if __name__ == '__main__':
     # print(ems.get_messages(318))
     # print(ems.create_subscribers_list("Test001"))
     # print(ems.add_subscriber(26, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
-    # print(ems.get_subscriber_activity("Opens"))
-    print(ems.get_subscriber_information("twobercancan@126.com"))
+    print(ems.get_subscriber_activity("Opens"))
+    # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
     # print(ems.get_summary_statistics(63))
