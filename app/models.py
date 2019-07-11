@@ -28,7 +28,7 @@ class Store(models.Model):
     token = models.CharField(blank=True, null=True, max_length=255, verbose_name="账号使用标识")
     hmac = models.CharField(blank=True, null=True, max_length=255, verbose_name="hmac")
     timezone = models.CharField(blank=True, null=True, max_length=255, verbose_name="店铺的时区")
-    shop_alias = models.CharField(blank=True, null=True, max_length=255, verbose_name="your shop")
+    # shop_alias = models.CharField(blank=True, null=True, max_length=255, verbose_name="your shop")
     sender = models.CharField(blank=True, null=True, max_length=255, verbose_name="sender")
     letter_domain = models.CharField(blank=True, null=True, max_length=255, verbose_name="letter_domain")
     news_domain = models.CharField(blank=True, null=True, max_length=255, verbose_name="news_domain")
@@ -63,6 +63,7 @@ class Dashboard(models.Model):
     total_click_rate = models.FloatField(default=0, verbose_name="Click Rate")
     total_unsubscribe_rate = models.FloatField(default=0, verbose_name="Unsubscribe Rate")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -93,6 +94,7 @@ class EmailTemplate(models.Model):
     click_rate = models.DecimalField(default=0.00, max_digits=3, decimal_places=2, verbose_name="邮件单击率")
     unsubscribe_rate = models.DecimalField(default=0.00, max_digits=3, decimal_places=2, verbose_name="邮件退订率")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -111,6 +113,7 @@ class EmailTrigger(models.Model):
     trigger_info = models.TextField(blank=True, null=False, verbose_name="trigger关系")
     email_delay = models.TextField(blank=True, null=False, verbose_name="发送邮件顺序")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -133,6 +136,7 @@ class CustomerGroup(models.Model):
     relation_info = models.TextField(blank=True, null=False, verbose_name="客户关系")
     customer_list = models.TextField(blank=True, null=False, verbose_name="对应客户列表")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -170,6 +174,7 @@ class Customer(models.Model):
     # clicked_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户单击邮箱次数")
 
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -185,6 +190,7 @@ class SubscriberActivity(models.Model):
     type = models.SmallIntegerField(default=0, verbose_name="客户操作类型")
 
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -199,6 +205,7 @@ class ProductCategory(models.Model):
     url = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品类目标题url")
     category_id = models.CharField(db_index=True, max_length=255,blank=True, null=True, verbose_name="产品类目id")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING, blank=True, null=True)
+    #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
@@ -219,7 +226,8 @@ class Product(models.Model):
     price = models.CharField(max_length=255, verbose_name="产品价格")
     product_category = models.ForeignKey(ProductCategory, on_delete=models.DO_NOTHING,blank=True, null=True)
     tag = models.CharField(max_length=255, verbose_name="所属标签")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    store_id = models.IntegerField(verbose_name="店铺id")
     publish_time = models.DateTimeField(blank=True, null=True, verbose_name="发布时间")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")

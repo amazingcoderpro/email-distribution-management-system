@@ -40,7 +40,7 @@ class ShopifyCallback(APIView):
             instance.name = info["data"]["shop"]["name"]
             instance.sender = info["data"]["shop"]["name"]
             instance.timezone = info["data"]["shop"]["timezone"]
-            instance.customer_shop = info["data"]["shop"]["domain"]
+            instance.customer_shop = shop
             instance.customer_email = info["data"]["shop"]["customer_email"]
             email = info["data"]["shop"]["email"]
             user_data = {"username": shop, "email": email, "is_active": 0, "code": random_code.create_random_code(6, True)}

@@ -30,12 +30,12 @@ class StoreSerializer(serializers.ModelSerializer):
                   "name",
                   "url",
                   "email",
-                  "shop_alias",
                   "sender",
                   "letter_domain",
                   "news_domain",
                   "message_domain",
                   "customer_shop",
+                  "customer_email",
                   "timezone",
                   "update_time",
                   "store_view_id")
