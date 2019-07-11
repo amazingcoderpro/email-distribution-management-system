@@ -7,7 +7,7 @@ from app import models
 from app.pageNumber.pageNumber import PNPagination
 from app.serializers import service
 from app.filters import service as service_filter
-from app.permission.permission import CustomerGroupOptPermission
+from app.permission.permission import CustomerGroupOptPermission, StorePermission
 
 
 class CustomerGroupView(generics.ListCreateAPIView):
@@ -25,4 +25,21 @@ class CustomerGroupOptView(generics.RetrieveUpdateAPIView):
     queryset = models.CustomerGroup.objects.all()
     serializer_class = service.CustomerGroupSerializer
     permission_classes = (IsAuthenticated, CustomerGroupOptPermission)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+
+class StoreView(generics.ListAPIView):
+    """店铺 展示"""
+    queryset = models.Store.objects.all()
+    serializer_class = service.StoreSerializer
+    filter_backends = (service_filter.StoreFilter,)
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+
+class StoreOperView(generics.UpdateAPIView):
+    """店铺 改"""
+    queryset = models.Store.objects.all()
+    serializer_class = service.StoreSerializer
+    permission_classes = (IsAuthenticated, StorePermission)
     authentication_classes = (JSONWebTokenAuthentication,)
