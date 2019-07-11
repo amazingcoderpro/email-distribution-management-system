@@ -23,6 +23,10 @@ v1_urlpatterns = [
     url(r'^customer_group/$', service.CustomerGroupView.as_view()),
     url(r'^customer_group/(?P<pk>[0-9]+)/$', service.CustomerGroupOptView.as_view()),
 
+    # 店铺管理
+    url(r'store/$', service.StoreView.as_view()),
+    url(r'store/(?P<pk>[0-9]+)/$', service.StoreOperView.as_view()),
+
 ]
 
 urlpatterns = [

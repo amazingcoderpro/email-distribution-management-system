@@ -20,3 +20,10 @@ class CustomerGroupFilter(BaseFilterBackend):
                     continue
                 filte_kwargs[self.filter_keys[filter_key]] = val
         return queryset.filter(**filte_kwargs)
+
+
+class StoreFilter(BaseFilterBackend):
+    """Store过滤"""
+
+    def filter_queryset(self, request, queryset, view):
+        return queryset.filter(user=request.user)
