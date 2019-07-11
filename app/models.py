@@ -68,6 +68,7 @@ class Dashboard(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
+        managed = False
         db_table = 'dashboard'
 
 
@@ -99,7 +100,7 @@ class EmailTemplate(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        # managed = False
+        managed = False
         db_table = 'email_template'
 
 
@@ -118,7 +119,7 @@ class EmailTrigger(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        # managed = False
+        managed = False
         db_table = 'email_trigger'
 
 
@@ -141,7 +142,7 @@ class CustomerGroup(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        # managed = False
+        managed = False
         db_table = 'customer_group'
 
 
@@ -179,6 +180,7 @@ class Customer(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
+        managed = False
         db_table = 'customer'
 
 
@@ -195,6 +197,7 @@ class SubscriberActivity(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
+        managed = False
         db_table = 'subscriber_activity'
         unique_together = ("opt_time", "email", "type")
 
@@ -210,7 +213,7 @@ class ProductCategory(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        # managed = False
+        managed = False
         unique_together = ("category_id", "store")
         db_table = 'product_category'
 
@@ -234,6 +237,6 @@ class Product(models.Model):
     url_with_utm = models.CharField(db_index=True, blank=True, null=True, max_length=255, verbose_name=u"产品的带utm构建的url")
 
     class Meta:
-        # managed = False
+        managed = False
         unique_together = ("product_category", "uuid")
         db_table = 'product'
