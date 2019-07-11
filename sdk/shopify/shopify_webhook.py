@@ -4,7 +4,7 @@ from config import logger
 import json
 from config import SHOPIFY_CONFIG
 import six
-# from helpers import get_hmac
+from sdk.shopify.helpers import get_hmac
 
 
 class ProductsApi:
@@ -23,35 +23,61 @@ class ProductsApi:
         self.shop_uri = shop_uri
         self.scopes = SHOPIFY_CONFIG.get("scopes")
         self.callback_uri = SHOPIFY_CONFIG.get("callback_uri")
-        self.version_url = "/admin/api/2019-04/"
-        # self.headers = {'Content-Type': 'application/json',
-        #                 "X-Shopify-Topic": "orders/create",
-        #                 "X-Shopify-Hmac-Sha256": "590557930c793519038b795fbb0b157a8dbf40f42ecb29e58436c1dce0423a75",
-        #                 "X-Shopify-Shop-Domain": shop_uri,
-        #                 "X-Shopify-API-Version": "2019-04"}
+        self.version_url = "/admin/api/2019-07/"
+        self.headers = {'Content-Type': 'application/json',
+                        'X-Shopify-API-Version': '2019-07'
+                        }
 
-    def create_webhook_order(self, topic=None, domain=None, data=None, headers=None, send_hmac=True):
-        headers = {} if headers is None else headers
-        headers['HTTP_X_SHOPIFY_TEST'] = 'true'
-        headers['HTTP_X_SHOPIFY_SHOP_DOMAIN'] = domain
+    def create_webhook(self, topic=None, send_hmac=True):
+        data = {
+            "webhook": {
+                "topic": "orders/create",
+                "address": "https://whatever.hostname.com/",
+                "format": "json"
+            }}
 
-        # Add optional headers.
+        if shop_uri:
+            self.headers['X_Shopify_Shop_Domain'] = self.shop_uri
         if topic:
-            headers['HTTP_X_SHOPIFY_TOPIC'] = topic
+            self.headers['X_Shopify_Topic'] = topic
         if send_hmac:
-            headers['HTTP_X_SHOPIFY_HMAC_SHA256'] = six.text_type(
-                get_hmac(six.b(data), self.client_secret))
+            self.headers['X_Shopify_Hmac_Sha256'] = six.text_type(get_hmac(six.b(json.dumps(data)), self.client_secret))
 
         shop_webhook_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}webhooks.json"
-        body ={
-                "webhook": {
-                 "topic": "orders/create",
-                 "address": "https://whatever.hostname.com/",
-                 "format": "json"
-                }}
+
         try:
-            result = requests.post(shop_webhook_url, json.dumps(body), self.headers)
-            if result.status_code == 200:
+            result = requests.post(shop_webhook_url, data=json.dumps(data), headers=self.headers)
+            if result.status_code in [200, 201]:
+                logger.info("get shopify all collections info is success")
+                res_dict = json.loads(result.text)
+                return {"code": 1, "msg": "", "data": res_dict}
+            else:
+                logger.info("get shopify all collections info is failed")
+                return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
+        except Exception as e:
+            logger.error("get shopify all collections info is failed info={}".format(str(e)))
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def get_all_webhook(self):
+        shop_webhook_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}webhooks.json"
+        try:
+            result = requests.get(shop_webhook_url)
+            if result.status_code in [200, 201]:
+                logger.info("get shopify all collections info is success")
+                res_dict = json.loads(result.text)
+                return {"code": 1, "msg": "", "data": res_dict}
+            else:
+                logger.info("get shopify all collections info is failed")
+                return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
+        except Exception as e:
+            logger.error("get shopify all collections info is failed info={}".format(str(e)))
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def delete_webhook(self, webhook_id):
+        shop_webhook_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}webhooks/{webhook_id}.json"
+        try:
+            result = requests.delete(shop_webhook_url)
+            if result.status_code in [200, 201]:
                 logger.info("get shopify all collections info is success")
                 res_dict = json.loads(result.text)
                 return {"code": 1, "msg": "", "data": res_dict}
@@ -69,4 +95,6 @@ if __name__ == '__main__':
     id = "3583116148816"
     shop_uri = "charrcter.myshopify.com"
     products_api = ProductsApi()
-    products_api.create_webhook_order()
+    products_api.create_webhook(topic="orders/create")
+    # products_api.get_all_webhook()
+    # products_api.delete_webhook(webhook_id="503251730505")
