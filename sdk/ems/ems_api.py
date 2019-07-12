@@ -20,6 +20,8 @@ class ExpertSender:
     @staticmethod
     def xmltojson(xmlstr, type):
         # parse是的xml解析器
+        if not xmlstr.strip():
+            return {}
         xmlparse = xmltodict.parse(xmlstr)
         jsonstr = json.dumps(xmlparse, indent=1)
         return json.loads(jsonstr)["ApiResponse"].get(type)
@@ -129,6 +131,21 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
+    def pause_or_resume_newsletter(self, action, emailId):
+        """所有状态为 “InProgress” （进行中）的Newsletter都可以被暂停. 只有状态为 “Paused” （暂停）的Newsletters 可以被继续.
+        :param action: PauseMessage 或者 ResumeMessage
+        :param emailId: 邮件ID
+        """
+        url = f"{self.host}Api/Newsletters/{emailId}"
+        data = {"ApiRequest": {
+            "ApiKey": self.api_key,
+            "Action": action}}
+        try:
+            result = requests.post(url, self.jsontoxml(data), headers=self.headers)
+            return self.retrun_result("pause or resume newsletter", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
     def create_subscribers_list(self, name, isSeedList=False):
         """
         创建收件人列表
@@ -195,6 +212,23 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
+    def delete_subscriber(self, email, listId=None):
+        """
+        删除收件人
+        :param listId: 指定列表ID,若未指定，则针对所有列表删除
+        :param email: email 地址
+        :return:
+        """
+        if listId:
+            url = f"{self.host}Api/Subscribers?apiKey={self.api_key}&email={email}&listId={listId}"
+        else:
+            url = f"{self.host}Api/Subscribers?apiKey={self.api_key}&email={email}"
+        try:
+            result = requests.delete(url)
+            return self.retrun_result("delete subscriber", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
     def get_subscriber_activity(self, types, date=datetime.datetime.today().date()):
         """
         获取收件人行为记录
@@ -238,11 +272,11 @@ class ExpertSender:
 
     def get_summary_statistics(self, segmentId):
         """
-        获取细分组信息
+        获取细分组信息/列表组信息
         :param segmentId:细分ID
         :return:
         """
-        url = f"{self.host}Api/SummaryStatistics?apiKey={self.api_key}&scope=Segment&scopeValue={segmentId}"
+        url = f"{self.host}Api/SummaryStatistics?apiKey={self.api_key}&scope=List&scopeValue={segmentId}"
         try:
             result = requests.get(url)
             return self.retrun_result("get summary statistics", result)
@@ -280,12 +314,14 @@ if __name__ == '__main__':
 </body>
 </html>"""
     ems = ExpertSender("0x53WuKGWlbq2MQlLhLk", "leemon.li@orderplus.com")
+    print(ems.get_server_time())
     # print(ems.get_message_statistics(318))
     # print(ems.create_and_send_newsletter(25, "HelloWorld","expertsender",html_b)) # ,"2019-07-09 21:09:00"
     # print(ems.get_messages(318))
     # print(ems.create_subscribers_list("Test001"))
     # print(ems.add_subscriber(26, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
-    print(ems.get_subscriber_activity("Opens"))
+    # print(ems.get_subscriber_activity("Opens"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
     # print(ems.get_summary_statistics(63))
+    # print(ems.delete_subscriber("leemon.li@orderplus.com", 26))
