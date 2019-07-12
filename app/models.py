@@ -96,7 +96,6 @@ class EmailTemplate(models.Model):
         db_table = 'email_template'
 
 
-<<<<<<< HEAD
 class EmailRecord(models.Model):
     uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="邮件ID")
     subject = models.TextField(blank=True, null=False, verbose_name="邮件标题")
@@ -117,7 +116,8 @@ class EmailRecord(models.Model):
 
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-=======
+
+
 # class EmailRecord(models.Model):
 #     uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="邮件ID")
 #     customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
@@ -137,7 +137,6 @@ class EmailRecord(models.Model):
 #     class Meta:
 #         managed = False
 #         db_table = 'email_record'
->>>>>>> 43f1587eb42c924ce984b81cf5fec17d59e74386
 
 
 class EmailTrigger(models.Model):
