@@ -86,6 +86,10 @@ class EmailTemplate(models.Model):
     send_rule = models.TextField(blank=True, null=False, verbose_name="发送邮件规则")
     state_choices = ((0, '定时邮件'), (1, '触发邮件'))
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件模板类型")
+<<<<<<< HEAD
+=======
+
+>>>>>>> caafe56e472b8a32d7dd320f23b401666642d03c
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
@@ -103,6 +107,10 @@ class EmailRecord(models.Model):
     store_id = models.IntegerField(verbose_name="店铺id")
     state_choices = ((0, '定时邮件'), (1, '触发邮件'))
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件模板类型")
+<<<<<<< HEAD
+=======
+    
+>>>>>>> caafe56e472b8a32d7dd320f23b401666642d03c
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
     clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
@@ -112,6 +120,10 @@ class EmailRecord(models.Model):
     unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件退订率")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
+<<<<<<< HEAD
+=======
+
+>>>>>>> caafe56e472b8a32d7dd320f23b401666642d03c
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
