@@ -58,9 +58,9 @@ class ProductsApi:
 
 
 if __name__ == '__main__':
-    access_token = "d34263b34fa4eff4003ed20c0d5d3ef3"
+    access_token = "d1063808be79897450ee5030e1c163ef"
     shop = "mrbeauti.myshopify.com"
     id = "3583116148816"
-    shop_uri = "mrbeauti.myshopify.com"
+    shop_uri = "charrcter.myshopify.com"
     products_api = ProductsApi(access_token=access_token, shop_uri=shop_uri)
     print(products_api.get_all_customers())
