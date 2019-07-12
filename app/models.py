@@ -86,7 +86,6 @@ class EmailTemplate(models.Model):
     send_rule = models.TextField(blank=True, null=False, verbose_name="发送邮件规则")
     state_choices = ((0, '定时邮件'), (1, '触发邮件'))
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件模板类型")
-<<<<<<< HEAD
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
@@ -104,16 +103,6 @@ class EmailRecord(models.Model):
     store_id = models.IntegerField(verbose_name="店铺id")
     state_choices = ((0, '定时邮件'), (1, '触发邮件'))
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件模板类型")
-    
-    sents = models.IntegerField(default=0, verbose_name="发送量")
-    opens = models.IntegerField(default=0, verbose_name="打开量")
-    clicks = models.IntegerField(default=0, verbose_name="点击量")
-    unsubscribes = models.IntegerField(default=0, verbose_name="退订量")
-    open_rate = models.DecimalField(default=0.00, max_digits=3, decimal_places=2, verbose_name="邮件打开率")
-    click_rate = models.DecimalField(default=0.00, max_digits=3, decimal_places=2, verbose_name="邮件单击率")
-    unsubscribe_rate = models.DecimalField(default=0.00, max_digits=3, decimal_places=2, verbose_name="邮件退订率")
-
-=======
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
     clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
@@ -123,7 +112,6 @@ class EmailRecord(models.Model):
     unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件退订率")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
->>>>>>> f8c19394984d57af3574eacd11d317d851359815
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
