@@ -43,7 +43,7 @@ class DBUtil:
 
 
 class TaskProcessor:
-    def update_shopify_cuntomers(self, store_token, store_url):
+    def update_shopify_cuntomers(self):
         """
         1. 更新所有客戶的信息
         2. 获取所有店铺的所有类目，并保存至数据库
@@ -54,27 +54,33 @@ class TaskProcessor:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
-            papi = ProductsApi(store_token, store_url)
-            # 更新店铺信息
-            ret = papi.get_all_customers()
-            if ret["code"] == 1:
-                customer_info = ret["data"].get("customers", "")
-                for customer in customer_info:
-                    customer_id = customer.get("id", "")
-                    customer_email = customer.get("email", "")
-                    accepts_marketing = customer.get("accepts_marketing", "")
-                    created_at = customer.get("created_at", "")
-                    state = customer.get("state", "")
-                    customer_name = customer.get("first_name", "")+customer.get("last_name", "")
+            cursor.execute(
+                """select store.id, store.token, store.url from store left join user on store.user_id = user.id where user.is_active = 1""")
+            stores = cursor.fetchall()
 
-                    # shop_myshopify_domain = shop.get("myshopify_domain", "")
-                    cursor.execute('''insert into `customer` (`id`, `name`, `customer_email`, `accept_marketing_status`, `sign_up_time`, `create_time`)
-                                    values (%s, %s, %s, %s, %s, %s)''',
-                                   (customer_id, customer_name, customer_email, accepts_marketing, created_at,
-                                    datetime.datetime.strptime(created_at[0:-6], "%Y-%m-%dT%H:%M:%S")))
-                    conn.commit()
-            else:
-                logger.warning("get shop info failed. ret={}".format(ret))
+            for store in stores:
+                store_id, store_token, store_url = store
+                papi = ProductsApi(store_token, store_url)
+                # 更新店铺信息
+                ret = papi.get_all_customers()
+                if ret["code"] == 1:
+                    customer_info = ret["data"].get("customers", "")
+                    for customer in customer_info:
+                        customer_id = customer.get("id", "")
+                        customer_email = customer.get("email", "")
+                        accepts_marketing = customer.get("accepts_marketing", "")
+                        created_at = customer.get("created_at", "")
+                        state = customer.get("state", "")
+                        payment_amount = customer.get("last_name", "")
+                        customer_name = customer.get("first_name", "")+customer.get("last_name", "")
+
+                        # shop_myshopify_domain = shop.get("myshopify_domain", "")
+                        cursor.execute('''insert into `customer` (`name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
+                                        values (%s, %s, %s, %s, %s, %s, %s)''',
+                                       (customer_name, customer_email, accepts_marketing, store_id, payment_amount,  datetime.datetime.now(), datetime.datetime.now()))
+                        conn.commit()
+                else:
+                    logger.warning("get shop info failed. ret={}".format(ret))
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
             return False
@@ -96,4 +102,4 @@ if __name__ == '__main__':
     access_token = "d1063808be79897450ee5030e1c163ef"
     id = "3583116148816"
     shop_uri = "charrcter.myshopify.com"
-    TaskProcessor().update_shopify_cuntomers(store_token=access_token, store_url=shop_uri)
+    TaskProcessor().update_shopify_cuntomers()
