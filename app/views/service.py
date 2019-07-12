@@ -20,12 +20,16 @@ class CustomerGroupView(generics.ListCreateAPIView):
     authentication_classes = (JSONWebTokenAuthentication,)
 
 
-class CustomerGroupOptView(generics.RetrieveUpdateAPIView):
+class CustomerGroupOptView(generics.DestroyAPIView):
     """客户组编辑 删除"""
     queryset = models.CustomerGroup.objects.all()
     serializer_class = service.CustomerGroupSerializer
     permission_classes = (IsAuthenticated, CustomerGroupOptPermission)
     authentication_classes = (JSONWebTokenAuthentication,)
+
+    def perform_destroy(self, instance):
+        instance.state = 2
+        instance.save()
 
 
 class StoreView(generics.ListAPIView):
@@ -38,7 +42,7 @@ class StoreView(generics.ListAPIView):
 
 
 class StoreOperView(generics.UpdateAPIView):
-    """店铺 改"""
+    """店铺 改 删"""
     queryset = models.Store.objects.all()
     serializer_class = service.StoreSerializer
     permission_classes = (IsAuthenticated, StorePermission)

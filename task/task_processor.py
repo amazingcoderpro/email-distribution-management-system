@@ -12,7 +12,7 @@ import requests
 import re
 
 from sdk.shopify.get_shopify_data import ProductsApi
-from config import logger
+from config import logger, SHOPIFY_CONFIG
 
 MYSQL_PASSWD = os.getenv('MYSQL_PASSWD', None)
 MYSQL_HOST = os.getenv('MYSQL_HOST', None)
