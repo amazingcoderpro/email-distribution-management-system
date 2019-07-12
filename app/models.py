@@ -159,7 +159,7 @@ class CustomerGroup(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        #managed = False
+        managed = False
         db_table = 'customer_group'
 
 
@@ -183,7 +183,7 @@ class Customer(models.Model):
     accept_marketing_status = models.SmallIntegerField(db_index=True, choices=accept_marketing_choices, blank=True,
                                                 null=True, verbose_name="")
 
-    payment_amount = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户付款金额")
+    payment_amount = models.CharField(blank=True, null=True, max_length=255, verbose_name="客户付款金额")
 
     # last_opened_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后打开邮箱时间")
     # opened_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户打开邮箱次数")
@@ -191,13 +191,13 @@ class Customer(models.Model):
     # last_click_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后单击邮箱时间")
     # clicked_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户单击邮箱次数")
 
-    #store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    store_id = models.IntegerField(verbose_name="店铺id")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        #managed = False
+        managed = False
         db_table = 'customer'
 
 
