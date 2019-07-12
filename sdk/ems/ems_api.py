@@ -160,7 +160,7 @@ class ExpertSender:
 
     def create_subscribers_list(self, name, isSeedList=False):
         """
-        创建收件人列表
+        创建收件人列表http://sms.expertsender.cn/api/v2/methods/create-subscribers-list/
         :param name: 列表名称
         :param isSeedList: 标记说明创建列表是收件人列表还是测试列表. 选填. 默认值是“false”（收件人列表）
         :return: 列表ID
@@ -180,22 +180,66 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_subscriber_lists(self, seedLists=False):
+    def get_subscriber_lists(self, listId, seedLists=False):
         """
-        获取收件人列表
+        获取收件人列表http://sms.expertsender.cn/api/v2/methods/get-subscriber-lists/
         :param seedLists: 如设为 ‘true’, 只有测试列表会被返回. 如果设为 ‘false’, 只有收件人列表会被返回.
         :return:
         """
-        url = f"{self.host}Api/Lists?apiKey={self.api_key}&seedLists={seedLists}"
+        url = f"{self.host}Api/Lists/{listId}?apiKey={self.api_key}&seedLists={seedLists}"
         try:
             result = requests.get(url)
             return self.retrun_result("get subscriber lists", result)
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
+    def get_list_or_segment_data(self, queryId, types="List"):
+        """
+        通过listId或者segmentId获取其下email
+        http://sms.expertsender.cn/api/v2/methods/start-a-new-export/
+        :param queryId:
+        :param types:
+        :return:
+        """
+        url = f"{self.host}Api/Exports"
+        data = {"ApiRequest": {
+            "ApiKey": self.api_key,
+            "Data": {
+                "Type": types,
+                "Fields": {"Field": ["Email"]}}}
+            }
+
+        if types == "List":
+            data["ApiRequest"]["Data"].update({"ListId": queryId})
+        elif types == "Segment":
+            data["ApiRequest"]["Data"].update({"SegmentId": queryId})
+        else:
+            return {"code": -1, "msg": "types input error, select 'List' or 'Segment'", "data": ""}
+        try:
+            result = requests.post(url, self.jsontoxml(data), headers=self.headers)
+            return self.retrun_result("add subscriber", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def get_export_progress(self, exportId):
+        """
+        获取数据导出进度http://sms.expertsender.cn/api/v2/methods/get-export-progress/
+        :param exportId: 导出任务ID
+        :return:
+        """
+        url = f"{self.host}Api/Exports/{exportId}?apiKey={self.api_key}"
+        try:
+            result = requests.get(url)
+            result = self.retrun_result("get export progress", result)
+            if result["code"] != 1 or result["data"]["Status"]!="Completed":
+                result["code"] = 2
+            return result
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
     def add_subscriber(self, listId, emailList):
         """
-        添加收件人
+        添加收件人http://sms.expertsender.cn/api/v2/methods/subscribers/add-subscriber/
         :param listId: 收件人列表ID
         :param emailList: 需要添加的email列表
         :return:
@@ -211,11 +255,6 @@ class ExpertSender:
                     "Mode": "AddAndUpdate",
                     "ListId": listId,
                     "Email": email,
-                    # "Firstname": "John",
-                    # "Lastname": "Smith",
-                    # "TrackingCode": "123",
-                    # "Vendor": "xyz",
-                    # "Ip": "11.22.33.44"
                 }
             )
         try:
@@ -226,7 +265,7 @@ class ExpertSender:
 
     def delete_subscriber(self, email, listId=None):
         """
-        删除收件人
+        删除收件人http://sms.expertsender.cn/api/v2/methods/subscribers/delete-subscriber/
         :param listId: 指定列表ID,若未指定，则针对所有列表删除
         :param email: email 地址
         :return:
@@ -241,9 +280,27 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
+    def clear_subscriber(self, listId, csvUrl):
+        """
+        清空收件人列表所有收件人http://sms.expertsender.cn/api/v2/methods/imports/import-subscribers-to-list/
+        """
+        url = f"{self.host}Api/ImportToListTasks"
+        data = {"ApiRequest": {
+            "ApiKey": self.api_key,
+            "Data": {
+                "Source": {"Url": csvUrl},
+                "Target": {"Name": "clear subscriber", "SubscriberList": listId},
+                "ImportSetup": {"Mode": "Synchronize"}}
+            }}
+        try:
+            result = requests.post(url, self.jsontoxml(data), headers=self.headers)
+            return self.retrun_result("clear subscriber", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
     def get_subscriber_activity(self, types, date=datetime.datetime.today().date()):
         """
-        获取收件人行为记录
+        获取收件人行为记录http://sms.expertsender.cn/api/v2/methods/subscribers/get-subscriber-activity/
         :param types: Subscriptions, Confirmations, Sends, Opens, Clicks, Complaints, Removals, Bounces,Goals
         :param date: 默认为今天
         :return: csv文件
@@ -258,7 +315,7 @@ class ExpertSender:
 
     def get_subscriber_statistics(self, listId):
         """
-        获取列表统计数据
+        获取列表统计数据http://sms.expertsender.cn/api/v2/methods/email-statistics/get-subscriber-statistics/
         :param listId: 收件人列表ID
         :return:{'SubscriberStatistics': {'SubscriberStatistic': {'IsSummaryRow': 'true', 'ListSize': '1', 'Growth': '1', 'Added': '1', 'AddedUi': '1', 'AddedImport': '0', 'AddedApi': '0', 'AddedWeb': '0', 'Removed': '0', 'RemovedOptOut': '0', 'RemovedUser': '0', 'RemovedBounceLimit': '0', 'RemovedSpam': '0', 'RemovedUserUnknown': '0', 'RemovedBlacklist': '0', 'RemovedApi': '0', 'RemovedImport': '0'}}}
         """
@@ -271,7 +328,7 @@ class ExpertSender:
 
     def get_subscriber_information(self, email):
         """
-        获取收件人信息
+        获取收件人信息http://sms.expertsender.cn/api/v2/methods/subscribers/get-subscriber-information/
         :param email: 邮件地址
         :return:
         """
@@ -282,13 +339,15 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_summary_statistics(self, segmentId):
+    def get_summary_statistics(self, queryId, types="List"):
         """
         获取细分组信息/列表组信息
-        :param segmentId:细分ID
+        接口Url：http://sms.expertsender.cn/api/v2/methods/sms-mms-statistics/get-summary-statistics/
+        :param queryId:细分ID或者列表ID
+        :param types:查询类型 "List" or "Segment"
         :return:
         """
-        url = f"{self.host}Api/SummaryStatistics?apiKey={self.api_key}&scope=List&scopeValue={segmentId}"
+        url = f"{self.host}Api/SummaryStatistics?apiKey={self.api_key}&scope={types}&scopeValue={queryId}"
         try:
             result = requests.get(url)
             return self.retrun_result("get summary statistics", result)
@@ -296,7 +355,9 @@ class ExpertSender:
             return {"code": -1, "msg": str(e), "data": ""}
 
     def get_subscriber_segments(self):
-        """获取所有细分组"""
+        """
+        获取所有细分组http://sms.expertsender.cn/api/v2/methods/subscribers/get-subscriber-segments/
+        """
         url = f"{self.host}Api/Segments?apiKey={self.api_key}"
         try:
             result = requests.get(url)
@@ -304,6 +365,17 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
+    def get_list_of_tables(self):
+        """
+        获取数据表格信息http://sms.expertsender.cn/api/v2/methods/data-tables/get-list-of-tables/
+        :return:
+        """
+        url = f"{self.host}Api/DataTablesGetTables?apiKey={self.api_key}"
+        try:
+            result = requests.get(url)
+            return self.retrun_result("get summary statistics", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
 
 if __name__ == '__main__':
     html_b = """<!DOCTYPE html>
@@ -331,9 +403,12 @@ if __name__ == '__main__':
     # print(ems.create_and_send_newsletter(25, "HelloWorld","expertsender",html_b)) # ,"2019-07-09 21:09:00"
     # print(ems.get_messages(318))
     # print(ems.create_subscribers_list("Test001"))
-    # print(ems.add_subscriber(26, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
-    print(ems.get_subscriber_activity("Opens", "2019-07-11"))
+    # print(ems.get_subscriber_activity("Sends", "2019-07-11"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
     # print(ems.get_summary_statistics(63))
     # print(ems.delete_subscriber("leemon.li@orderplus.com", 26))
+    # print(ems.get_list_or_segment_data(25))  # 11
+    # print(ems.get_export_progress(11))  # 11
+    # print(ems.clear_subscriber(25, ""))  # 11
+    # print(ems.add_subscriber(25, ["limengqiAliase@163.com", "leemon.li@orderplus.com"]))

@@ -104,7 +104,7 @@ class EmailRecord(models.Model):
     store_id = models.IntegerField(verbose_name="店铺id")
     state_choices = ((0, '定时邮件'), (1, '触发邮件'))
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件模板类型")
-    
+
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
     clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
