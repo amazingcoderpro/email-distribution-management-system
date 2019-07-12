@@ -34,6 +34,7 @@ class ExpertSender:
 
     @staticmethod
     def delete_space(html):
+        # 删除html中的空行、空格、换行
         rexp = re.compile("\s")
         return ''.join(rexp.split(html))
 
@@ -48,7 +49,9 @@ class ExpertSender:
             return {"code": 2, "msg": msg, "data": ""}
 
     def get_server_time(self):
-        """获取服务器时间"""
+        """获取服务器时间
+        接口Url：http://sms.expertsender.cn/api/v2/methods/get-server-time/
+        """
         url = f"{self.host}Api/Time?apiKey={self.api_key}"
         try:
             result = requests.get(url)
@@ -57,7 +60,9 @@ class ExpertSender:
             return {"code": -1, "msg": str(e), "data": ""}
 
     def get_messages(self, emailID=None):
-        """获取已发送邮件列表"""
+        """获取已发送邮件列表
+        接口Url：http://sms.expertsender.cn/api/v2/methods/email-messages/get-messages-list/
+        """
         if emailID:
             url = f"{self.host}Api/Messages/{emailID}?apiKey={self.api_key}"
         else:
@@ -69,7 +74,9 @@ class ExpertSender:
             return {"code": -1, "msg": str(e), "data": ""}
 
     def get_bounces_list(self):
-        """获取弹回列表"""
+        """获取弹回列表
+        接口Url：http://sms.expertsender.cn/api/v2/methods/get-bounces-list/
+        """
         url = f"{self.host}Api/Bounces?apiKey={self.api_key}&startDate=2019-07-01&endDate=2019-07-08"
         try:
             result = requests.get(url)
@@ -80,6 +87,7 @@ class ExpertSender:
     def get_message_statistics(self, emailID, startDate="1970-01-01", endDate=datetime.datetime.today().date()):
         """
         获取邮件统计数据
+        接口Url：http://sms.expertsender.cn/api/v2/methods/email-statistics/get-message-statistics/
         :param emailID: 邮件ID
         :param startDate: 查询开始时间，默认为时间元年
         :param endDate: 查询结束时间，默认为今天
@@ -92,27 +100,28 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def create_and_send_newsletter(self, listId, subject, plain="", html="", deliveryDate=None, timeZone="UTC"):
+    def create_and_send_newsletter(self, listId, subject, plain="", html="", contentFromUrl=None, deliveryDate=None, timeZone="UTC"):
         """
         创建及发送Newsletter
+        接口Url：http://sms.expertsender.cn/api/v2/methods/email-messages/create-and-send-newsletter/
         :param listId: 发送列表ID
         :param subject: 邮件主题
         :param plain: 邮件纯文本
         :param html: html格式邮件内容
+        :param contentFromUrl: 外源下载时使用的Url
         :param deliveryDate: 指定发送日期，默认为及时发送
-        :return:
+        :return: 邮件ID
         """
         url = f"{self.host}Api/Newsletters"
         data = {"ApiRequest": {
                     "ApiKey": self.api_key,
-                    "Data":{
+                    "Data": {
                         "Recipients": {"SubscriberLists": [{"SubscriberList": listId}, ]},
                         "Content": {
                             "FromEmail": self.from_email,
                             "Subject": subject,
                             "Plain": plain,
                             "Html": "%s",
-                            # "ContentFromUrl": {"Url": "http://sources.aopcdn.com/edm/html/buzzyly/20190625/1561447955806.html"}
                         },
                         "DeliverySettings": {
                             "ThrottlingMethod": "Auto",
@@ -121,6 +130,8 @@ class ExpertSender:
                         }
                     }
         }}
+        if contentFromUrl:
+            data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": contentFromUrl})
         if deliveryDate:
             data["ApiRequest"]["Data"]["DeliverySettings"].update({"DeliveryDate": deliveryDate.replace(" ", "T")})
         try:
@@ -133,6 +144,7 @@ class ExpertSender:
 
     def pause_or_resume_newsletter(self, action, emailId):
         """所有状态为 “InProgress” （进行中）的Newsletter都可以被暂停. 只有状态为 “Paused” （暂停）的Newsletters 可以被继续.
+        接口Url：http://sms.expertsender.cn/api/v2/methods/email-messages/pause-or-resume-newsletter/
         :param action: PauseMessage 或者 ResumeMessage
         :param emailId: 邮件ID
         """
@@ -239,8 +251,8 @@ class ExpertSender:
         url = f"{self.host}Api/Activities?apiKey={self.api_key}&date={date}&type={types}"
         try:
             result = requests.get(url)
-            return result.text.split("\r\n")
-            # return result.text
+            # return result.text.split("\r\n")
+            return result.text
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
@@ -314,13 +326,13 @@ if __name__ == '__main__':
 </body>
 </html>"""
     ems = ExpertSender("0x53WuKGWlbq2MQlLhLk", "leemon.li@orderplus.com")
-    print(ems.get_server_time())
+    # print(ems.get_server_time())
     # print(ems.get_message_statistics(318))
     # print(ems.create_and_send_newsletter(25, "HelloWorld","expertsender",html_b)) # ,"2019-07-09 21:09:00"
     # print(ems.get_messages(318))
     # print(ems.create_subscribers_list("Test001"))
     # print(ems.add_subscriber(26, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
-    # print(ems.get_subscriber_activity("Opens"))
+    print(ems.get_subscriber_activity("Opens", "2019-07-11"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
     # print(ems.get_summary_statistics(63))
