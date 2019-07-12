@@ -96,25 +96,25 @@ class EmailTemplate(models.Model):
         db_table = 'email_template'
 
 
-class EmailRecord(models.Model):
-    uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="邮件ID")
-    customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
-    store_id = models.IntegerField(verbose_name="店铺id")
-    sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
-    opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
-    clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
-    unsubscribes = models.IntegerField(blank=True, null=True,  verbose_name="退订量")
-    open_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件打开率")
-    click_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件单击率")
-    unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件退订率")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(verbose_name="店铺id")
-    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-
-    class Meta:
-        managed = False
-        db_table = 'email_record'
+# class EmailRecord(models.Model):
+#     uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="邮件ID")
+#     customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
+#     store_id = models.IntegerField(verbose_name="店铺id")
+#     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
+#     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
+#     clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
+#     unsubscribes = models.IntegerField(blank=True, null=True,  verbose_name="退订量")
+#     open_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件打开率")
+#     click_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件单击率")
+#     unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件退订率")
+#     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+#     #store_id = models.IntegerField(verbose_name="店铺id")
+#     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+#     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+#
+#     class Meta:
+#         managed = False
+#         db_table = 'email_record'
 
 
 class EmailTrigger(models.Model):
