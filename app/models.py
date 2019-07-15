@@ -76,18 +76,20 @@ class Dashboard(models.Model):
 
 class EmailTemplate(models.Model):
     """邮件Info"""
-    subject = models.TextField(blank=True, null=False, verbose_name="邮件标题")
-    heading_text = models.TextField(blank=True, null=False, verbose_name="邮件")
-    logo = models.TextField(blank=True, null=False, verbose_name="邮件logo")
-    banner = models.TextField(blank=True, null=False, verbose_name="邮件banner")
-    headline = models.TextField(blank=True, null=False, verbose_name="邮件headline")
-    body_text = models.TextField(blank=True, null=False, verbose_name="邮件body_text")
-    product_list = models.TextField(blank=True, null=False, verbose_name="产品列表")
+    subject = models.TextField(verbose_name="邮件标题")
+    heading_text = models.TextField(verbose_name="邮件")
+    logo = models.TextField(verbose_name="邮件logo")
+    banner = models.TextField(verbose_name="邮件banner")
+    headline = models.TextField(verbose_name="邮件headline")
+    body_text = models.TextField(verbose_name="邮件body_text")
+    product_list = models.TextField(verbose_name="产品列表")
     # html = models.TextField(blank=True, null=False, verbose_name="邮件html")
-    customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
-    send_rule = models.TextField(blank=True, null=False, verbose_name="发送邮件规则")
-    state_choices = ((0, '定时邮件'), (1, '触发邮件'))
-    state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件模板类型")
+    customer_group_list = models.TextField(blank=True, null=True, verbose_name="邮件对应的客户组列表")
+    send_rule = models.TextField(verbose_name="发送邮件规则")
+    state_choices = ((0, '待解析'), (1, '已解析'), (2, '已删除'))
+    state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="状态")
+    send_type_choices = ((0, '定时邮件'), (1, '触发邮件'))
+    send_type = models.SmallIntegerField(db_index=True, choices=send_type_choices, default=0, verbose_name="邮件模板发送类型")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
@@ -98,25 +100,25 @@ class EmailTemplate(models.Model):
         db_table = 'email_template'
 
 
-# class EmailRecord(models.Model):
-#     uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="邮件ID")
-#     customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
-#     store_id = models.IntegerField(verbose_name="店铺id")
-#     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
-#     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
-#     clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
-#     unsubscribes = models.IntegerField(blank=True, null=True,  verbose_name="退订量")
-#     open_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件打开率")
-#     click_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件单击率")
-#     unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件退订率")
-#     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-#     #store_id = models.IntegerField(verbose_name="店铺id")
-#     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-#     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-#
-#     class Meta:
-#         managed = False
-#         db_table = 'email_record'
+class EmailRecord(models.Model):
+    uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="邮件ID")
+    customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
+    store_id = models.IntegerField(verbose_name="店铺id")
+    sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
+    opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
+    clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
+    unsubscribes = models.IntegerField(blank=True, null=True,  verbose_name="退订量")
+    open_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件打开率")
+    click_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件单击率")
+    unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件退订率")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(verbose_name="店铺id")
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    class Meta:
+        managed = False
+        db_table = 'email_record'
 
 
 class EmailTrigger(models.Model):
@@ -290,3 +292,17 @@ class Product(models.Model):
 #
 #     def __unicode__(self):
 #         return u'{}'.format(self.user_name)
+
+
+class SalesVolume(models.Model):
+    """销售量"""
+    three_val = models.TextField(blank=True, null=True, verbose_name="前三天的销售量")
+    seven_val = models.TextField(blank=True, null=True, verbose_name="前七天的销售量")
+    fifteen_val = models.TextField(blank=True, null=True, verbose_name="前十五天的销售量")
+    thirty_val = models.TextField(blank=True, null=True, verbose_name="前三十天的销售量")
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    class Meta:
+        managed = False
+        db_table = 'sales_volume'

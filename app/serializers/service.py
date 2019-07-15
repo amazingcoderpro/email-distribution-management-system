@@ -40,18 +40,23 @@ class StoreSerializer(serializers.ModelSerializer):
             'name': {'write_only': False, 'read_only': True},
             'url': {'write_only': False, 'read_only': True},
             'email': {'write_only': False, 'read_only': True},
-            # 'timezone': {'write_only': False, 'read_only': True},
-            # 'country': {'write_only': False, 'read_only': True},
-            # 'city': {'write_only': False, 'read_only': True},
-
-            # 'store_view_id': {'write_only': True, 'read_only': True},
         }
 
-    # def create(self, validated_data):
-    #     validated_data["user"] = self.context["request"].user
-    #     return super(StoreSerializer, self).create(validated_data)
 
-    # def to_representation(self, instance):
-    #     data = super(StoreSerializer, self).to_representation(instance)
-    #     data["url_format"] = "https://" + instance.url + SHOPIFY_CONFIG["utm_format"]
-    #     return data
+class EmailTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmailTemplate
+        fields = ("id",
+                  "subject",
+                  "heading_text",
+                  "logo",
+                  "banner",
+                  "headline",
+                  "headline",
+                  "product_list",
+                  "customer_group_list",
+                  "state",
+                  "send_type",
+                  "create_time",
+                  "update_time"
+        )
