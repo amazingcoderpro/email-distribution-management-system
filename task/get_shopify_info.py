@@ -72,13 +72,14 @@ class TaskProcessor:
                         created_at = customer.get("created_at", "")
                         state = customer.get("state", "")
                         payment_amount = customer.get("last_name", "")
-                        customer_name = customer.get("first_name", "")+customer.get("last_name", "")
+                        first_name = customer.get("first_name", "")
+                        last_name= customer.get("last_name", "")
 
                         # shop_myshopify_domain = shop.get("myshopify_domain", "")
-                        cursor.execute('''insert into `customer` (`name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
-                                        values (%s, %s, %s, %s, %s, %s, %s)''',
-                                       (customer_name, customer_email, accepts_marketing, store_id, payment_amount,  datetime.datetime.now(), datetime.datetime.now()))
-                        conn.commit()
+                        cursor.execute('''insert into `customer` (`first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
+                                        values (%s, %s, %s, %s, %s, %s, %s, %s)''',
+                                       (first_name, last_name, customer_email, accepts_marketing, store_id, payment_amount,  datetime.datetime.now(), datetime.datetime.now()))
+                    conn.commit()
                 else:
                     logger.warning("get shop info failed. ret={}".format(ret))
         except Exception as e:
