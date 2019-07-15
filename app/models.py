@@ -165,7 +165,8 @@ class CustomerGroup(models.Model):
 
 class Customer(models.Model):
     """客户表"""
-    name = models.CharField(max_length=255, verbose_name="客户名称")
+    first_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="first_name")
+    last_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_name")
     customer_email = models.EmailField(max_length=255, blank=True, null=True, verbose_name="客户邮箱")
 
     subscribe_time = models.DateTimeField(blank=True, null=True, verbose_name="最近购物时间")
