@@ -308,8 +308,8 @@ class ExpertSender:
         url = f"{self.host}Api/Activities?apiKey={self.api_key}&date={date}&type={types}"
         try:
             result = requests.get(url)
-            # return result.text.split("\r\n")
-            return result.text
+            return result.text.split("\r\n")
+            # return result.text
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
@@ -403,7 +403,7 @@ if __name__ == '__main__':
     # print(ems.create_and_send_newsletter(25, "HelloWorld","expertsender",html_b)) # ,"2019-07-09 21:09:00"
     # print(ems.get_messages(318))
     # print(ems.create_subscribers_list("Test001"))
-    # print(ems.get_subscriber_activity("Sends", "2019-07-11"))
+    print(ems.get_subscriber_activity("Opens", "2019-07-15"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
     # print(ems.get_summary_statistics(63))

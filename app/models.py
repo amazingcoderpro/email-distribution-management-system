@@ -206,7 +206,7 @@ class SubscriberActivity(models.Model):
     opt_time = models.DateTimeField(blank=True, null=True, verbose_name="客户登陆时间")
     email = models.CharField(db_index=True, max_length=255, verbose_name="客户邮件地址")
     message_uuid = models.IntegerField(db_index=True, null=True, blank=True, verbose_name="关联的邮件ID")
-    type_choices = ((0, 'Opens'), (1, 'Clicks'))
+    type_choices = ((0, 'Opens'), (1, 'Clicks'), (2, 'Sends'))
     type = models.SmallIntegerField(default=0, verbose_name="客户操作类型")
 
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
@@ -217,7 +217,7 @@ class SubscriberActivity(models.Model):
     class Meta:
         managed = False
         db_table = 'subscriber_activity'
-        unique_together = ("opt_time", "email", "type")
+        unique_together = ("opt_time", "email", "type", "message_uuid")
 
 
 class ProductCategory(models.Model):
