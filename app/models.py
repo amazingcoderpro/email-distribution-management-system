@@ -123,8 +123,8 @@ class EmailTrigger(models.Model):
     """邮件触发器"""
     title = models.CharField(db_index=True, max_length=255, verbose_name="标题")
     description = models.TextField(blank=True, null=False, verbose_name="描述")
-    open_rate = models.FloatField(blank=True, null=True,  verbose_name="打开邮件比例")
-    click_rate = models.FloatField(blank=True, null=True,  verbose_name="单击比例")
+    open_rate = models.DecimalField(default=0.00,  max_digits=3, decimal_places=2, verbose_name="邮件打开率")
+    click_rate = models.DecimalField(default=0.00,  max_digits=3, decimal_places=2, verbose_name="邮件单击率")
     members = models.IntegerField(blank=True, null=True,  verbose_name="数量")
     trigger_info = models.TextField(blank=True, null=True,  verbose_name="trigger关系")
     email_delay = models.TextField(blank=True, null=True,  verbose_name="发送邮件顺序")
@@ -203,6 +203,7 @@ class Customer(models.Model):
 
 
 class SubscriberActivity(models.Model):
+    "收件人记录表"
     opt_time = models.DateTimeField(blank=True, null=True, verbose_name="客户登陆时间")
     email = models.CharField(db_index=True, max_length=255, verbose_name="客户邮件地址")
     message_uuid = models.IntegerField(db_index=True, null=True, blank=True, verbose_name="关联的邮件ID")
