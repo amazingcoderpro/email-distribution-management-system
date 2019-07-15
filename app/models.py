@@ -207,7 +207,7 @@ class SubscriberActivity(models.Model):
     opt_time = models.DateTimeField(blank=True, null=True, verbose_name="客户登陆时间")
     email = models.CharField(db_index=True, max_length=255, verbose_name="客户邮件地址")
     message_uuid = models.IntegerField(db_index=True, null=True, blank=True, verbose_name="关联的邮件ID")
-    type_choices = ((0, 'Opens'), (1, 'Clicks'))
+    type_choices = ((0, 'Opens'), (1, 'Clicks'), (2, 'Sends'))
     type = models.SmallIntegerField(default=0, verbose_name="客户操作类型")
 
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
@@ -218,7 +218,7 @@ class SubscriberActivity(models.Model):
     class Meta:
         managed = False
         db_table = 'subscriber_activity'
-        unique_together = ("opt_time", "email", "type")
+        unique_together = ("opt_time", "email", "type", "message_uuid")
 
 
 class ProductCategory(models.Model):
@@ -239,21 +239,16 @@ class ProductCategory(models.Model):
 
 class Product(models.Model):
     """产品表"""
-    sku = models.CharField(db_index=True, max_length=255, verbose_name="产品标识符")
+    # sku = models.CharField(db_index=True, max_length=255, verbose_name="产品标识符")
     url = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品URL")
     uuid = models.CharField(max_length=64, verbose_name="产品唯一标识")
     name = models.CharField(db_index=True, max_length=255, verbose_name="产品名称")
     image_url = models.CharField(max_length=255, verbose_name="图片URL")
-    thumbnail = models.TextField(verbose_name="缩略图", blank=True, null=True, default=None)
-    price = models.CharField(max_length=255, verbose_name="产品价格")
     product_category = models.ForeignKey(ProductCategory, on_delete=models.DO_NOTHING,blank=True, null=True)
-    tag = models.CharField(max_length=255, verbose_name="所属标签")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
-    publish_time = models.DateTimeField(blank=True, null=True, verbose_name="发布时间")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-    url_with_utm = models.CharField(db_index=True, blank=True, null=True, max_length=255, verbose_name=u"产品的带utm构建的url")
 
     class Meta:
         managed = False
