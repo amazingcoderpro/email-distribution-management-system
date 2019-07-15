@@ -123,8 +123,8 @@ class EmailTrigger(models.Model):
     """邮件触发器"""
     title = models.CharField(db_index=True, max_length=255, verbose_name="标题")
     description = models.TextField(blank=True, null=False, verbose_name="描述")
-    open_rate = models.FloatField(blank=True, null=True,  verbose_name="打开邮件比例")
-    click_rate = models.FloatField(blank=True, null=True,  verbose_name="单击比例")
+    open_rate = models.DecimalField(default=0.00,  max_digits=3, decimal_places=2, verbose_name="邮件打开率")
+    click_rate = models.DecimalField(default=0.00,  max_digits=3, decimal_places=2, verbose_name="邮件单击率")
     members = models.IntegerField(blank=True, null=True,  verbose_name="数量")
     trigger_info = models.TextField(blank=True, null=True,  verbose_name="trigger关系")
     email_delay = models.TextField(blank=True, null=True,  verbose_name="发送邮件顺序")
@@ -146,9 +146,9 @@ class CustomerGroup(models.Model):
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
     clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
-    open_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件打开率")
-    click_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件单击率")
-    members = models.CharField(blank=True, null=True, max_length=255, verbose_name="数量")
+    open_rate = models.DecimalField(default=0.00,  max_digits=3, decimal_places=2, verbose_name="邮件打开率")
+    click_rate = models.DecimalField(default=0.00,  max_digits=3, decimal_places=2, verbose_name="邮件单击率")
+    members = models.CharField(default=0, max_length=255, verbose_name="数量")
     relation_info = models.TextField(blank=True, null=False, verbose_name="客户关系")
     customer_list = models.TextField(blank=True, null=False, verbose_name="对应客户列表")
     state_choices = ((0, '待解析'), (1, '已解析'), (2, '已删除'))
@@ -203,6 +203,7 @@ class Customer(models.Model):
 
 
 class SubscriberActivity(models.Model):
+    "收件人记录表"
     opt_time = models.DateTimeField(blank=True, null=True, verbose_name="客户登陆时间")
     email = models.CharField(db_index=True, max_length=255, verbose_name="客户邮件地址")
     message_uuid = models.IntegerField(db_index=True, null=True, blank=True, verbose_name="关联的邮件ID")
@@ -238,21 +239,16 @@ class ProductCategory(models.Model):
 
 class Product(models.Model):
     """产品表"""
-    sku = models.CharField(db_index=True, max_length=255, verbose_name="产品标识符")
+    # sku = models.CharField(db_index=True, max_length=255, verbose_name="产品标识符")
     url = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品URL")
     uuid = models.CharField(max_length=64, verbose_name="产品唯一标识")
     name = models.CharField(db_index=True, max_length=255, verbose_name="产品名称")
     image_url = models.CharField(max_length=255, verbose_name="图片URL")
-    thumbnail = models.TextField(verbose_name="缩略图", blank=True, null=True, default=None)
-    price = models.CharField(max_length=255, verbose_name="产品价格")
     product_category = models.ForeignKey(ProductCategory, on_delete=models.DO_NOTHING,blank=True, null=True)
-    tag = models.CharField(max_length=255, verbose_name="所属标签")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
-    publish_time = models.DateTimeField(blank=True, null=True, verbose_name="发布时间")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-    url_with_utm = models.CharField(db_index=True, blank=True, null=True, max_length=255, verbose_name=u"产品的带utm构建的url")
 
     class Meta:
         managed = False

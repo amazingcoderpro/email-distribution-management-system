@@ -62,7 +62,7 @@ class TaskProcessor:
                 store_id, store_token, store_url = store
                 papi = ProductsApi(store_token, store_url)
                 # 更新店铺信息
-                ret = papi.get_all_customers()
+                ret = papi.get_all_customers(limit=250)
                 if ret["code"] == 1:
                     customer_info = ret["data"].get("customers", "")
                     for customer in customer_info:
@@ -73,7 +73,7 @@ class TaskProcessor:
                         state = customer.get("state", "")
                         payment_amount = customer.get("last_name", "")
                         first_name = customer.get("first_name", "")
-                        last_name= customer.get("last_name", "")
+                        last_name = customer.get("last_name", "")
 
                         # shop_myshopify_domain = shop.get("myshopify_domain", "")
                         cursor.execute('''insert into `customer` (`first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
