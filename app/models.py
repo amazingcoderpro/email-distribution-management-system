@@ -210,13 +210,13 @@ class SubscriberActivity(models.Model):
     type_choices = ((0, 'Opens'), (1, 'Clicks'), (2, 'Sends'))
     type = models.SmallIntegerField(default=0, verbose_name="客户操作类型")
 
-    #store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    store_id = models.IntegerField(verbose_name="店铺id")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        #managed = False
+        managed = False
         db_table = 'subscriber_activity'
         unique_together = ("opt_time", "email", "type", "message_uuid")
 
