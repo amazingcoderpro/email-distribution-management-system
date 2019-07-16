@@ -6,17 +6,33 @@ from rest_framework.views import APIView
 
 
 
-class Event_Trigger(APIView):
+class EventCartTrigger(APIView):
 
     def post(self, request, *args, **kwargs):
-        print("------------event_trigger:")
+        print("------------ cat ------------:")
         print(json.dumps(request.data))
         return Response({"code": 200})
 
 
-class EventTriggerCreate(APIView):
+class EventCartTriggerCreate(APIView):
 
     def post(self, request, *args, **kwargs):
-        print("------------event_trigger_create:")
+        print("------------ cat create ------------:")
+        print(json.dumps(request.data))
+        return Response({"code": 200})
+
+
+class EventOrderTrigger(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------ order ------------:")
+        print(json.dumps(request.data))
+        return Response({"code": 200})
+
+
+class EventOrderTriggerCreate(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------ order create ------------:")
         print(json.dumps(request.data))
         return Response({"code": 200})

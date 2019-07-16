@@ -30,8 +30,12 @@ v1_urlpatterns = [
     # 店铺管理
     url(r'store/$', service.StoreView.as_view()),
     url(r'store/(?P<pk>[0-9]+)/$', service.StoreOperView.as_view()),
-    url(r'webhook/event/$', webhook.Event_Trigger.as_view()),
-    url(r'webhook/event/create/$', webhook.EventTriggerCreate.as_view())
+
+    url(r'webhook/cart/event/$', webhook.EventCartTrigger.as_view()),
+    url(r'webhook/cart/event/create/$', webhook.EventCartTriggerCreate.as_view())
+
+    url(r'webhook/order/event/$', webhook.EventOrderTrigger.as_view()),
+    url(r'webhook/order/event/create/$', webhook.EventOrderTriggerCreate.as_view())
 ]
 
 urlpatterns = [
