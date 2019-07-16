@@ -91,12 +91,12 @@ if __name__ == '__main__':
     access_token = "d1063808be79897450ee5030e1c163ef"
     id = "3583116148816"
     shop_uri = "charrcter.myshopify.com"
-    address = "https://whatever.hostname.com/"
-    topic = "orders/create"
+    address = "https://smartsend.seamarketings.com/api/v1/webhook/event/"
+    topic = "carts/create"
     products_api = ProductsApi(shop_uri=shop_uri, access_token=access_token)
     # 創建webhook
     products_api.create_webhook(topic=topic, address=address)
     # 查詢所有的webhook
     # products_api.get_all_webhook()
     # 刪除對應ID的webhook
-    # products_api.delete_webhook(webhook_id="503252779081")
+    # products_api.delete_webhook(webhook_id="503790501961")

@@ -301,6 +301,7 @@ class TaskProcessor:
         return True
 
 
+
     def update_shopify_sales_volume(self):
         """更新产品销售量"""
         logger.info("update_collection is cheking...")
@@ -316,32 +317,18 @@ class TaskProcessor:
             if not stores:
                 return False
 
-            three_date = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=3), datetime.time.min)
-            print(three_date)
-
             for store in stores:
                 store_id, store_url, store_token = store
                 papi = ProductsApi(store_token, store_url)
                 # 更新产品类目信息
-                res = papi.get_all_orders(three_date)
-                print(res,type(res))
-
-        except Exception as e:
-            logger.exception("update_collection e={}".format(e))
-            return False
-        finally:
-            cursor.close() if cursor else 0
-            conn.close() if conn else 0
-        return True
+                res = papi.get_all_collections()
+                if res["code"] == 1:
+                    pass
+        except:
+            pass
 
 
-
-
-
-
-
-
-
+                
 def main():
     tsp = TaskProcessor()
     tsp.start_all(rule_interval=120, publish_pin_interval=120, pinterest_update_interval=7200*3, shopify_update_interval=7200*3, update_new=120)
