@@ -48,12 +48,14 @@ class ProductsApi:
             if result.status_code in [200, 201]:
                 logger.info("create shopify webhook info is success")
                 res_dict = json.loads(result.text)
+                print(res_dict)
                 return {"code": 1, "msg": "", "data": res_dict}
             else:
                 logger.info("create shopify webhook info is failed")
                 return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
         except Exception as e:
             logger.error("create shopify webhook info is failed info={}".format(str(e)))
+            print(json.loads(result.text))
             return {"code": -1, "msg": str(e), "data": ""}
 
     def get_all_webhook(self):
@@ -63,6 +65,7 @@ class ProductsApi:
             if result.status_code in [200, 201]:
                 logger.info("get shopify webhook info is success")
                 res_dict = json.loads(result.text)
+                print(res_dict)
                 return {"code": 1, "msg": "", "data": res_dict}
             else:
                 logger.info("get shopify webhook info is failed")
@@ -78,9 +81,11 @@ class ProductsApi:
             if result.status_code in [200, 201]:
                 logger.info("delete shopify webhook info is success")
                 res_dict = json.loads(result.text)
+                print(res_dict)
                 return {"code": 1, "msg": "", "data": res_dict}
             else:
                 logger.info("delete shopify webhook info is failed")
+                print(json.loads(result.text).get("errors", ""))
                 return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
         except Exception as e:
             logger.error("delete shopify webhook info is failed info={}".format(str(e)))
@@ -92,11 +97,11 @@ if __name__ == '__main__':
     id = "3583116148816"
     shop_uri = "charrcter.myshopify.com"
     address = "https://smartsend.seamarketings.com/api/v1/webhook/event/"
-    topic = "carts/create"
+    topic = "orders/updated"
     products_api = ProductsApi(shop_uri=shop_uri, access_token=access_token)
     # 創建webhook
     products_api.create_webhook(topic=topic, address=address)
     # 查詢所有的webhook
-    # products_api.get_all_webhook()
+    products_api.get_all_webhook()
     # 刪除對應ID的webhook
-    # products_api.delete_webhook(webhook_id="503790501961")
+    # products_api.delete_webhook(webhook_id="503806951497")
