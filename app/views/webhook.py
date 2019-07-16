@@ -10,6 +10,5 @@ class Event_Trigger(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------event_trigger:")
-        print(request.data)
-        logger.error("---------event_trigger:{}".format(request.POST))
+        print(json.dumps(request.data))
         return Response({"code": 200})
