@@ -5,12 +5,6 @@ import time
 import pymysql
 import os
 
-from io import BytesIO
-import base64
-from PIL import Image
-import requests
-import re
-
 from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, SHOPIFY_CONFIG
 
@@ -102,7 +96,7 @@ class TaskProcessor:
         # update_new()
         self.update_new_job = self.bk_scheduler.add_job(update_new, 'interval', seconds=interval, max_instances=50)
 
-    def start_all(self, shopify_update_interval=7200 ):
+    def start_all(self, shopify_update_interval=7200):
         logger.info("TaskProcessor start all work.")
         self.start_job_update_shopify_collections(shopify_update_interval)
         self.start_job_update_shopify_product(shopify_update_interval)
@@ -354,6 +348,9 @@ def main():
     while 1:
         time.sleep(1)
 
+
+def analyze_rule():
+    group_condition = {"relation": "&&,||", "condition": "Customer last click email time", "relations": {"is over": {"values": [1, 3], "unit": "days"}, "equal": {"values": [34], "unit": "$"}}},
 
 if __name__ == '__main__':
     # test()

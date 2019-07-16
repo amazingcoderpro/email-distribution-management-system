@@ -11,10 +11,11 @@ import requests
 
 
 class ExpertSender:
-    def __init__(self, apiKey, fromEmail):
+    def __init__(self, apiKey, fromName, fromEmail):
         self.api_key = apiKey
         self.host = "https://api6.esv2.com/v2/"
         self.headers = {"Content-Type": "text/xml"}
+        self.from_name = fromName
         self.from_email = fromEmail
 
     @staticmethod
@@ -367,6 +368,106 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
+    def create_transactional_message(self, subject, plain="", html="", contentFromUrl=None):
+        """
+        创建事务性邮件 http://sms.expertsender.cn/api/v2/methods/email-messages/create-transactional-message/
+        :param subject: 邮件主题
+        :param plain: 邮件纯文本
+        :param html: 邮件html内容
+        :param contentFromUrl: 邮件资源地址，如都有取其后
+        :return: 事务邮件ID
+        """
+        url = f"{self.host}Api/TransactionalsCreate"
+        data = {"ApiRequest": {
+            "ApiKey": self.api_key,
+            "Data": {
+                "Content": {
+                    "FromName": self.from_name,
+                    "FromEmail": self.from_email,
+                    "Subject": subject,
+                    "Plain": plain,
+                    "Html": "%s",
+                },
+            }
+        }}
+        if contentFromUrl:
+            data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": {"Url": contentFromUrl}})
+        try:
+            xml_data = self.jsontoxml(data)
+            xml_data = xml_data % ("<![CDATA[%s]]>" % html)
+            result = requests.post(url, xml_data, headers=self.headers)
+            return self.retrun_result("create transactional message", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def send_transactional_messages(self, emailId, toEmail):
+        """
+        发送事务性邮件 http://sms.expertsender.cn/api/v2/methods/email-messages/send-transactional-messages/
+        :param emailId: 事务邮件ID
+        :param toEmail: 收件人，一次只能发送一个
+        :return:
+        """
+        url = f"{self.host}Api/Transactionals/{emailId}"
+        data = {"ApiRequest": {
+            "ApiKey": self.api_key,
+            "Data": {
+                "Receiver": {"Email": toEmail}}
+            }}
+        try:
+            result = requests.post(url, self.jsontoxml(data), headers=self.headers)
+            return self.retrun_result("send transactional messages", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def update_transactional_message(self, emailId, fromName, fromEmail, subject, plain="", html="", contentFromUrl=None):
+        """
+        更新事务性邮件 http://sms.expertsender.cn/api/v2/methods/email-messages/update-transactional-message/
+        :param emailId: 事务邮件ID
+        :param fromName: 发件人姓名
+        :param fromEmail: 发件人邮箱
+        :param subject: 邮件主题
+        :param plain: 邮件纯文本
+        :param html: 邮件html内容
+        :param contentFromUrl: 邮件资源链接地址
+        :return: None
+        """
+        url = f"{self.host}Api/TransactionalsUpdate/{emailId}"
+        data = {"ApiRequest": {
+            "ApiKey": self.api_key,
+            "Data": {
+                "Content": {
+                    "FromName": fromName,
+                    "FromEmail": fromEmail,
+                    "Subject": subject,
+                    "Plain": plain,
+                    "Html": "%s",
+                },
+            }
+        }}
+        if contentFromUrl:
+            data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": {"Url": contentFromUrl}})
+        try:
+            xml_data = self.jsontoxml(data)
+            xml_data = xml_data % ("<![CDATA[%s]]>" % html)
+            result = requests.put(url, xml_data, headers=self.headers)
+            return self.retrun_result("update transactional message", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def delete_message(self, emailId):
+        """
+        移动邮件到已删除, 如果邮件正在发送中，则将被自动取消.
+        http://sms.expertsender.cn/api/v2/methods/email-messages/delete-message/
+        :param emailId: 邮件ID
+        :return:
+        """
+        url = f"{self.host}Api/Messages/{emailId}?apiKey={self.api_key}"
+        try:
+            result = requests.delete(url)
+            return self.retrun_result("delete message", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
 
 if __name__ == '__main__':
     html_b = """<!DOCTYPE html>
@@ -388,12 +489,22 @@ if __name__ == '__main__':
 </div>
 </body>
 </html>"""
-    ems = ExpertSender("0x53WuKGWlbq2MQlLhLk", "leemon.li@orderplus.com")
+    ems = ExpertSender("0x53WuKGWlbq2MQlLhLk", "Leemon", "leemon.li@orderplus.com")
+    # print(ems.get_message_statistics(318))
+
+    # print(ems.get_messages(318))
+    print(ems.create_subscribers_list("Test001"))
+    print(ems.add_subscriber(26, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
+    print(ems.create_and_send_newsletter(25, "HelloWorld","expertsender",html_b)) # ,"2019-07-09 21:09:00"
+    # print(ems.get_subscriber_activity("Opens"))
+    # print(ems.get_subscriber_information("twobercancan@126.com"))
+    # print(ems.get_subscriber_activity())
+    print(ems.get_summary_statistics(63))
     # print(ems.get_server_time())
     # print(ems.get_message_statistics(349))
     # print(ems.create_and_send_newsletter([25,26], "two listID", "expertsender test 2")) # ,"2019-07-09 21:09:00"
     # print(ems.get_messages(349))
-    print(ems.get_subscriber_lists())
+    # print(ems.get_subscriber_lists())
     # print(ems.create_subscribers_list("Test001"))
     # print(ems.get_subscriber_activity("Opens", "2019-07-15"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
@@ -404,3 +515,8 @@ if __name__ == '__main__':
     # print(ems.get_export_progress(11))  # 11
     # print(ems.clear_subscriber(25, ""))  # 11
     # print(ems.add_subscriber(25, ["limengqiAliase@163.com", "leemon.li@orderplus.com"]))
+    # print(ems.create_transactional_message("transactional message test", contentFromUrl="http://sources.aopcdn.com/edm/html/buzzyly/20190625/1561447955806.html"))  # 350
+    # print(ems.send_transactional_messages(350, "leemon.li@orderplus.com"))  # 350
+    # print(ems.update_transactional_message(350, "Aliase", "limengqiAliase@163.com", "transactional message test 11", html=html_b))  # 350
+    print(ems.delete_message(349))
+

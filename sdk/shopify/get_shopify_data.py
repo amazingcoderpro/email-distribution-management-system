@@ -107,7 +107,7 @@ class ProductsApi:
             logger.error("get shopify all products is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_all_customers(self, limit=250, since_id=""):
+    def get_all_customers(self, limit=5, since_id=""):
         """
         获取collections_id的product
         # 接口  /admin/api/2019-04/smart_collections.json
@@ -132,7 +132,11 @@ class ProductsApi:
             logger.error("get shopify all customers info is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
+<<<<<<< HEAD
     def get_all_orders(self, created_at_min, since_id=None, limit=250, financial_status="paid"):
+=======
+    def get_all_orders(self, limit=10, since_id="1225404776521", created_at_min="",  financial_status="paid"):
+>>>>>>> dfca92af4159ed7c59688fbd880b7f4657b81964
         """
        获取collections_id的product
        # 接口  /admin/api/201 -07/orders.json
@@ -144,7 +148,28 @@ class ProductsApi:
                 f"?limit={limit}&created_at_min={created_at_min}&financial_status={financial_status}"
         if since_id:
             order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
-                f"?limit={limit}&created_at_min={created_at_min}&financial_status={financial_status}&since_id={since_id}"
+                f"?limit={limit}&financial_status={financial_status}&since_id={since_id}"
+        try:
+            result = requests.get(order_url)
+            if result.status_code == 200:
+                logger.info("get shopify orders is success")
+                return {"code": 1, "msg": "", "data": json.loads(result.text)}
+            else:
+                logger.info("get shopify orders is failed")
+                return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
+        except Exception as e:
+            logger.error("get shopify orders is failed info={}".format(str(e)))
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def get_orders_id(self, order_id):
+        """
+       获取collections_id的product
+       # 接口  /admin/api/201 -07/orders.json
+       # 连接地址 https://help.shopify.com/en/api/reference/orders/order#index-2019-07
+       :return:
+        """
+
+        order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json?ids={order_id}"
         try:
             result = requests.get(order_url)
             if result.status_code == 200:
@@ -164,4 +189,6 @@ if __name__ == '__main__':
     id = "3583116148816"
     shop_uri = "charrcter.myshopify.com"
     products_api = ProductsApi(access_token=access_token, shop_uri=shop_uri)
-    print(products_api.get_all_customers())
+    # print(products_api.get_all_customers())
+    # products_api.get_all_orders()
+    products_api.get_orders_id(order_id="1225404776521")
