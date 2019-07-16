@@ -277,22 +277,22 @@ class Product(models.Model):
 #     def __unicode__(self):
 #         return u'{0}'.format(self.date_event_generated)
 
-
-class Message(models.Model):
-    date_processed = models.DateTimeField(default=timezone.now)
-    webhook_transaction = models.OneToOneField(WebhookTransaction)
-
-    team_id = models.CharField(max_length=250)
-    team_domain = models.CharField(max_length=250)
-    channel_id = models.CharField(max_length=250)
-    channel_name = models.CharField(max_length=250)
-    user_id = models.CharField(max_length=250)
-    user_name = models.CharField(max_length=250)
-    text = models.TextField()
-    trigger_word = models.CharField(max_length=250)
-
-    def __unicode__(self):
-        return u'{}'.format(self.user_name)
+#
+# class Message(models.Model):
+#     date_processed = models.DateTimeField(default=timezone.now)
+#     webhook_transaction = models.OneToOneField(WebhookTransaction)
+#
+#     team_id = models.CharField(max_length=250)
+#     team_domain = models.CharField(max_length=250)
+#     channel_id = models.CharField(max_length=250)
+#     channel_name = models.CharField(max_length=250)
+#     user_id = models.CharField(max_length=250)
+#     user_name = models.CharField(max_length=250)
+#     text = models.TextField()
+#     trigger_word = models.CharField(max_length=250)
+#
+#     def __unicode__(self):
+#         return u'{}'.format(self.user_name)
 #
 #     """
 #     pass
