@@ -8,6 +8,9 @@ auth_urlpatterns = [
     url(r'shopify/ask_permission/$', shopify_auth.ShopifyAuthView.as_view()),
 ]
 
+webhook_urlpatterns = [
+    url(r'webhook/$',)
+]
 
 v1_urlpatterns = [
 

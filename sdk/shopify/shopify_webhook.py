@@ -95,8 +95,8 @@ if __name__ == '__main__':
     topic = "orders/create"
     products_api = ProductsApi(shop_uri=shop_uri, access_token=access_token)
     # 創建webhook
-    # products_api.create_webhook(topic=topic, address=address)
+    products_api.create_webhook(topic=topic, address=address)
     # 查詢所有的webhook
     # products_api.get_all_webhook()
     # 刪除對應ID的webhook
-    products_api.delete_webhook(webhook_id="503252779081")
+    # products_api.delete_webhook(webhook_id="503252779081")
