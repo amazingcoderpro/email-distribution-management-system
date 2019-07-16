@@ -38,7 +38,20 @@ v1_urlpatterns = [
     url(r'webhook/order/event/create/$', webhook.EventOrderTriggerCreate.as_view())
 ]
 
+
+webhook_urlpatterns = [
+    url(r'cart/update/$', webhook.EventCartUpdate.as_view()),
+    url(r'cart/create/$', webhook.EventCartCreate.as_view()),
+
+    url(r'order/update/$', webhook.EventOrderUpdate.as_view()),
+    url(r'order/create/$', webhook.EventOrderCreate.as_view()),
+    url(r'order/fulfilled/$', webhook.EventOrderFulfilled.as_view()),
+
+]
+
+
 urlpatterns = [
     url(r'^v1/auth/', include(auth_urlpatterns)),
+    url(r'^v1/webhook/', include(auth_urlpatterns)),
     url(r'^v1/', include(v1_urlpatterns)),
 ]

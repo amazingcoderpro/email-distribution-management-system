@@ -167,6 +167,7 @@ class CustomerGroup(models.Model):
 
 class Customer(models.Model):
     """客户表"""
+    uuid = models.CharField(max_length=255, db_index=True, verbose_name="客户的唯一id")
     first_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="first_name")
     last_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_name")
     customer_email = models.EmailField(max_length=255, blank=True, null=True, verbose_name="客户邮箱")
@@ -257,6 +258,38 @@ class Product(models.Model):
         unique_together = ("product_category", "uuid")
         db_table = 'product'
 
+
+class OrderEvent(models.Model):
+    """
+    订单事件信息
+    """
+    uri = models.CharField(max_length=255, verbose_name="订单事件的唯一标识符")
+    status = models.IntegerField(default=0, verbose_name="订单事件类型, 0-创建(未支付)，1-支付")
+    store = models.CharField(max_length=255, verbose_name="订单对应的店铺的url")
+    customer = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
+
+    # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
+    products = models.TextField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
+    create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="订单创建时间")
+
+    class Meta:
+        # managed = False
+        db_table = 'order_event'
+
+
+class CartEvent(models.Model):
+    """
+    购物车事件信息
+    """
+    uri = models.CharField(max_length=255, verbose_name="购物车事件的唯一标识符")
+    store = models.CharField(max_length=255, verbose_name="事件对应的店铺的url")
+    customer = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
+    products = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
+    create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="创建时间")
+
+    class Meta:
+        # managed = False
+        db_table = 'cart_event'
 
 # class WebhookTransaction(models.Model):
 #     UNPROCESSED = 1

@@ -4,8 +4,7 @@ from config import logger
 from rest_framework.views import APIView
 
 
-class EventCartTrigger(APIView):
-
+class EventCartUpdate(APIView):
     def post(self, request, *args, **kwargs):
         print("------------ cat ------------:")
         print(json.dumps(request.data))
@@ -20,7 +19,7 @@ class EventCartTriggerCreate(APIView):
         return Response({"code": 200})
 
 
-class EventOrderTrigger(APIView):
+class EventOrderUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ order ------------:")
@@ -28,7 +27,15 @@ class EventOrderTrigger(APIView):
         return Response({"code": 200})
 
 
-class EventOrderTriggerCreate(APIView):
+class EventOrderCreate(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------ order create ------------:")
+        print(json.dumps(request.data))
+        return Response({"code": 200})
+
+
+class EventOrderFulfilled(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ order create ------------:")
