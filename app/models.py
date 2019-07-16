@@ -256,7 +256,16 @@ class Product(models.Model):
         managed = False
         unique_together = ("product_category", "uuid")
         db_table = 'product'
+
+
+# class WebhookEvent(models.Model):
+#     """
 #
+#     """
+#     pass
+
+#
+
 # class WebhookTransaction(models.Model):
 #     UNPROCESSED = 1
 #     PROCESSED = 2
