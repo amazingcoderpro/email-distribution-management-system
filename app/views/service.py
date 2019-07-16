@@ -47,3 +47,11 @@ class StoreOperView(generics.UpdateAPIView):
     serializer_class = service.StoreSerializer
     permission_classes = (IsAuthenticated, StorePermission)
     authentication_classes = (JSONWebTokenAuthentication,)
+
+
+class EmailTemplate(generics.CreateAPIView):
+    """邮件增加"""
+    queryset = models.EmailTemplate.objects.all()
+    serializer_class = service.EmailTemplateSerializer
+    permission_classes = (IsAuthenticated, StorePermission)
+    authentication_classes = (JSONWebTokenAuthentication,)
