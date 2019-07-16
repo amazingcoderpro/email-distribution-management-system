@@ -258,6 +258,34 @@ class Product(models.Model):
         db_table = 'product'
 
 
+class OrderEvent(models.Model):
+    """
+    订单事件信息
+    """
+    uri = models.CharField(max_length=255, verbose_name="订单事件的唯一标识符")
+    type = models.IntegerField(default=0, verbose_name="订单事件类型, 0-创建，1-支付")
+    store = models.CharField(max_length=255, verbose_name="订单对应的店铺的url")
+    customer = models.CharField(max_length=255, verbose_name="订单对应客户的邮箱地址")
+
+    # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
+    products = models.TextField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
+    status = models.CharField(blank=True, null=True, max_length=100, verbose_name="订单的状态")
+    create_time = models.DateTimeField(auto_now=True, verbose_name="订单创建时间")
+    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+
+class CartEvent(models.Model):
+    """
+    购物车事件信息
+    """
+    uri = models.CharField(max_length=255, verbose_name="购物车事件的唯一标识符")
+    store = models.CharField(max_length=255, verbose_name="事件对应的店铺的url")
+    customer = models.CharField(max_length=255, verbose_name="购物车事件对应客户的邮箱地址")
+    products = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
+    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+
+
 # class WebhookTransaction(models.Model):
 #     UNPROCESSED = 1
 #     PROCESSED = 2
