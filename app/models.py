@@ -103,7 +103,7 @@ class EmailTemplate(models.Model):
 class EmailRecord(models.Model):
     uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="邮件ID")
     customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
-    store_id = models.IntegerField(verbose_name="店铺id")
+    # store_id = models.IntegerField(verbose_name="店铺id")
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
     clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
