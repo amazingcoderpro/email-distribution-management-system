@@ -4,13 +4,7 @@ from config import logger
 from rest_framework.views import APIView
 
 
-<<<<<<< HEAD
-class Event_Trigger(APIView):
-=======
-
-
 class EventCartTrigger(APIView):
->>>>>>> 6c7788d2a0bf0d8da7d2830961417d5d6c3beae3
 
     def post(self, request, *args, **kwargs):
         print("------------ cat ------------:")
