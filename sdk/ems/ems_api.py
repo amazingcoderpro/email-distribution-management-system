@@ -281,11 +281,12 @@ if __name__ == '__main__':
 </html>"""
     ems = ExpertSender("0x53WuKGWlbq2MQlLhLk", "leemon.li@orderplus.com")
     # print(ems.get_message_statistics(318))
-    # print(ems.create_and_send_newsletter(25, "HelloWorld","expertsender",html_b)) # ,"2019-07-09 21:09:00"
+
     # print(ems.get_messages(318))
-    # print(ems.create_subscribers_list("Test001"))
-    # print(ems.add_subscriber(26, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
-    print(ems.get_subscriber_activity("Opens"))
+    print(ems.create_subscribers_list("Test001"))
+    print(ems.add_subscriber(26, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
+    print(ems.create_and_send_newsletter(25, "HelloWorld","expertsender",html_b)) # ,"2019-07-09 21:09:00"
+    # print(ems.get_subscriber_activity("Opens"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
-    # print(ems.get_summary_statistics(63))
+    print(ems.get_summary_statistics(63))
