@@ -20,7 +20,7 @@ class EventCartTriggerCreate(APIView):
         return Response({"code": 200})
 
 
-class EventCartCreate(APIView):
+class EventOrderUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ order ------------:")
@@ -29,6 +29,14 @@ class EventCartCreate(APIView):
 
 
 class EventOrderCreate(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------ order create ------------:")
+        print(json.dumps(request.data))
+        return Response({"code": 200})
+
+
+class EventOrderFulfilled(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ order create ------------:")

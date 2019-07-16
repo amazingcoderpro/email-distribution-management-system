@@ -44,7 +44,8 @@ webhook_urlpatterns = [
     url(r'cart/create/$', webhook.EventCartCreate.as_view()),
 
     url(r'order/update/$', webhook.EventOrderUpdate.as_view()),
-    url(r'order/create/$', webhook.EventOrderCreate.as_view())
+    url(r'order/create/$', webhook.EventOrderCreate.as_view()),
+    url(r'order/fulfilled/$', webhook.EventOrderFulfilled.as_view()),
 
 ]
 
