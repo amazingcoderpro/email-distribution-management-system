@@ -9,9 +9,6 @@ auth_urlpatterns = [
 
 ]
 
-webhook_urlpatterns = [
-    url(r'webhook/$',)
-]
 
 v1_urlpatterns = [
 
