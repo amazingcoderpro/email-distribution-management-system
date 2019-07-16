@@ -132,7 +132,7 @@ class ProductsApi:
             logger.error("get shopify all customers info is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_all_orders(self, limit=250, since_id=None, created_at_min=None,  financial_status="paid"):
+    def get_all_orders(self, created_at_min, since_id=None, limit=250, financial_status="paid"):
         """
        获取collections_id的product
        # 接口  /admin/api/201 -07/orders.json
