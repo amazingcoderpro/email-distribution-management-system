@@ -4,8 +4,6 @@ from config import logger
 from rest_framework.views import APIView
 
 
-
-
 class Event_Trigger(APIView):
 
     def post(self, request, *args, **kwargs):
