@@ -1,12 +1,15 @@
-from django.http import HttpResponse
+from rest_framework.response import Response
 import json
 from config import logger
+from rest_framework.views import APIView
 
 
-def event_trigger(request):
-    if request.method == "POST":
-        if request.POST:
-            print("------------event_trigger:")
-            print(request.POST)
-            logger.error("---------event_trigger:{}".format(request.POST))
-    return HttpResponse(json.dumps({"code": 200}))
+
+
+class Event_Trigger(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------event_trigger:")
+        print(request.POST)
+        logger.error("---------event_trigger:{}".format(request.POST))
+        return Response({"code": 200})
