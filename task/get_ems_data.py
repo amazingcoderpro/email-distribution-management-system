@@ -9,11 +9,12 @@ from task.task_processor import DBUtil
 
 
 class GetEMSData:
-    def __init__(self, api_key, from_email, store_id):
+    def __init__(self, api_key, from_name, from_email, store_id):
         self.store_id = store_id
+        self.from_name = from_name
         self.from_email = from_email
         self.api_key = api_key
-        self.ems = ExpertSender(self.api_key, self.from_email)
+        self.ems = ExpertSender(self.api_key, self.from_name, self.from_email)
 
     def insert_subscriber_activity(self, query_date):
         """
@@ -93,6 +94,6 @@ class GetEMSData:
 
 
 if __name__ == '__main__':
-    obj = GetEMSData("0x53WuKGWlbq2MQlLhLk", "leemon.li@orderplus.com", 1)
+    obj = GetEMSData("0x53WuKGWlbq2MQlLhLk", "Leemon", "leemon.li@orderplus.com", 1)
     # obj.insert_subscriber_activity("2019-07-15")
     obj.update_customer_group_data()

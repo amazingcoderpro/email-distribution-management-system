@@ -103,7 +103,7 @@ class EmailTemplate(models.Model):
 class EmailRecord(models.Model):
     uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="邮件ID")
     customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
-    store_id = models.IntegerField(verbose_name="店铺id")
+    # store_id = models.IntegerField(verbose_name="店铺id")
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
     clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
@@ -277,22 +277,22 @@ class Product(models.Model):
 #     def __unicode__(self):
 #         return u'{0}'.format(self.date_event_generated)
 
-
-class Message(models.Model):
-    date_processed = models.DateTimeField(default=timezone.now)
-    webhook_transaction = models.OneToOneField(WebhookTransaction)
-
-    team_id = models.CharField(max_length=250)
-    team_domain = models.CharField(max_length=250)
-    channel_id = models.CharField(max_length=250)
-    channel_name = models.CharField(max_length=250)
-    user_id = models.CharField(max_length=250)
-    user_name = models.CharField(max_length=250)
-    text = models.TextField()
-    trigger_word = models.CharField(max_length=250)
-
-    def __unicode__(self):
-        return u'{}'.format(self.user_name)
+#
+# class Message(models.Model):
+#     date_processed = models.DateTimeField(default=timezone.now)
+#     webhook_transaction = models.OneToOneField(WebhookTransaction)
+#
+#     team_id = models.CharField(max_length=250)
+#     team_domain = models.CharField(max_length=250)
+#     channel_id = models.CharField(max_length=250)
+#     channel_name = models.CharField(max_length=250)
+#     user_id = models.CharField(max_length=250)
+#     user_name = models.CharField(max_length=250)
+#     text = models.TextField()
+#     trigger_word = models.CharField(max_length=250)
+#
+#     def __unicode__(self):
+#         return u'{}'.format(self.user_name)
 #
 #     """
 #     pass

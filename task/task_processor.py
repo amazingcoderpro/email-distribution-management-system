@@ -301,35 +301,34 @@ class TaskProcessor:
         return True
 
 
-    # def update_shopify_sales_volume(self):
-    #     """更新产品销售量"""
-    #     logger.info("update_collection is cheking...")
-    #     try:
-    #         conn = DBUtil().get_instance()
-    #         cursor = conn.cursor() if conn else None
-    #         if not cursor:
-    #             return False
-    #
-    #         cursor.execute(
-    #                 """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
-    #         stores = cursor.fetchall()
-    #         if not stores:
-    #             return False
-    #
-    #         for store in stores:
-    #             store_id, store_url, store_token = store
-    #             papi = ProductsApi(store_token, store_url)
-    #             # 更新产品类目信息
-    #             # res = papi.()
-    #             # if res["code"] == 1:
-    #             #     pass
+
+    def update_shopify_sales_volume(self):
+        """更新产品销售量"""
+        logger.info("update_collection is cheking...")
+        try:
+            conn = DBUtil().get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return False
+
+            cursor.execute(
+                    """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
+            stores = cursor.fetchall()
+            if not stores:
+                return False
+
+            for store in stores:
+                store_id, store_url, store_token = store
+                papi = ProductsApi(store_token, store_url)
+                # 更新产品类目信息
+                res = papi.get_all_collections()
+                if res["code"] == 1:
+                    pass
+        except:
+            pass
 
 
-
-
-
-
-
+                
 def main():
     tsp = TaskProcessor()
     tsp.start_all(rule_interval=120, publish_pin_interval=120, pinterest_update_interval=7200*3, shopify_update_interval=7200*3, update_new=120)
