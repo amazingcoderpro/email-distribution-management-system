@@ -100,11 +100,11 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def create_and_send_newsletter(self, listId, subject, plain="", html="", contentFromUrl=None, deliveryDate=None, timeZone="UTC"):
+    def create_and_send_newsletter(self, listId_list, subject, plain="", html="", contentFromUrl=None, deliveryDate=None, timeZone="UTC"):
         """
-        创建及发送Newsletter
+        创建及发送Newsletter, 注：如多个listId中存在同样的邮件，只会发一封邮件
         接口Url：http://sms.expertsender.cn/api/v2/methods/email-messages/create-and-send-newsletter/
-        :param listId: 发送列表ID
+        :param listId_list: 发送列表ID组成的列表
         :param subject: 邮件主题
         :param plain: 邮件纯文本
         :param html: html格式邮件内容
@@ -116,7 +116,7 @@ class ExpertSender:
         data = {"ApiRequest": {
                     "ApiKey": self.api_key,
                     "Data": {
-                        "Recipients": {"SubscriberLists": [{"SubscriberList": listId}, ]},
+                        "Recipients": {"SubscriberLists": {"SubscriberList": []}},
                         "Content": {
                             "FromEmail": self.from_email,
                             "Subject": subject,
@@ -130,6 +130,8 @@ class ExpertSender:
                         }
                     }
         }}
+        for listId in listId_list:
+            data["ApiRequest"]["Data"]["Recipients"]["SubscriberLists"]["SubscriberList"].append(listId)
         if contentFromUrl:
             data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": contentFromUrl})
         if deliveryDate:
@@ -180,13 +182,13 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_subscriber_lists(self, listId, seedLists=False):
+    def get_subscriber_lists(self, seedLists=False):
         """
         获取收件人列表http://sms.expertsender.cn/api/v2/methods/get-subscriber-lists/
         :param seedLists: 如设为 ‘true’, 只有测试列表会被返回. 如果设为 ‘false’, 只有收件人列表会被返回.
         :return:
         """
-        url = f"{self.host}Api/Lists/{listId}?apiKey={self.api_key}&seedLists={seedLists}"
+        url = f"{self.host}Api/Lists?apiKey={self.api_key}&seedLists={seedLists}"
         try:
             result = requests.get(url)
             return self.retrun_result("get subscriber lists", result)
@@ -365,17 +367,6 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_list_of_tables(self):
-        """
-        获取数据表格信息http://sms.expertsender.cn/api/v2/methods/data-tables/get-list-of-tables/
-        :return:
-        """
-        url = f"{self.host}Api/DataTablesGetTables?apiKey={self.api_key}"
-        try:
-            result = requests.get(url)
-            return self.retrun_result("get summary statistics", result)
-        except Exception as e:
-            return {"code": -1, "msg": str(e), "data": ""}
 
 if __name__ == '__main__':
     html_b = """<!DOCTYPE html>
@@ -398,12 +389,23 @@ if __name__ == '__main__':
 </body>
 </html>"""
     ems = ExpertSender("0x53WuKGWlbq2MQlLhLk", "leemon.li@orderplus.com")
-    # print(ems.get_server_time())
     # print(ems.get_message_statistics(318))
-    # print(ems.create_and_send_newsletter(25, "HelloWorld","expertsender",html_b)) # ,"2019-07-09 21:09:00"
+
     # print(ems.get_messages(318))
+    print(ems.create_subscribers_list("Test001"))
+    print(ems.add_subscriber(26, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
+    print(ems.create_and_send_newsletter(25, "HelloWorld","expertsender",html_b)) # ,"2019-07-09 21:09:00"
+    # print(ems.get_subscriber_activity("Opens"))
+    # print(ems.get_subscriber_information("twobercancan@126.com"))
+    # print(ems.get_subscriber_activity())
+    print(ems.get_summary_statistics(63))
+    # print(ems.get_server_time())
+    # print(ems.get_message_statistics(349))
+    # print(ems.create_and_send_newsletter([25,26], "two listID", "expertsender test 2")) # ,"2019-07-09 21:09:00"
+    # print(ems.get_messages(349))
+    print(ems.get_subscriber_lists())
     # print(ems.create_subscribers_list("Test001"))
-    print(ems.get_subscriber_activity("Opens", "2019-07-15"))
+    # print(ems.get_subscriber_activity("Opens", "2019-07-15"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
     # print(ems.get_summary_statistics(63))

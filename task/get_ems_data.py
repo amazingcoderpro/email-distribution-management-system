@@ -30,14 +30,12 @@ class GetEMSData:
             result = {}
             type_choices = {'Opens': 0, 'Clicks': 1, 'Sends': 2}
             for tp in ["Opens", "Clicks"]:
-                # Date,Email,MessageId,MessageSubject,CustomSubscriberId
                 result[tp] = self.ems.get_subscriber_activity(tp, query_date)[1:]
             for tp, item in result.items():
                 tp = type_choices[tp]
                 for i in item:
                     try:
                         opt_time, email, message_uuid = i.split(",")[0:3]
-                        print(opt_time, email, message_uuid)
                     except ValueError as e:
                         logger.info(e)
                         continue
@@ -60,7 +58,41 @@ class GetEMSData:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
+    def update_customer_group_data(self):
+        """
+        更新状态未删除的客户组ems数据
+        :return:
+        """
+        try:
+            conn = DBUtil().get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return False
+            # 获取当前用户组listId
+            cursor.execute("""select uuid,store_id from customer_group where state in (0,1)""")
+            uuid_list = cursor.fetchall()
+            # 获取每一个listId对应的ems数据
+            for uuid, store_id in uuid_list:
+                if not uuid:
+                    continue
+                datas = self.ems.get_summary_statistics(uuid)
+                if datas["data"]:
+                    statistic = datas["data"]["SummaryStatistics"]["SummaryStatistic"]
+                    sents, opens, clicks = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"])
+                    open_rate, click_rate = round(opens/sents, 2), round(clicks/sents, 2)
+                    # 更新数据库
+                    cursor.execute("""update customer_group set sents=%s, opens=%s, clicks=%s, open_rate=%s, click_rate=%s, update_time=%s where uuid=%s and store_id=%s""",
+                                   (sents, opens, clicks, open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
+            conn.commit()
+        except Exception as e:
+            logger.exception("update customer group data exception e={}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
 
 if __name__ == '__main__':
     obj = GetEMSData("0x53WuKGWlbq2MQlLhLk", "leemon.li@orderplus.com", 1)
-    obj.insert_subscriber_activity("2019-07-15")
+    # obj.insert_subscriber_activity("2019-07-15")
+    obj.update_customer_group_data()
