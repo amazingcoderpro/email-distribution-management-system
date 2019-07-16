@@ -32,7 +32,7 @@ v1_urlpatterns = [
     url(r'store/(?P<pk>[0-9]+)/$', service.StoreOperView.as_view()),
 
     url(r'webhook/cart/event/$', webhook.EventCartTrigger.as_view()),
-    url(r'webhook/cart/event/create/$', webhook.EventCartTriggerCreate.as_view())
+    url(r'webhook/cart/event/create/$', webhook.EventCartTriggerCreate.as_view()),
 
     url(r'webhook/order/event/$', webhook.EventOrderTrigger.as_view()),
     url(r'webhook/order/event/create/$', webhook.EventOrderTriggerCreate.as_view())
