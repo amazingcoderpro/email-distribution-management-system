@@ -206,6 +206,7 @@ class Customer(models.Model):
 
     class Meta:
         managed = False
+        unique_together = ("store", "uuid")
         db_table = 'customer'
 
 
@@ -277,7 +278,8 @@ class OrderEvent(models.Model):
     product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
-    create_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="订单创建时间")
+    order_create_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="订单创建时间")
+    create_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="创建时间")
 
     class Meta:
         managed = False
