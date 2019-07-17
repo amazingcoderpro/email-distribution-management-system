@@ -86,19 +86,20 @@ class TaskProcessor:
                             accepts_marketing = customer.get("accepts_marketing", "")
                             first_name = customer.get("first_name", "")
                             last_name = customer.get("last_name", "")
+                            orders_count = int(customer.get("orders_count", ""))
+                            last_order_id = str(customer.get("last_order_id", ""))
                             payment_amount = customer.get("total_spent", "")
 
                             if uuid in exist_customer_list:
-                                # pro_id = exist_customer_dict[uuid]
-                                logger.info("customer is already exist, uuid={}".format(uuid))
+                                logger.info("customer is already exist [update], uuid={}".format(uuid))
                                 cursor.execute(
-                                    '''update `customer` set customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
-                                    (customer_email, accepts_marketing, datetime.datetime.now(), first_name, last_name, uuid))
+                                    '''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
+                                    (last_order_id, orders_count, customer_email, accepts_marketing, datetime.datetime.now(), first_name, last_name, uuid))
                             else:
-                                logger.info("customer is already exist, uuid={}".format(uuid))
-                                cursor.execute('''insert into `customer` (`uuid`, `sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
-                                                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                                               (uuid, sign_up_time, first_name, last_name, customer_email, accepts_marketing, store_id, payment_amount,  datetime.datetime.now(), datetime.datetime.now()))
+                                logger.info("customer is already exist [insert], uuid={}".format(uuid))
+                                cursor.execute('''insert into `customer` (`uuid`, `last_order_id`,`orders_count`,`sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
+                                                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                                               (uuid, last_order_id, orders_count, sign_up_time, first_name, last_name, customer_email, accepts_marketing, store_id, payment_amount,  datetime.datetime.now(), datetime.datetime.now()))
                                 exist_customer_list.append(uuid)
                             conn.commit()
                         # 拉完了
