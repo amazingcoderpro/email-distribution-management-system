@@ -11,6 +11,7 @@ class EventCartUpdate(APIView):
         print(type(request.META))
         store_url = request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]
         print(store_url)
+        print(type(request.data))
         print(json.dumps(request.data))
         # print(type(request.META))
 
