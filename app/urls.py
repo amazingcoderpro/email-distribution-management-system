@@ -31,12 +31,12 @@ v1_urlpatterns = [
     url(r'store/$', service.StoreView.as_view()),
     url(r'store/(?P<pk>[0-9]+)/$', service.StoreOperView.as_view()),
 
-    url(r'webhook/cart/update/$', webhook.EventCartUpdate.as_view()),
-    url(r'webhook/cart/create/$', webhook.EventCartCreate.as_view()),
-
-    url(r'webhook/order/update/$', webhook.EventOrderUpdate.as_view()),
-    url(r'webhook/order/create/$', webhook.EventOrderCreate.as_view()),
-    url(r'webhook/order/paid/$', webhook.EventOrderPaid.as_view()),
+    # url(r'webhook/cart/update/$', webhook.EventCartUpdate.as_view()),
+    # url(r'webhook/cart/create/$', webhook.EventCartCreate.as_view()),
+    #
+    # url(r'webhook/order/update/$', webhook.EventOrderUpdate.as_view()),
+    # url(r'webhook/order/create/$', webhook.EventOrderCreate.as_view()),
+    # url(r'webhook/order/paid/$', webhook.EventOrderPaid.as_view()),
 ]
 
 
@@ -46,7 +46,7 @@ webhook_urlpatterns = [
 
     url(r'order/update/$', webhook.EventOrderUpdate.as_view()),
     url(r'order/create/$', webhook.EventOrderCreate.as_view()),
-    url(r'order/fulfilled/$', webhook.EventOrderFulfilled.as_view()),
+    url(r'order/paid/$', webhook.EventOrderPaid.as_view()),
 
 ]
 
