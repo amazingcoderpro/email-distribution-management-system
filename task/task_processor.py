@@ -4,6 +4,7 @@ import threading
 import time
 import pymysql
 import os
+import json
 
 from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, SHOPIFY_CONFIG
@@ -323,9 +324,31 @@ class TaskProcessor:
                 # 更新产品类目信息
                 res = papi.get_all_orders()
                 if res["code"] == 1:
-                    pass
-        except:
-            pass
+                    orders = res["data"]["orders"]
+                    for order in orders:
+                        order_uuid = order["id"]
+                        status = 1
+                        customer_uuid = order["customer"]["id"]
+                        create_time = order["updated_at"]
+                        li = []
+                        for item in order["line_items"]:
+                            product_id = item["product_id"]
+                            title = item["title"]
+                            price = item["price"]
+                            quantity = item["quantity"]
+                            li.append({"product_id":product_id,"title":title,"price":price,"quantity":quantity})
+                        product_info = json.dumps(li)
+                        cursor.execute(
+                            "insert into `order_event` (`order_uuid`, `status`,`product_info`,`customer_uuid`, `store_id`, `create_time`,) values (%s, %s, %s, %s, %s, %s)",
+                            (order_uuid, status, product_info, customer_uuid, store_id, create_time))
+                    conn.commit()
+        except Exception as e:
+            logger.exception("update_collection e={}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
 
 
                 
