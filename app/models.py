@@ -102,7 +102,7 @@ class EmailTemplate(models.Model):
 
 class EmailRecord(models.Model):
     uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="邮件ID")
-    customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
+    # customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
     # store_id = models.IntegerField(verbose_name="店铺id")
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
@@ -113,6 +113,7 @@ class EmailRecord(models.Model):
     unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件退订率")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
+    email_template_id = models.IntegerField(blank=True, null=True,  verbose_name="模版id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
