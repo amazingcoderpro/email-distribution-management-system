@@ -196,7 +196,8 @@ class Customer(models.Model):
     #
     # last_click_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后单击邮箱时间")
     # clicked_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户单击邮箱次数")
-
+    orders_count = models.IntegerField(blank=True, null=True, verbose_name="订单数量")
+    last_order_id = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_order_id")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")

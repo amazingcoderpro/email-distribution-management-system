@@ -75,7 +75,7 @@ class EventOrderPaid(APIView):
             customer_res["first_name"] = request.data["customer"]["first_name"]
             customer_res["last_name"] = request.data["customer"]["last_name"]
             customer_res["accept_marketing_status"] = request.data["customer"]["accepts_marketing"]
-            # customer_res["subscribe_time"] = request.data["customer"]["created_at"]
+            customer_res["sign_up_time"] = request.data["customer"]["created_at"]
             customer_res["last_order_status"] = 0
             customer_res["last_order_time"] = datetime.datetime.now()
             models.Customer.objects.create(**customer_res)
