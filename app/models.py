@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 # from django_hstore import hstore
+from django_mysql.models import JSONField
 
 
 class User(AbstractUser):
@@ -196,7 +197,8 @@ class Customer(models.Model):
     #
     # last_click_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后单击邮箱时间")
     # clicked_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户单击邮箱次数")
-
+    orders_count = models.IntegerField(blank=True, null=True, verbose_name="订单数量")
+    last_order_id = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_order_id")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
@@ -272,13 +274,14 @@ class OrderEvent(models.Model):
     customer_uuid = models.CharField(db_index=True,max_length=255, verbose_name="订单对应客户id")
 
     # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
-    product_info = models.TextField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
+    product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="订单创建时间")
 
     class Meta:
         managed = False
+        unique_together = ("store", "order_uuid")
         db_table = 'order_event'
 
 
