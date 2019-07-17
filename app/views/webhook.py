@@ -51,7 +51,8 @@ class EventOrderPaid(APIView):
         print("------------ order paid ------------:")
         print(json.dumps(request.data))
         res = {}
-        res["store_url"] = request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]
+        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
+        res["store"] = store
         res["order_uuid"] = request.data["id"]
         res["status"] = 1
         res["customer_uuid"] = request.data["customer"]["id"]
@@ -65,10 +66,11 @@ class EventOrderPaid(APIView):
         models.OrderEvent.objects.create(**res)
         if not models.Customer.objects.filter(uuid=request.data["customer"]["id"]).first():
             customer_res = {}
+            customer_res["store"] = store
             customer_res["uuid"] = request.data["customer"]["id"]
             customer_res["customer_email"] = request.data["customer"]["email"]
             customer_res["first_name"] = request.data["customer"]["first_name"]
             customer_res["last_name"] = request.data["customer"]["last_name"]
             customer_res["accept_marketing_status"] = request.data["customer"]["accepts_marketing"]
-            models.Customer.objects.create()
+            models.Customer.objects.create(**customer_res)
         return Response({"code": 200})
