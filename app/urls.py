@@ -36,7 +36,7 @@ v1_urlpatterns = [
 
     url(r'webhook/order/update/$', webhook.EventOrderUpdate.as_view()),
     url(r'webhook/order/create/$', webhook.EventOrderCreate.as_view()),
-    url(r'webhook/order/fulfilled/$', webhook.EventOrderFulfilled.as_view()),
+    url(r'webhook/order/paid/$', webhook.EventOrderPaid.as_view()),
 ]
 
 

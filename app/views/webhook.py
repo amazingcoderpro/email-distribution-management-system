@@ -40,10 +40,10 @@ class EventOrderCreate(APIView):
         return Response({"code": 200})
 
 
-class EventOrderFulfilled(APIView):
+class EventOrderPaid(APIView):
 
     def post(self, request, *args, **kwargs):
-        print("------------ order fulfilled ------------:")
+        print("------------ order paid ------------:")
         print(request.META, type(request.META))
         print(json.dumps(request.data))
         return Response({"code": 200})
