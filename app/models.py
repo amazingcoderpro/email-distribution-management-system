@@ -274,7 +274,7 @@ class OrderEvent(models.Model):
     create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="订单创建时间")
 
     class Meta:
-        managed = False
+        #managed = False
         db_table = 'order_event'
 
 
@@ -284,12 +284,12 @@ class CartEvent(models.Model):
     """
     event_uuid = models.CharField(max_length=255, verbose_name="购物车事件的唯一标识符")
     store_url = models.CharField(max_length=255, verbose_name="事件对应的店铺的url")
-    customer = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
-    products = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
+    customer_uuid = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
+    product_list = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
     create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="创建时间")
 
     class Meta:
-        managed = False
+        #managed = False
         db_table = 'cart_event'
 
 # class WebhookTransaction(models.Model):
