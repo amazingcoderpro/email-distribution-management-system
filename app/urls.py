@@ -53,6 +53,6 @@ webhook_urlpatterns = [
 
 urlpatterns = [
     url(r'^v1/auth/', include(auth_urlpatterns)),
-    url(r'^v1/webhook/', include(auth_urlpatterns)),
+    url(r'^v1/webhook/', include(webhook_urlpatterns)),
     url(r'^v1/', include(v1_urlpatterns)),
 ]
