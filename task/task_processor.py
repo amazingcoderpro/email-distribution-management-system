@@ -302,8 +302,8 @@ class TaskProcessor:
 
 
 
-    def update_shopify_sales_volume(self):
-        """更新产品销售量"""
+    def update_shopify_orders(self):
+        """更新店铺的订单"""
         logger.info("update_collection is cheking...")
         try:
             conn = DBUtil().get_instance()
@@ -321,7 +321,7 @@ class TaskProcessor:
                 store_id, store_url, store_token = store
                 papi = ProductsApi(store_token, store_url)
                 # 更新产品类目信息
-                res = papi.get_all_collections()
+                res = papi.get_all_orders()
                 if res["code"] == 1:
                     pass
         except:
@@ -344,4 +344,4 @@ if __name__ == '__main__':
     # main()
     #TaskProcessor().update_shopify_collections()
     # TaskProcessor().update_shopify_product()
-    TaskProcessor().update_shopify_sales_volume()
+    TaskProcessor().update_shopify_orders()

@@ -280,6 +280,7 @@ class OrderEvent(models.Model):
 
     class Meta:
         managed = False
+        unique_together = ("store", "order_uuid")
         db_table = 'order_event'
 
 
