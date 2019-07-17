@@ -325,8 +325,9 @@ class TaskProcessor:
 
                 since_id = ""
                 order_list = []
+                created_at_max = ""
                 for i in range(0, 100):
-                    res = papi.get_all_orders(limit=15, since_id=since_id)
+                    res = papi.get_all_orders(created_at_max, limit=250)
                     if res["code"] != 1:
                         break
                     if res["code"] == 1:
@@ -363,9 +364,10 @@ class TaskProcessor:
                         if len(orders) < 15:
                             break
                         else:
-                            since_id = orders[-1].get("id", "")
-                            if not since_id:
-                                break
+                            created_at_max = orders[-1].get("created_at", "")
+                            # since_id = orders[-1].get("id", "")
+                            # if not since_id:
+                            #     break
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
             return False

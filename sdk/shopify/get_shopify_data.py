@@ -132,19 +132,19 @@ class ProductsApi:
             logger.error("get shopify all customers info is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_all_orders(self, limit=250, since_id="", financial_status="paid"):
+    def get_all_orders(self, created_at_max, limit=250,  financial_status="paid"):
         """
        获取collections_id的product
        # 接口  /admin/api/201 -07/orders.json
        # 连接地址 https://help.shopify.com/en/api/reference/orders/order#index-2019-07
        :return:
         """
-        if not since_id:
+        if not created_at_max:
             order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
                 f"?limit={limit}&financial_status={financial_status}"
-        if since_id:
+        else:
             order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
-                f"?limit={limit}&financial_status={financial_status}&since_id={since_id}"
+                f"?limit={limit}&created_at_max={created_at_max}&financial_status={financial_status}"
         try:
             result = requests.get(order_url)
             if result.status_code == 200:
