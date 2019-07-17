@@ -8,7 +8,7 @@ class EventCartUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ cat update------------:")
-        print(request.META)
+        print(json.dumps(request.META))
         print(json.dumps(request.data))
         return Response({"code": 200})
 
@@ -33,7 +33,7 @@ class EventOrderCreate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ order create ------------:")
-        print(request.META)
+        print(json.dumps(request.META))
         print(json.dumps(request.data))
         return Response({"code": 200})
 
@@ -42,6 +42,6 @@ class EventOrderFulfilled(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ order fulfilled ------------:")
-        print(request.META)
+        print(json.dumps(request.META))
         print(json.dumps(request.data))
         return Response({"code": 200})
