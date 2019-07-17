@@ -267,11 +267,12 @@ class OrderEvent(models.Model):
     event_uuid = models.CharField(max_length=255, blank=True, null=True, verbose_name="事件的唯一标识符")
     order_uuid = models.CharField(max_length=255, verbose_name="订单的唯一标识符")
     status = models.IntegerField(db_index=True, default=0, verbose_name="订单事件类型, 0-创建(未支付)，1-支付")
-    store_url = models.CharField(db_index=True, max_length=255, verbose_name="订单对应的店铺的url")
+    # store_url = models.CharField(db_index=True, max_length=255, verbose_name="订单对应的店铺的url")
     customer_uuid = models.CharField(db_index=True,max_length=255, verbose_name="订单对应客户id")
 
     # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
     product_info = models.TextField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
+    store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="订单创建时间")
 
     class Meta:
@@ -284,7 +285,8 @@ class CartEvent(models.Model):
     购物车事件信息
     """
     event_uuid = models.CharField(max_length=255, verbose_name="购物车事件的唯一标识符")
-    store_url = models.CharField(max_length=255, verbose_name="事件对应的店铺的url")
+    # store_url = models.CharField(max_length=255, verbose_name="事件对应的店铺的url")
+    store_id = models.IntegerField(verbose_name="店铺id")
     customer_uuid = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
     product_list = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
     create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="创建时间")
@@ -371,15 +373,15 @@ class CartEvent(models.Model):
 #         return u'{}'.format(self.user_name)
 
 
-class SalesVolume(models.Model):
-    """销售量"""
-    three_val = models.TextField(blank=True, null=True, verbose_name="前三天的销售量")
-    seven_val = models.TextField(blank=True, null=True, verbose_name="前七天的销售量")
-    fifteen_val = models.TextField(blank=True, null=True, verbose_name="前十五天的销售量")
-    thirty_val = models.TextField(blank=True, null=True, verbose_name="前三十天的销售量")
-    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-
-    class Meta:
-        managed = False
-        db_table = 'sales_volume'
+# class SalesVolume(models.Model):
+#     """销售量"""
+#     three_val = models.TextField(blank=True, null=True, verbose_name="前三天的销售量")
+#     seven_val = models.TextField(blank=True, null=True, verbose_name="前七天的销售量")
+#     fifteen_val = models.TextField(blank=True, null=True, verbose_name="前十五天的销售量")
+#     thirty_val = models.TextField(blank=True, null=True, verbose_name="前三十天的销售量")
+#     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+#     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+#
+#     class Meta:
+#         managed = False
+#         db_table = 'sales_volume'

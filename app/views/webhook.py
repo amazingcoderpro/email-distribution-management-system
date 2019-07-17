@@ -63,4 +63,12 @@ class EventOrderPaid(APIView):
             quantity = item["quantity"]
             li.append({"product_id":product_id,"title":title,"price":"price","quantity":quantity})
         models.OrderEvent.objects.create(**res)
+        if not models.Customer.objects.filter(uuid=request.data["customer"]["id"]).first():
+            customer_res = {}
+            customer_res["uuid"] = request.data["customer"]["id"]
+            customer_res["customer_email"] = request.data["customer"]["email"]
+            customer_res["first_name"] = request.data["customer"]["first_name"]
+            customer_res["last_name"] = request.data["customer"]["last_name"]
+            customer_res["accept_marketing_status"] = request.data["customer"]["accepts_marketing"]
+            models.Customer.objects.create()
         return Response({"code": 200})
