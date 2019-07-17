@@ -322,26 +322,52 @@ class TaskProcessor:
                 store_id, store_url, store_token = store
                 papi = ProductsApi(store_token, store_url)
                 # 更新产品类目信息
-                res = papi.get_all_orders()
-                if res["code"] == 1:
-                    orders = res["data"]["orders"]
-                    for order in orders:
-                        order_uuid = order["id"]
-                        status = 1
-                        customer_uuid = order["customer"]["id"]
-                        create_time = order["updated_at"]
-                        li = []
-                        for item in order["line_items"]:
-                            product_id = item["product_id"]
-                            title = item["title"]
-                            price = item["price"]
-                            quantity = item["quantity"]
-                            li.append({"product_id":product_id,"title":title,"price":price,"quantity":quantity})
-                        product_info = json.dumps(li)
-                        cursor.execute(
-                            "insert into `order_event` (`order_uuid`, `status`,`product_info`,`customer_uuid`, `store_id`, `create_time`,) values (%s, %s, %s, %s, %s, %s)",
-                            (order_uuid, status, product_info, customer_uuid, store_id, create_time))
-                    conn.commit()
+
+                since_id = ""
+                order_list = []
+                created_at_max = ""
+                for i in range(0, 100):
+                    res = papi.get_all_orders(created_at_max, limit=250)
+                    if res["code"] != 1:
+                        break
+                    if res["code"] == 1:
+                        orders = res["data"]["orders"]
+                        for order in orders:
+                            order_uuid = order["id"]
+                            if order_uuid in order_list:
+                                continue
+                            status = 1
+                            customer_uuid = order["customer"]["id"]
+                            order_create_time = order["updated_at"].replace("T"," ").split("+")[0]
+                            create_time = datetime.datetime.now()
+                            li = []
+                            for item in order["line_items"]:
+                                product_id = item["product_id"]
+                                title = item["title"]
+                                price = item["price"]
+                                quantity = item["quantity"]
+                                li.append({"product_id":product_id,"title":title,"price":price,"quantity":quantity})
+                            product_info = json.dumps(li)
+                            print(order_uuid)
+                            print(status)
+                            print(customer_uuid)
+                            print(create_time)
+                            print(product_info)
+                            cursor.execute(
+                                "insert into `order_event` (`order_uuid`, `status`,`product_info`,`customer_uuid`, `store_id`,`order_create_time`,`create_time`) values (%s, %s, %s, %s, %s, %s, %s)",
+                                (order_uuid, status, product_info, customer_uuid, store_id, order_create_time, create_time))
+                            conn.commit()
+                            order_id = cursor.lastrowid
+                            order_list.append(order_uuid)
+
+                        # 拉完了
+                        if len(orders) < 15:
+                            break
+                        else:
+                            created_at_max = orders[-1].get("created_at", "")
+                            # since_id = orders[-1].get("id", "")
+                            # if not since_id:
+                            #     break
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
             return False
