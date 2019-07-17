@@ -20,7 +20,7 @@ class User(AbstractUser):
 class Store(models.Model):
     """店铺表"""
     name = models.CharField(blank=True, null=True, max_length=255, verbose_name="店铺名称")
-    url = models.CharField(blank=True, null=False, max_length=255, unique=True, verbose_name="店铺URL")
+    url = models.CharField(db_index=True, blank=True, null=False, max_length=255, unique=True, verbose_name="店铺URL")
     domain = models.CharField(blank=True, null=True, max_length=255, unique=True, verbose_name="店铺domain")
     email = models.EmailField(
         verbose_name='email address',
@@ -263,9 +263,10 @@ class OrderEvent(models.Model):
     """
     订单事件信息
     """
-    uri = models.CharField(max_length=255, verbose_name="订单事件的唯一标识符")
+    event_uuid = models.CharField(max_length=255, verbose_name="事件的唯一标识符")
+    order_uuid = models.CharField(max_length=255, verbose_name="订单的唯一标识符")
     status = models.IntegerField(default=0, verbose_name="订单事件类型, 0-创建(未支付)，1-支付")
-    store = models.CharField(max_length=255, verbose_name="订单对应的店铺的url")
+    store_url = models.CharField(max_length=255, verbose_name="订单对应的店铺的url")
     customer = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
 
     # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
@@ -273,7 +274,7 @@ class OrderEvent(models.Model):
     create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="订单创建时间")
 
     class Meta:
-        # managed = False
+        managed = False
         db_table = 'order_event'
 
 
@@ -281,14 +282,14 @@ class CartEvent(models.Model):
     """
     购物车事件信息
     """
-    uri = models.CharField(max_length=255, verbose_name="购物车事件的唯一标识符")
-    store = models.CharField(max_length=255, verbose_name="事件对应的店铺的url")
+    event_uuid = models.CharField(max_length=255, verbose_name="购物车事件的唯一标识符")
+    store_url = models.CharField(max_length=255, verbose_name="事件对应的店铺的url")
     customer = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
     products = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
     create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="创建时间")
 
     class Meta:
-        # managed = False
+        managed = False
         db_table = 'cart_event'
 
 # class WebhookTransaction(models.Model):
