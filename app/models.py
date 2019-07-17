@@ -263,14 +263,14 @@ class OrderEvent(models.Model):
     """
     订单事件信息
     """
-    event_uuid = models.CharField(max_length=255, verbose_name="事件的唯一标识符")
+    event_uuid = models.CharField(max_length=255, blank=True, null=True, verbose_name="事件的唯一标识符")
     order_uuid = models.CharField(max_length=255, verbose_name="订单的唯一标识符")
     status = models.IntegerField(default=0, verbose_name="订单事件类型, 0-创建(未支付)，1-支付")
     store_url = models.CharField(max_length=255, verbose_name="订单对应的店铺的url")
-    customer = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
+    customer_uuid = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
 
     # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
-    products = models.TextField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
+    product_info = models.TextField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
     create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="订单创建时间")
 
     class Meta:
