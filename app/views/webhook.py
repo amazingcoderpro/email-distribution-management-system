@@ -50,7 +50,7 @@ class EventOrderPaid(APIView):
     def post(self, request, *args, **kwargs):
         print("------------ order paid ------------:")
         res = {}
-        res["store_url "] = request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]
+        res["store_url"] = request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]
         res["order_uuid"] = request.data["id"]
         res["status"] = 1
         res["customer_uuid"] = request.data["customer"]["id"]
