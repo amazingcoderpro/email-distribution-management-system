@@ -31,11 +31,12 @@ v1_urlpatterns = [
     url(r'store/$', service.StoreView.as_view()),
     url(r'store/(?P<pk>[0-9]+)/$', service.StoreOperView.as_view()),
 
-    url(r'webhook/cart/event/$', webhook.EventCartTrigger.as_view()),
-    url(r'webhook/cart/event/create/$', webhook.EventCartTriggerCreate.as_view()),
+    url(r'webhook/cart/update/$', webhook.EventCartUpdate.as_view()),
+    url(r'webhook/cart/create/$', webhook.EventCartCreate.as_view()),
 
-    url(r'webhook/order/event/$', webhook.EventOrderTrigger.as_view()),
-    url(r'webhook/order/event/create/$', webhook.EventOrderTriggerCreate.as_view())
+    url(r'webhook/order/update/$', webhook.EventOrderUpdate.as_view()),
+    url(r'webhook/order/create/$', webhook.EventOrderCreate.as_view()),
+    url(r'webhook/order/fulfilled/$', webhook.EventOrderFulfilled.as_view()),
 ]
 
 
