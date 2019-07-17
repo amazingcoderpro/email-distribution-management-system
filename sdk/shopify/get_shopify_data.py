@@ -107,7 +107,7 @@ class ProductsApi:
             logger.error("get shopify all products is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_all_customers(self, limit=5, since_id=""):
+    def get_all_customers(self, limit=250, since_id=""):
         """
         获取collections_id的product
         # 接口  /admin/api/2019-04/smart_collections.json
@@ -178,6 +178,21 @@ class ProductsApi:
             logger.error("get shopify orders is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
+    def get_customer_count(self):
+        shop_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}customers/count.json"
+        result = requests.get(shop_url)
+        try:
+            if result.status_code == 200:
+                logger.info("get shopify all customers info is success")
+                res_dict = json.loads(result.text)
+                return {"code": 1, "msg": "", "data": res_dict}
+            else:
+                logger.info("get shopify all customers info is failed")
+                return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
+        except Exception as e:
+            logger.error("get shopify all customers info is failed info={}".format(str(e)))
+            return {"code": -1, "msg": str(e), "data": ""}
+
 
 if __name__ == '__main__':
     access_token = "d1063808be79897450ee5030e1c163ef"
@@ -185,6 +200,8 @@ if __name__ == '__main__':
     id = "3583116148816"
     shop_uri = "charrcter.myshopify.com"
     products_api = ProductsApi(access_token=access_token, shop_uri=shop_uri)
-    # print(products_api.get_all_customers())
+    print(products_api.get_all_customers(since_id="1714880053321"))
+    # since_id="1487712747593"
     # products_api.get_all_orders()
-    products_api.get_orders_id(order_id="1225404776521")
+    # products_api.get_customer_count()
+    # products_api.get_orders_id(order_id="503834869833")

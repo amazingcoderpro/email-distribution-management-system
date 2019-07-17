@@ -36,6 +36,7 @@ class ProductsApi:
             }}
         if shop_uri:
             self.headers['X_Shopify_Shop_Domain'] = self.shop_uri
+            self.headers['X_Shopify_Shop_Id'] = str(3)
         if topic:
             self.headers['X_Shopify_Topic'] = topic
         if send_hmac:
@@ -96,13 +97,13 @@ if __name__ == '__main__':
     access_token = "d1063808be79897450ee5030e1c163ef"
     id = "3583116148816"
     shop_uri = "charrcter.myshopify.com"
-    address = "https://smartsend.seamarketings.com/api/v1/webhook/order/fulfilled/"
-    topic = "orders/fulfilled"
+    address = "https://smartsend.seamarketings.com/api/v1/webhook/order/paid/"
+    topic = "orders/paid"
     products_api = ProductsApi(shop_uri=shop_uri, access_token=access_token)
     # 創建webhook
     products_api.create_webhook(topic=topic, address=address)
     # 查詢所有的webhook
     products_api.get_all_webhook()
     # 刪除對應ID的webhook
-    # products_api.delete_webhook(webhook_id="503834640457")
-#     503813275721 503813341257 503813374025 503813406793
+    # products_api.delete_webhook(webhook_id="503834869833")
+
