@@ -8,7 +8,8 @@ class EventCartUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ cat update------------:")
-        print(request.META, type(request.META))
+        print(request.META)
+        print(type(request.META))
         print(json.dumps(request.data))
         return Response({"code": 200})
 
