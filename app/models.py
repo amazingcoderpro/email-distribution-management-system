@@ -163,6 +163,7 @@ class CustomerGroup(models.Model):
 
     class Meta:
         managed = False
+        unique_together = ("store", "uuid")
         db_table = 'customer_group'
 
 
@@ -272,11 +273,12 @@ class OrderEvent(models.Model):
 
     # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
     product_info = models.TextField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
-    store_id = models.IntegerField(verbose_name="店铺id")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="订单创建时间")
 
     class Meta:
-        #managed = False
+        managed = False
         db_table = 'order_event'
 
 
@@ -286,13 +288,14 @@ class CartEvent(models.Model):
     """
     event_uuid = models.CharField(max_length=255, verbose_name="购物车事件的唯一标识符")
     # store_url = models.CharField(max_length=255, verbose_name="事件对应的店铺的url")
-    store_id = models.IntegerField(verbose_name="店铺id")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(verbose_name="店铺id")
     customer_uuid = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
     product_list = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
     create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="创建时间")
 
     class Meta:
-        #managed = False
+        managed = False
         db_table = 'cart_event'
 
 # class WebhookTransaction(models.Model):
