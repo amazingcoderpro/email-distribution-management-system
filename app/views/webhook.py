@@ -7,12 +7,12 @@ from rest_framework.views import APIView
 class EventCartUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
-        print("------------ cat ------------:")
+        print("------------ cat update------------:")
         print(json.dumps(request.data))
         return Response({"code": 200})
 
 
-class EventCartTriggerCreate(APIView):
+class EventCartCreate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ cat create ------------:")
@@ -23,7 +23,7 @@ class EventCartTriggerCreate(APIView):
 class EventOrderUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
-        print("------------ order ------------:")
+        print("------------ order update------------:")
         print(json.dumps(request.data))
         return Response({"code": 200})
 
@@ -39,6 +39,6 @@ class EventOrderCreate(APIView):
 class EventOrderFulfilled(APIView):
 
     def post(self, request, *args, **kwargs):
-        print("------------ order create ------------:")
+        print("------------ order fulfilled ------------:")
         print(json.dumps(request.data))
         return Response({"code": 200})
