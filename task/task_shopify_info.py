@@ -70,11 +70,11 @@ class TaskProcessor:
                 # 更新客户信息
                 papi = ProductsApi(store_token, store_url)
                 # 更新店铺信息
-                since_id = ""
+                created_at_max = ""
                 for i in range(0, 100):
-                    ret = papi.get_all_customers(limit=60, since_id=since_id)
+                    ret = papi.get_all_customers(limit=250, created_at_max=created_at_max)
                     if ret["code"] != 1:
-                        logger.warning("get shop info failed. ret={}".format(ret))
+                        logger.warning("get shop customer failed. ret={}".format(ret))
                         break
                     if ret["code"] == 1:
                         customer_info = ret["data"].get("customers", "")
@@ -95,17 +95,18 @@ class TaskProcessor:
                                     '''update `customer` set customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
                                     (customer_email, accepts_marketing, datetime.datetime.now(), first_name, last_name, uuid))
                             else:
+                                logger.info("customer is already exist, uuid={}".format(uuid))
                                 cursor.execute('''insert into `customer` (`uuid`, `sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
                                                 values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
                                                (uuid, sign_up_time, first_name, last_name, customer_email, accepts_marketing, store_id, payment_amount,  datetime.datetime.now(), datetime.datetime.now()))
                                 exist_customer_list.append(uuid)
                             conn.commit()
                         # 拉完了
-                        if len(customer_info) < 60:
+                        if len(customer_info) < 250:
                             break
                         else:
-                            since_id = customer_info[-1].get("id", "")
-                            if not since_id:
+                            created_at_max = customer_info[-1].get("created_at", "")
+                            if not created_at_max:
                                 break
 
         except Exception as e:
