@@ -2,6 +2,7 @@ from rest_framework.response import Response
 import json
 from rest_framework.views import APIView
 from app import models
+import datetime
 
 
 class EventCartUpdate(APIView):
@@ -65,7 +66,8 @@ class EventOrderPaid(APIView):
             li.append({"product_id":product_id,"title":title,"price":"price","quantity":quantity})
         res["product_info"] = str(li)
         models.OrderEvent.objects.create(**res)
-        if not models.Customer.objects.filter(uuid=request.data["customer"]["id"]).first():
+        customer_instance = models.Customer.objects.filter(uuid=request.data["customer"]["id"]).first()
+        if not customer_instance:
             customer_res = {}
             customer_res["store"] = store
             customer_res["uuid"] = request.data["customer"]["id"]
@@ -73,5 +75,12 @@ class EventOrderPaid(APIView):
             customer_res["first_name"] = request.data["customer"]["first_name"]
             customer_res["last_name"] = request.data["customer"]["last_name"]
             customer_res["accept_marketing_status"] = request.data["customer"]["accepts_marketing"]
+            customer_res["subscribe_time"] = request.data["customer"]["created_at"]
+            customer_res["last_order_status"] = 0
+            customer_res["last_order_time"] = datetime.datetime.now()
             models.Customer.objects.create(**customer_res)
+        else:
+            customer_instance.last_order_status = 0
+            customer_instance.last_order_time = datetime.datetime.now()
+            customer_instance.save()
         return Response({"code": 200})
