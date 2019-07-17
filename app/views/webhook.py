@@ -8,7 +8,7 @@ class EventCartUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ cat update------------:")
-        print(request, request.__dict__)
+        print(request.headers)
         print(json.dumps(request.data))
         return Response({"code": 200})
 
@@ -42,6 +42,6 @@ class EventOrderFulfilled(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ order fulfilled ------------:")
-        # print(request.)
+        print(request.headers)
         print(json.dumps(request.data))
         return Response({"code": 200})
