@@ -5,7 +5,6 @@ from rest_framework.views import APIView
 
 
 class EventCartUpdate(APIView):
-
     def post(self, request, *args, **kwargs):
         print("------------ cat update------------:")
         print(json.dumps(request.data))

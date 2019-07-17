@@ -66,18 +66,19 @@ class TaskProcessor:
                 if ret["code"] == 1:
                     customer_info = ret["data"].get("customers", "")
                     for customer in customer_info:
+                        uuid = customer.get("id", "")
                         customer_email = customer.get("email", "")
                         create_time = customer.get("created_at", "")
-                        # sign_up_time = datetime.datetime.strftime(create_time, )
-                        accepts_marketing = customer.get("accepts_marketing", '%Y-%m-%d %H:%M:%S')
+                        sign_up_time = datetime.datetime.strftime(create_time, '%Y-%m-%dT %H:%M:%S+08:00')
+                        accepts_marketing = customer.get("accepts_marketing", "")
                         first_name = customer.get("first_name", "")
                         last_name = customer.get("last_name", "")
                         payment_amount = customer.get("total_spent", "")
 
                         # shop_myshopify_domain = shop.get("myshopify_domain", "")
-                        cursor.execute('''insert into `customer` (`payment_amount`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
-                                        values (%s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                                       (payment_amount, first_name, last_name, customer_email, accepts_marketing, store_id, payment_amount,  datetime.datetime.now(), datetime.datetime.now()))
+                        cursor.execute('''insert into `customer` (`uuid`, `sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
+                                        values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                                       (uuid, sign_up_time, first_name, last_name, customer_email, accepts_marketing, store_id, payment_amount,  datetime.datetime.now(), datetime.datetime.now()))
                     conn.commit()
                 else:
                     logger.warning("get shop info failed. ret={}".format(ret))
