@@ -104,7 +104,6 @@ class EmailTemplate(models.Model):
 class EmailRecord(models.Model):
     uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="邮件ID")
     # customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
-    # store_id = models.IntegerField(verbose_name="店铺id")
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
     clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
@@ -112,6 +111,8 @@ class EmailRecord(models.Model):
     open_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件打开率")
     click_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件单击率")
     unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件退订率")
+    type_choice = ((0, 'Newsletter'), (1, 'Transactional'), (2, 'Test'))
+    type = models.SmallIntegerField(blank=True, null=True, verbose_name="邮件类型")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
     email_template_id = models.IntegerField(blank=True, null=True,  verbose_name="模版id")
@@ -276,11 +277,12 @@ class OrderEvent(models.Model):
 
     # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
     product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
+    total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
     order_create_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="订单创建时间")
     create_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="创建时间")
-    total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
+
 
     class Meta:
         managed = False
