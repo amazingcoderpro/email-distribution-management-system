@@ -86,11 +86,13 @@ class EventOrderPaid(APIView):
         print(json.dumps(request.data))
         res = {}
         store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
-        res["store"] = store
-        res["order_uuid"] = request.data["id"]
-        res["status"] = 1
-        res["customer_uuid"] = request.data["customer"]["id"]
-        res["total_price"] = request.data["total_price"]
+        order_uuid = request.data["id"]
+
+        order_instance = models.OrderEvent.objects.filter(store=store,order_uuid=order_uuid).first()
+        if not order_instance:
+            return Response({"code": 404})
+        order_instance.status = 1
+        order_instance.total_price = request.data["total_price"]
         li = []
         for item in request.data["line_items"]:
             product_id = item["product_id"]
@@ -98,23 +100,6 @@ class EventOrderPaid(APIView):
             price = item["price"]
             quantity = item["quantity"]
             li.append({"product_id":product_id, "title":title, "price":price, "quantity":quantity})
-        res["product_info"] = json.dumps(li)
-        models.OrderEvent.objects.create(**res)
-        customer_instance = models.Customer.objects.filter(uuid=request.data["customer"]["id"]).first()
-        if not customer_instance:
-            customer_res = {}
-            customer_res["store"] = store
-            customer_res["uuid"] = request.data["customer"]["id"]
-            customer_res["customer_email"] = request.data["customer"]["email"]
-            customer_res["first_name"] = request.data["customer"]["first_name"]
-            customer_res["last_name"] = request.data["customer"]["last_name"]
-            customer_res["accept_marketing_status"] = request.data["customer"]["accepts_marketing"]
-            customer_res["sign_up_time"] = request.data["customer"]["created_at"]
-            customer_res["last_order_status"] = 0
-            customer_res["last_order_time"] = datetime.datetime.now()
-            models.Customer.objects.create(**customer_res)
-        else:
-            customer_instance.last_order_status = 0
-            customer_instance.last_order_time = datetime.datetime.now()
-            customer_instance.save()
+        order_instance.product_info = json.dumps(li)
+        order_instance.save()
         return Response({"code": 200})
