@@ -276,11 +276,12 @@ class OrderEvent(models.Model):
 
     # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
     product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
+    total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
     order_create_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="订单创建时间")
     create_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="创建时间")
-    total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
+
 
     class Meta:
         managed = False
