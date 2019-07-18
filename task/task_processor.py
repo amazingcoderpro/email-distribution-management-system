@@ -301,8 +301,6 @@ class TaskProcessor:
             conn.close() if conn else 0
         return True
 
-
-
     def update_shopify_orders(self):
         """更新店铺的订单"""
         logger.info("update_collection is cheking...")
@@ -377,7 +375,6 @@ class TaskProcessor:
         return True
 
 
-                
 def main():
     tsp = TaskProcessor()
     tsp.start_all(rule_interval=120, publish_pin_interval=120, pinterest_update_interval=7200*3, shopify_update_interval=7200*3, update_new=120)
@@ -388,9 +385,10 @@ def main():
 def analyze_rule():
     group_condition = {"relation": "&&,||", "condition": "Customer last click email time", "relations": {"is over": {"values": [1, 3], "unit": "days"}, "equal": {"values": [34], "unit": "$"}}},
 
+
 if __name__ == '__main__':
     # test()
     # main()
-    #TaskProcessor().update_shopify_collections()
+    # TaskProcessor().update_shopify_collections()
     # TaskProcessor().update_shopify_product()
     TaskProcessor().update_shopify_orders()
