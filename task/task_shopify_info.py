@@ -90,16 +90,23 @@ class TaskProcessor:
                             last_order_id = str(customer.get("last_order_id", ""))
                             payment_amount = customer.get("total_spent", "")
 
+                            if last_order_id:
+                                order_status = papi.get_orders_id(order_id=last_order_id)
+                                orderinfo = order_status["data"].get("orders", "")[0]
+                                financial_status = 0 if orderinfo.get("financial_status", "") == "paid" else 1
+                                last_order_data = (orderinfo.get("updated_at", "")).split('+')[0]
+                                last_order_time = datetime.datetime.strptime(last_order_data, '%Y-%m-%dT%H:%M:%S')
+
                             if uuid in exist_customer_list:
                                 logger.info("customer is already exist [update], uuid={}".format(uuid))
                                 cursor.execute(
-                                    '''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
-                                    (last_order_id, orders_count, customer_email, accepts_marketing, datetime.datetime.now(), first_name, last_name, uuid))
+                                    '''update `customer` set last_order_id=%s, last_order_status=%s, last_order_time=%s,orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
+                                    (last_order_id, financial_status, last_order_time, orders_count, customer_email, accepts_marketing, datetime.datetime.now(), first_name, last_name, uuid))
                             else:
                                 logger.info("customer is already exist [insert], uuid={}".format(uuid))
-                                cursor.execute('''insert into `customer` (`uuid`, `last_order_id`,`orders_count`,`sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
-                                                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                                               (uuid, last_order_id, orders_count, sign_up_time, first_name, last_name, customer_email, accepts_marketing, store_id, payment_amount,  datetime.datetime.now(), datetime.datetime.now()))
+                                cursor.execute('''insert into `customer` (`uuid`, `last_order_status`, `last_order_time`,`last_order_id`,`orders_count`,`sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
+                                                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                                               (uuid, financial_status, last_order_time, last_order_id, orders_count, sign_up_time, first_name, last_name, customer_email, accepts_marketing, store_id, payment_amount,  datetime.datetime.now(), datetime.datetime.now()))
                                 exist_customer_list.append(uuid)
                             conn.commit()
                         # 拉完了

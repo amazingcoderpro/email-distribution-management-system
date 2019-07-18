@@ -41,13 +41,13 @@ class EventOrderCreate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ order create ------------:")
-        print(request.META, type(request.META))
         print(json.dumps(request.data))
         res = {}
         store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
         res["store"] = store
         res["order_uuid"] = request.data["id"]
         res["status"] = 0
+        res["total_price"] = request.data["total_price"]
         res["customer_uuid"] = request.data["customer"]["id"]
         li = []
         for item in request.data["line_items"]:
@@ -56,7 +56,7 @@ class EventOrderCreate(APIView):
             price = item["price"]
             quantity = item["quantity"]
             li.append({"product_id": product_id, "title": title, "price": price, "quantity": quantity})
-        res["product_info"] = str(li)
+        res["product_info"] = json.dumps(li)
         models.OrderEvent.objects.create(**res)
         customer_instance = models.Customer.objects.filter(uuid=request.data["customer"]["id"]).first()
         if not customer_instance:
