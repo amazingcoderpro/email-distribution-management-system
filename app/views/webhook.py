@@ -49,6 +49,7 @@ class EventOrderCreate(APIView):
         res["order_uuid"] = request.data["id"]
         res["status"] = 0
         res["total_price"] = request.data["total_price"]
+        res["order_create_time"] = request.data["created_at"]
         res["customer_uuid"] = request.data["customer"]["id"]
         li = []
         for item in request.data["line_items"]:
@@ -101,5 +102,6 @@ class EventOrderPaid(APIView):
             quantity = item["quantity"]
             li.append({"product_id":product_id, "title":title, "price":price, "quantity":quantity})
         order_instance.product_info = json.dumps(li)
+        order_instance.order_update_time = request.data["updated_at"]
         order_instance.save()
         return Response({"code": 200})
