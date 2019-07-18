@@ -280,8 +280,10 @@ class OrderEvent(models.Model):
     total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
-    order_create_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="订单创建时间")
-    create_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="创建时间")
+    order_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
+    order_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
+    create_time = models.DateTimeField(db_index=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
 
     class Meta:
