@@ -49,6 +49,7 @@ class TaskProcessor:
         2. 获取所有店铺的所有类目，并保存至数据库
         """
         logger.info("update_collection is cheking...")
+
         try:
             conn = DBUtil().get_instance()
             cursor = conn.cursor() if conn else None
@@ -57,21 +58,18 @@ class TaskProcessor:
             cursor.execute(
                 """select store.id, store.token, store.url from store left join user on store.user_id = user.id where user.is_active = 1""")
             stores = cursor.fetchall()
-
             for store in stores:
+                customer_insert_list = []
+                customer_update_list = []
                 store_id, store_token, store_url = store
-                # 取中已经存在的所有products, 只需更新即可
-                cursor.execute('''select uuid from `customer` where store_id=%s''', (store_id))
+                papi = ProductsApi(store_token, store_url)
+                created_at_max = ""
+
+                cursor.execute('''select uuid from `customer` where store_id=%s''', (store_id, ))
                 exist_customer = cursor.fetchall()
                 exist_customer_list = [item[0] for item in exist_customer]
-                # for exp in exist_customer:
-                #     exist_customer_dict.append(exp)
 
-                # 更新客户信息
-                papi = ProductsApi(store_token, store_url)
-                # 更新店铺信息
-                created_at_max = ""
-                for i in range(0, 10000):
+                while True:
                     ret = papi.get_all_customers(limit=250, created_at_max=created_at_max)
                     if ret["code"] != 1:
                         logger.warning("get shop customer failed. ret={}".format(ret))
@@ -87,35 +85,58 @@ class TaskProcessor:
                             first_name = customer.get("first_name", "")
                             last_name = customer.get("last_name", "")
                             orders_count = int(customer.get("orders_count", ""))
-                            last_order_id = str(customer.get("last_order_id", ""))
+                            last_order_id = customer.get("last_order_id", None)
                             payment_amount = customer.get("total_spent", "")
 
-                            if last_order_id:
-                                order_status = papi.get_orders_id(order_id=last_order_id)
-                                orderinfo = order_status["data"].get("orders", "")[0]
-                                financial_status = 0 if orderinfo.get("financial_status", "") == "paid" else 1
-                                last_order_data = (orderinfo.get("updated_at", "")).split('+')[0]
-                                last_order_time = datetime.datetime.strptime(last_order_data, '%Y-%m-%dT%H:%M:%S')
+                            # if last_order_id:
+                            #     order_status = papi.get_orders_id(order_id=last_order_id)
+                            #     if order_status.get("code", -1) == 0:
+                            #         orderinfo = order_status["data"].get("orders", [])
+                            #         orderinfo = orderinfo[0] if orderinfo else {}
+                            #         if orderinfo.get("financial_status"):
+                            #             financial_status = 0 if orderinfo.get("financial_status", "") == "paid" else 1
+                            #             last_order_data = (orderinfo.get("updated_at", "")).split('+')[0]
+                            #             last_order_time = datetime.datetime.strptime(last_order_data, '%Y-%m-%dT%H:%M:%S')
+                            # financial_status = 0
+                            # last_order_time = datetime.datetime.now()
 
                             if uuid in exist_customer_list:
-                                logger.info("customer is already exist [update], uuid={}".format(uuid))
-                                cursor.execute(
-                                    '''update `customer` set last_order_id=%s, last_order_status=%s, last_order_time=%s,orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
-                                    (last_order_id, financial_status, last_order_time, orders_count, customer_email, accepts_marketing, datetime.datetime.now(), first_name, last_name, uuid))
+                                customer_tuple = (last_order_id, orders_count, customer_email, accepts_marketing, datetime.datetime.now(), first_name, last_name, uuid)
+                                customer_update_list.append(customer_tuple)
                             else:
-                                logger.info("customer is already exist [insert], uuid={}".format(uuid))
-                                cursor.execute('''insert into `customer` (`uuid`, `last_order_status`, `last_order_time`,`last_order_id`,`orders_count`,`sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
-                                                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                                               (uuid, financial_status, last_order_time, last_order_id, orders_count, sign_up_time, first_name, last_name, customer_email, accepts_marketing, store_id, payment_amount,  datetime.datetime.now(), datetime.datetime.now()))
-                                exist_customer_list.append(uuid)
-                            conn.commit()
-                        # 拉完了
+                                customer_tuple = (
+                                uuid, last_order_id, orders_count, sign_up_time,
+                                first_name, last_name, customer_email, accepts_marketing, store_id, payment_amount,
+                                datetime.datetime.now(), datetime.datetime.now())
+                                if uuid not in [item[0] for item in customer_insert_list]:
+                                    customer_insert_list.append(customer_tuple)
+                                    # exist_customer_list.append(uuid)
+
                         if len(customer_info) < 250:
                             break
                         else:
                             created_at_max = customer_info[-1].get("created_at", "")
+                            print(len(customer_info))
                             if not created_at_max:
                                 break
+        except Exception as e:
+            logger.exception("update_collection e={}".format(e))
+            # return False
+
+        try:
+            if customer_insert_list:
+                # customer_insert_info = str(customer_insert_list)[1:-1]
+                logger.info("customer is already exist [insert], uuid={}".format(uuid))
+                cursor.executemany('''insert into `customer` (`uuid`, `last_order_id`,`orders_count`,`sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
+                                             values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                                            customer_insert_list)
+                conn.commit()
+            if customer_update_list:
+                logger.info("customer is already exist [update], uuid={}".format(uuid))
+                cursor.executemany(
+                    '''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
+                    customer_update_list)
+                conn.commit()
 
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
