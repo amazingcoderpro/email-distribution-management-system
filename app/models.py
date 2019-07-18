@@ -227,7 +227,6 @@ class SubscriberActivity(models.Model):
     class Meta:
         managed = False
         db_table = 'subscriber_activity'
-        unique_together = ("opt_time", "email", "type", "message_uuid")
 
 
 class ProductCategory(models.Model):
