@@ -10,6 +10,9 @@ class EventCartUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ cat update------------:")
+        sign_up_time = request.data["customer"]["created_at"].replace("T", " ")[:-6]
+        xx = datetime.datetime.strptime(sign_up_time, "%Y-%m-%d %H:%M:%S")
+        print(xx)
         # print(type(request.META))
         # store_url = request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]
         # print(store_url)
@@ -49,7 +52,7 @@ class EventOrderCreate(APIView):
         res["order_uuid"] = request.data["id"]
         res["status"] = 0
         res["total_price"] = request.data["total_price"]
-        res["order_create_time"] = request.data["created_at"]
+        res["order_create_time"] = request.data["created_at"].replace("T"," ")[:-6]
         res["customer_uuid"] = request.data["customer"]["id"]
         li = []
         for item in request.data["line_items"]:
@@ -69,7 +72,7 @@ class EventOrderCreate(APIView):
             customer_res["first_name"] = request.data["customer"]["first_name"]
             customer_res["last_name"] = request.data["customer"]["last_name"]
             customer_res["accept_marketing_status"] = request.data["customer"]["accepts_marketing"]
-            customer_res["sign_up_time"] = request.data["customer"]["created_at"]
+            customer_res["sign_up_time"] = request.data["customer"]["created_at"].replace("T"," ")[:-6]
             customer_res["last_order_status"] = 0
             customer_res["last_order_time"] = datetime.datetime.now()
             models.Customer.objects.create(**customer_res)
@@ -102,6 +105,6 @@ class EventOrderPaid(APIView):
             quantity = item["quantity"]
             li.append({"product_id":product_id, "title":title, "price":price, "quantity":quantity})
         order_instance.product_info = json.dumps(li)
-        order_instance.order_update_time = request.data["updated_at"]
+        order_instance.order_update_time = request.data["updated_at"].replace("T"," ")[:-6]
         order_instance.save()
         return Response({"code": 200})
