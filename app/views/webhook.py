@@ -55,6 +55,7 @@ class EventOrderCreate(APIView):
         create_time = request.data["created_at"].replace("T", " ")[:-6]
         res["order_create_time"] = datetime.datetime.strptime(create_time, "%Y-%m-%d %H:%M:%S")
         res["customer_uuid"] = request.data["customer"]["id"]
+        res["create_time"] = datetime.datetime.now()
         li = []
         for item in request.data["line_items"]:
             product_id = item["product_id"]
@@ -78,6 +79,7 @@ class EventOrderCreate(APIView):
             customer_res["last_order_status"] = 0
             updated_at = request.data["customer"]["updated_at"].replace("T"," ")[:-6]
             customer_res["last_order_time"] = datetime.datetime.strptime(updated_at, "%Y-%m-%d %H:%M:%S")
+            customer_res["create_time"] = datetime.datetime.now()
             models.Customer.objects.create(**customer_res)
         else:
             customer_instance.last_order_status = 0
