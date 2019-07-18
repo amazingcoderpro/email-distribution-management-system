@@ -43,7 +43,7 @@ class ResponseMiddleware(MiddlewareMixin):
             return response
 
         if response.status_code == 404:
-            response.status_code = 200
+            response.status_code = 404
             self.res["code"] = 2
             self.res["msg"] = "The resource was not found"
             self.res["data"] = []
