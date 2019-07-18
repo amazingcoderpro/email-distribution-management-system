@@ -75,6 +75,7 @@ class GetEMSData:
             cursor.execute("""select uuid,store_id from customer_group where state in (0,1)""")
             uuid_list = cursor.fetchall()
             # 获取每一个listId对应的ems数据
+            update_list = []
             for uuid, store_id in uuid_list:
                 if not uuid:
                     continue
@@ -83,10 +84,11 @@ class GetEMSData:
                     statistic = datas["data"]["SummaryStatistics"]["SummaryStatistic"]
                     sents, opens, clicks = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"])
                     open_rate, click_rate = round(opens/sents, 2), round(clicks/sents, 2)
-                    # 更新数据库
-                    cursor.execute("""update customer_group set sents=%s, opens=%s, clicks=%s, open_rate=%s, click_rate=%s, update_time=%s where uuid=%s and store_id=%s""",
-                                   (sents, opens, clicks, open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
-                    logger.info("update customer group success. listId(uuid): ", uuid)
+                    update_list.append((sents, opens, clicks, open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
+            # 更新数据库
+            cursor.executemany(
+                """update customer_group set sents=%s, opens=%s, clicks=%s, open_rate=%s, click_rate=%s, update_time=%s where uuid=%s and store_id=%s""", update_list)
+            logger.info("update all customer group success.")
             conn.commit()
         except Exception as e:
             logger.exception("update customer group data exception e={}".format(e))
@@ -109,6 +111,7 @@ class GetEMSData:
             cursor.execute("""select uuid,store_id from email_record""")
             uuid_list = cursor.fetchall()
             # 获取每一个listId对应的ems数据
+            update_list = []
             for uuid, store_id in uuid_list:
                 if not uuid:
                     continue
@@ -117,10 +120,11 @@ class GetEMSData:
                     statistic = datas["data"]
                     sents, opens, clicks, unsubscribes = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"]), int(statistic["Unsubscribes"])
                     open_rate, click_rate, unsubscribe_rate = round(opens/sents, 2), round(clicks/sents, 2), round(unsubscribes/sents, 2)
-                    # 更新数据库
-                    cursor.execute("""update email_record set sents=%s, opens=%s, clicks=%s, unsubscribes=%s, open_rate=%s, click_rate=%s, unsubscribe_rate=%s, update_time=%s where uuid=%s and store_id=%s""",
-                                   (sents, opens, clicks, unsubscribes, open_rate, click_rate, unsubscribe_rate, datetime.datetime.now(), uuid, store_id))
-                    logger.info("update email record success. emailId(uuid): ", uuid)
+                    update_list.append((sents, opens, clicks, unsubscribes, open_rate, click_rate, unsubscribe_rate, datetime.datetime.now(), uuid, store_id))
+            # 更新数据库
+            cursor.executemany("""update email_record set sents=%s, opens=%s, clicks=%s, unsubscribes=%s, open_rate=%s, click_rate=%s, unsubscribe_rate=%s, update_time=%s where uuid=%s and store_id=%s""",
+                           update_list)
+            logger.info("update all email record success.")
             conn.commit()
         except Exception as e:
             logger.exception("update email reocrd data exception e={}".format(e))
@@ -132,6 +136,6 @@ class GetEMSData:
 
 if __name__ == '__main__':
     obj = GetEMSData("0x53WuKGWlbq2MQlLhLk", "Leemon", "leemon.li@orderplus.com", 1)
-    obj.insert_subscriber_activity("2019-07-15")
+    # obj.insert_subscriber_activity("2019-07-15")
     # obj.update_customer_group_data()
-    # obj.update_email_reocrd_data()
+    obj.update_email_reocrd_data()
