@@ -10,10 +10,10 @@ class EventCartUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ cat update------------:")
-        print(type(request.META))
-        store_url = request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]
-        print(store_url)
-        print(type(request.data))
+        # print(type(request.META))
+        # store_url = request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]
+        # print(store_url)
+        # print(type(request.data))
         print(json.dumps(request.data))
         # print(type(request.META))
 
@@ -24,7 +24,7 @@ class EventCartCreate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ cat create ------------:")
-        print(request.META, type(request.META))
+        # print(request.META, type(request.META))
         print(json.dumps(request.data))
         return Response({"code": 200})
 
@@ -33,8 +33,8 @@ class EventOrderUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ order update------------:")
-        print(request.META, type(request.META))
-        print(json.dumps(request.data))
+        # print(request.META, type(request.META))
+        # print(json.dumps(request.data))
         return Response({"code": 200})
 
 
@@ -49,7 +49,10 @@ class EventOrderCreate(APIView):
         res["order_uuid"] = request.data["id"]
         res["status"] = 0
         res["total_price"] = request.data["total_price"]
+        create_time = request.data["created_at"].replace("T", " ")[:-6]
+        res["order_create_time"] = datetime.datetime.strptime(create_time, "%Y-%m-%d %H:%M:%S")
         res["customer_uuid"] = request.data["customer"]["id"]
+        res["create_time"] = datetime.datetime.now()
         li = []
         for item in request.data["line_items"]:
             product_id = item["product_id"]
@@ -68,13 +71,18 @@ class EventOrderCreate(APIView):
             customer_res["first_name"] = request.data["customer"]["first_name"]
             customer_res["last_name"] = request.data["customer"]["last_name"]
             customer_res["accept_marketing_status"] = request.data["customer"]["accepts_marketing"]
-            customer_res["sign_up_time"] = request.data["customer"]["created_at"]
+            sign_up_time = request.data["customer"]["created_at"].replace("T"," ")[:-6]
+            customer_res["sign_up_time"] = datetime.datetime.strptime(sign_up_time, "%Y-%m-%d %H:%M:%S")
             customer_res["last_order_status"] = 0
-            customer_res["last_order_time"] = datetime.datetime.now()
+            customer_res["last_order_id"] = request.data["customer"]["last_order_id"]
+            updated_at = request.data["customer"]["updated_at"].replace("T"," ")[:-6]
+            customer_res["last_order_time"] = datetime.datetime.strptime(updated_at, "%Y-%m-%d %H:%M:%S")
+            customer_res["create_time"] = datetime.datetime.now()
             models.Customer.objects.create(**customer_res)
         else:
             customer_instance.last_order_status = 0
-            customer_instance.last_order_time = datetime.datetime.now()
+            updated_at = request.data["customer"]["updated_at"].replace("T", " ")[:-6]
+            customer_instance.last_order_time = datetime.datetime.strptime(updated_at, "%Y-%m-%d %H:%M:%S")
             customer_instance.save()
         return Response({"code": 200})
 
@@ -101,5 +109,7 @@ class EventOrderPaid(APIView):
             quantity = item["quantity"]
             li.append({"product_id":product_id, "title":title, "price":price, "quantity":quantity})
         order_instance.product_info = json.dumps(li)
+        updated_at = request.data["customer"]["updated_at"].replace("T", " ")[:-6]
+        order_instance.order_update_time = datetime.datetime.strptime(updated_at, "%Y-%m-%d %H:%M:%S")
         order_instance.save()
         return Response({"code": 200})
