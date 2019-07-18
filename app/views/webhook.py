@@ -77,6 +77,7 @@ class EventOrderCreate(APIView):
             sign_up_time = request.data["customer"]["created_at"].replace("T"," ")[:-6]
             customer_res["sign_up_time"] = datetime.datetime.strptime(sign_up_time, "%Y-%m-%d %H:%M:%S")
             customer_res["last_order_status"] = 0
+            customer_res["last_order_id"] = request.data["customer"]["last_order_id"]
             updated_at = request.data["customer"]["updated_at"].replace("T"," ")[:-6]
             customer_res["last_order_time"] = datetime.datetime.strptime(updated_at, "%Y-%m-%d %H:%M:%S")
             customer_res["create_time"] = datetime.datetime.now()
