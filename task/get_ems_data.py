@@ -30,8 +30,9 @@ class GetEMSData:
             # 获取行为记录数据
             result = {}
             type_choices = {'Opens': 0, 'Clicks': 1, 'Sends': 2}
-            for tp in ["Opens", "Clicks"]:
+            for tp in ["Opens", "Clicks", "Sends"]:
                 result[tp] = self.ems.get_subscriber_activity(tp, query_date)[1:]
+            insert_list = []
             for tp, item in result.items():
                 tp = type_choices[tp]
                 for i in item:
@@ -48,10 +49,11 @@ class GetEMSData:
                         continue
                     else:
                         now_time = datetime.datetime.now()
-                        cursor.execute("""insert into subscriber_activity (opt_time,email,message_uuid,type,store_id,create_time,update_time) values
-                        (%s,%s,%s,%s,%s,%s,%s)""", (opt_time, email, int(message_uuid), tp, self.store_id, now_time, now_time))
-                        logger.info(f"insert a new subscriber activity success.")
-                conn.commit()
+                        insert_list.append((opt_time, email, int(message_uuid), tp, self.store_id, now_time, now_time))
+            cursor.executemany("""insert into subscriber_activity (opt_time,email,message_uuid,type,store_id,create_time,update_time) values
+                                    (%s,%s,%s,%s,%s,%s,%s)""", insert_list)
+            conn.commit()
+            logger.info(f"insert subscriber activity success at {query_date}.")
         except Exception as e:
             logger.exception("insert subscriber activity exception e={}".format(e))
             return False
@@ -130,6 +132,6 @@ class GetEMSData:
 
 if __name__ == '__main__':
     obj = GetEMSData("0x53WuKGWlbq2MQlLhLk", "Leemon", "leemon.li@orderplus.com", 1)
-    # obj.insert_subscriber_activity("2019-07-15")
+    obj.insert_subscriber_activity("2019-07-15")
     # obj.update_customer_group_data()
-    obj.update_email_reocrd_data()
+    # obj.update_email_reocrd_data()
