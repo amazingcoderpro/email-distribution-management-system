@@ -71,7 +71,7 @@ class TaskProcessor:
                 papi = ProductsApi(store_token, store_url)
                 # 更新店铺信息
                 created_at_max = ""
-                for i in range(0, 100):
+                for i in range(0, 10000):
                     ret = papi.get_all_customers(limit=250, created_at_max=created_at_max)
                     if ret["code"] != 1:
                         logger.warning("get shop customer failed. ret={}".format(ret))

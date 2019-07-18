@@ -107,7 +107,7 @@ class ProductsApi:
             logger.error("get shopify all products is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_all_customers(self, limit=250, created_at_max =""):
+    def get_all_customers(self, limit=250, created_at_max=""):
         """
         获取collections_id的product
         # 接口  /admin/api/2019-04/smart_collections.json
@@ -132,7 +132,7 @@ class ProductsApi:
             logger.error("get shopify all customers info is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_all_orders(self, created_at_max, limit=250,  financial_status="paid"):
+    def get_all_orders(self, created_at_max="", financial_status="paid", limit=250):
         """
        获取collections_id的product
        # 接口  /admin/api/201 -07/orders.json
@@ -142,9 +142,9 @@ class ProductsApi:
         if not created_at_max:
             order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
                 f"?limit={limit}&financial_status={financial_status}"
-        else:
+        if created_at_max:
             order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
-                f"?limit={limit}&created_at_max={created_at_max}&financial_status={financial_status}"
+                f"?limit={limit}&financial_status={financial_status}&created_at_max={created_at_max}"
         try:
             result = requests.get(order_url)
             if result.status_code == 200:
@@ -193,7 +193,7 @@ class ProductsApi:
             logger.error("get shopify all customers info is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_customer_bydate(self, updated_at_min, updated_at_max, limit=250):
+    def get_customer_bydate(self, updated_at_min, updated_at_max, limit=6):
         shop_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}customers.json?limit={limit}&updated_at_min={updated_at_min}&updated_at_max={updated_at_max}&fields=id"
         result = requests.get(shop_url)
         try:
@@ -217,7 +217,9 @@ if __name__ == '__main__':
     products_api = ProductsApi(access_token=access_token, shop_uri=shop_uri)
     # print(products_api.get_all_customers(since_id="1488718266441"))
     # since_id="1487712747593"
-    # products_api.get_all_orders()
+    # order_num = products_api.get_all_orders()
+    # print(order_num["data"])
+    products_api.get_all_orders("2019-05-19T10:02:37+08:00")
     # products_api.get_customer_count()
     # products_api.get_orders_id(order_id="503834869833")
-    print(products_api.get_customer_bydate("2019-03-1T00:00:00+08:00","2019-04-30T00:00:00+08:00"))
+    # print(products_api.get_customer_bydate("2019-03-1T00:00:00+08:00","2019-04-30T00:00:00+08:00"))
