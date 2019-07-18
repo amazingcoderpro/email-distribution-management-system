@@ -10,7 +10,7 @@ class EventCartUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ cat update------------:")
-        sign_up_time = request.data["customer"]["created_at"].replace("T", " ")[:-6]
+        sign_up_time = request.data["created_at"].replace("T", " ")[:-6]
         xx = datetime.datetime.strptime(sign_up_time, "%Y-%m-%d %H:%M:%S")
         print(xx)
         # print(type(request.META))
