@@ -30,7 +30,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
-    "smartsend.seamarketings.com",
+    "seamarketings.com",
     # "myshopify.com",
     # "www.shopify.com",
     # "shopify.com"
