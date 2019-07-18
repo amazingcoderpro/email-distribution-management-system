@@ -10,14 +10,11 @@ class EventCartUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ cat update------------:")
-        sign_up_time = request.data["created_at"].replace("T", " ")[:-6]
-        xx = datetime.datetime.strptime(sign_up_time, "%Y-%m-%d %H:%M:%S")
-        print(xx)
         # print(type(request.META))
         # store_url = request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]
         # print(store_url)
         # print(type(request.data))
-        # print(json.dumps(request.data))
+        print(json.dumps(request.data))
         # print(type(request.META))
 
         return Response({"code": 200})
@@ -28,7 +25,7 @@ class EventCartCreate(APIView):
     def post(self, request, *args, **kwargs):
         print("------------ cat create ------------:")
         # print(request.META, type(request.META))
-        # print(json.dumps(request.data))
+        print(json.dumps(request.data))
         return Response({"code": 200})
 
 
