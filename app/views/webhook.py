@@ -108,7 +108,7 @@ class EventOrderPaid(APIView):
             price = item["price"]
             quantity = item["quantity"]
             li.append({"product_id":product_id, "title":title, "price":price, "quantity":quantity})
-        order_instance.product_info = json.dumps(li)
+        order_instance.product_info = li
         updated_at = request.data["customer"]["updated_at"].replace("T", " ")[:-6]
         order_instance.order_update_time = datetime.datetime.strptime(updated_at, "%Y-%m-%d %H:%M:%S")
         order_instance.save()

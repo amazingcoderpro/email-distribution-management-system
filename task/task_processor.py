@@ -336,8 +336,11 @@ class TaskProcessor:
                                 continue
                             status = 1
                             customer_uuid = order["customer"]["id"]
-                            order_create_time = order["updated_at"].replace("T"," ").split("+")[0]
+                            order_create_time = order["created_at"].replace("T"," ").split("+")[0]
+                            order_update_time = order["updated_at"].replace("T"," ").split("+")[0]
+                            total_price = order["total_price"]
                             create_time = datetime.datetime.now()
+                            update_time = datetime.datetime.now()
                             li = []
                             for item in order["line_items"]:
                                 product_id = item["product_id"]
@@ -346,14 +349,9 @@ class TaskProcessor:
                                 quantity = item["quantity"]
                                 li.append({"product_id":product_id,"title":title,"price":price,"quantity":quantity})
                             product_info = json.dumps(li)
-                            print(order_uuid)
-                            print(status)
-                            print(customer_uuid)
-                            print(create_time)
-                            print(product_info)
                             cursor.execute(
-                                "insert into `order_event` (`order_uuid`, `status`,`product_info`,`customer_uuid`, `store_id`,`order_create_time`,`create_time`) values (%s, %s, %s, %s, %s, %s, %s)",
-                                (order_uuid, status, product_info, customer_uuid, store_id, order_create_time, create_time))
+                                "insert into `order_event` (`order_uuid`, `status`,`product_info`,`customer_uuid`,`total_price`,`store_id`,`order_create_time`,`order_update_time`,`create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                (order_uuid, status, product_info, customer_uuid, total_price, store_id, order_create_time, order_update_time, create_time, update_time))
                             conn.commit()
                             order_id = cursor.lastrowid
                             order_list.append(order_uuid)
@@ -363,9 +361,7 @@ class TaskProcessor:
                             break
                         else:
                             created_at_max = orders[-1].get("created_at", "")
-                            # since_id = orders[-1].get("id", "")
-                            # if not since_id:
-                            #     break
+
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
             return False
