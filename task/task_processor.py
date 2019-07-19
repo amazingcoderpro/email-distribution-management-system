@@ -4,13 +4,17 @@ import threading
 import time
 import pymysql
 import os
-
+from dateutil.relativedelta import relativedelta
 from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, SHOPIFY_CONFIG
 
-MYSQL_PASSWD = os.getenv('MYSQL_PASSWD', None)
-MYSQL_HOST = os.getenv('MYSQL_HOST', None)
+# MYSQL_PASSWD = os.getenv('MYSQL_PASSWD', None)
+# MYSQL_HOST = os.getenv('MYSQL_HOST', None)
 
+
+# MYSQL_HOST=47.244.107.240 MYSQL_PASSWD=   use=edm db=edm
+MYSQL_HOST = "47.244.107.240"
+MYSQL_PASSWD = "edm@orderplus.com"
 
 # 47.52.221.217
 class DBUtil:
@@ -328,7 +332,6 @@ class TaskProcessor:
             pass
 
 
-                
 def main():
     tsp = TaskProcessor()
     tsp.start_all(rule_interval=120, publish_pin_interval=120, pinterest_update_interval=7200*3, shopify_update_interval=7200*3, update_new=120)
@@ -336,12 +339,200 @@ def main():
         time.sleep(1)
 
 
-def analyze_rule():
-    group_condition = {"relation": "&&,||", "condition": "Customer last click email time", "relations": {"is over": {"values": [1, 3], "unit": "days"}, "equal": {"values": [34], "unit": "$"}}},
+def order_filter(store_id, status, relation, value, min_time=None, max_time=None):
+    """
+    筛选满足订单条件的客户id
+    :param store_id: 店铺id
+    :param status: 订单状态0－未支付，　１－支付　
+    :param relation: 订单条件关系，　大于，小于，等于
+    :param value: 订单条件值
+    :param min_time: 时间筛选范围起点
+    :param max_time: 时间筛选范围终点
+    :return: list 满足条件的客户列表
+    """
+    customers = []
+    try:
+        conn = DBUtil().get_instance()
+        cursor = conn.cursor() if conn else None
+        if not cursor:
+            return customers
+
+        # between date
+        if min_time and max_time:
+            cursor.execute(
+                """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status=%s 
+                and `order_update_time`>=%s and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, min_time, max_time))
+        # after, in the past
+        elif min_time:
+            cursor.execute(
+                """select `customer_uuid`, count from `order_event` where store_id=%s and status=%s 
+                and `order_update_time`>=%s group by `customer_uuid`""", (store_id, status, min_time))
+        # before
+        elif max_time:
+            cursor.execute(
+                """select `customer_uuid`, count from `order_event` where store_id=%s and status=%s 
+                and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, max_time))
+        # over all time
+        else:
+            cursor.execute(
+                """select `customer_uuid`, count from `edm.order_event` where store_id=%s and status=%s 
+                group by `customer_uuid`""", (store_id, status))
+
+        res = cursor.fetchall()
+        relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
+
+        for uuid, count in res:
+            just_str = "{} {} {}".format(count, relation_dict.get(relation), value)
+            if eval(just_str):
+                customers.append(uuid)
+    except Exception as e:
+        logger.exception("order_filter e={}".format(e))
+        return customers
+    finally:
+        cursor.close() if cursor else 0
+        conn.close() if conn else 0
+    return customers
+
+def adapt_sign_up_time():
+    pass
+
+def adapt_last_order_created_time():
+    pass
+
+def adapt_last_opened_email_time():
+    pass
+
+def adapt_last_click_email_time():
+    pass
+
+
+condition_dict = {"Customer sign up time": adapt_sign_up_time,
+                  "Customer last order created time": adapt_last_order_created_time,
+                  "Customer last opened email time": 1,
+                  "Customer last click email time": 1}
+def date_relation_convert(relation, values, unit="days"):
+    def unit_convert(unit_, value):
+        if unit_ in ["days", 'weeks']:
+            str_delta = "datetime.timedelta({}={})".format(unit_, value)
+        else:
+            str_delta = "relativedelta({}={})".format(unit_, value)
+
+        return eval(str_delta)
+
+    min_time = None
+    max_time = None
+    time_now = datetime.datetime.now()
+    if relation.lower() in "is in the past":
+        min_time = time_now - unit_convert(unit_=unit, value=values[0])
+    elif relation.lower() in "is before":
+        max_time = datetime.datetime.strptime(values[0], "%Y-%m-%d %H:%M:%S")
+    elif relation.lower() in "is after":
+        min_time = datetime.datetime.strptime(values[0], "%Y-%m-%d %H:%M:%S")
+    elif relation.lower() == "is between date" or relation.lower() == "between date":
+        min_time = datetime.datetime.strptime(values[0], "%Y-%m-%d %H:%M:%S")
+        max_time = datetime.datetime.strptime(values[1], "%Y-%m-%d %H:%M:%S")
+    elif relation.lower() == "is between" or relation.lower() == "between":
+        max_time = time_now - unit_convert(unit_=unit, value=values[0])
+        min_time = time_now - unit_convert(unit_=unit, value=values[1])
+    else:
+        # over all time
+        min_time = None
+        max_time = None
+
+    return min_time, max_time
+
+
+
+
+def get_suitable_customers(condition, store_id):
+    relations = {"relation": "&&,||", "group_condition":[{"group_name":"Group One","relation":"||","children":[
+        {"condition":"Customer paid order",
+         "relations":[{"relation":"equals","value":["1"],"unit":"days"},
+                      {"relation":"is over all time","value":["1"],"unit":"days"}]},
+        {"condition":"Customer last cart created time","relations":
+            [{"relation":"is in the past","value":["60"],"unit":"days"}]}]},{"group_name":"Group Two","relation":"||","children":[{"condition":"Customer who accept marketing","relations":[{"relation":"is true","value":["30"],"unit":"days"}]}]}]}
+
+    {"relation": "&&,||", "group_condition": [{"group_name": "one", "relation": "&&", "children": [
+        {"condition": "Customer sign up time",
+         "relations": [{"relation": "is in the past", "value": [15, 0], "unit": "days"}]},
+        {"condition": "Customer subscribe time",
+         "relations": [{"relation": "is in the past", "value": [15, 0], "unit": "days"}]},
+        {"condition": "Customer placed order", "relations": [{"relation": "more than", "value": [0, 0], "unit": "days"},
+                                                             {"relation": "is in the past", "value": [15, 0],
+                                                              "unit": "days"}]}]},
+                                              {"group_name": "two", "relation": "&&", "children": [
+                                                  {"condition": "Customer who accept marketing", "relations": [
+                                                      {"relation": "is true", "value": ["30"], "unit": "days"}]}]}]}
+
+    {"relation": "&&,||", "group_condition": [{"group_name": "123", "relation": "&&", "children": [
+        {"condition": "Customer last click email time",
+         "relations": [{"relation": "is in the past", "values": [15, 0], "unit": "days"}]},
+        {"condition": "Customer last click email time", "relations": [
+            {"relation": "is between date", "values": ["2019-01-30 00:00:00", "2019-01-25 00:00:00"],
+             "unit": "days"}]}]}, {"group_name": "456", "relation": "&&", "children": [
+        {"condition": "Customer last click email time",
+         "relations": [{"relation": "is in the past", "values": [333, 0], "unit": "days"}]}]}]}
+
+    store_id = 2
+    group_condition = relations.get("group_condition", [])
+    gc_relation = relations.get("relation", "").split(",")
+    for gc in group_condition:
+        children = gc.get("children", [])
+        child_relation = gc.get("relation", "&&")
+
+        for child in children:
+            condition = child.get("condition", "")
+            # 这几个的relation是两个
+            if condition in ["Customer placed order", "Customer paid order", "Customer opened email", "Customer clicked email"]:
+                relations = child.get("relations", [])
+                values = child.get("value")
+                order_max_time = datetime.datetime.now()
+                order_min_time = None
+                if relations[1] == "is in the past":
+                    if child.get("unit", "days") == "days":
+                        order_min_time = order_max_time - datetime.timedelta(days=values[0])
+                    elif child.get("unit", "weeks") == "weeks":
+                        order_min_time = order_max_time - datetime.timedelta(weeks=values[0])
+                    elif child.get("unit", "months") == "months":
+                        order_min_time = order_max_time - relativedelta(months=values[0])
+                    elif child.get("unit", "years") == "years":
+                        order_min_time = order_max_time - relativedelta(years=values[0])
+                elif relations[1] == "over all time":
+                    order_min_time = None
+                elif relations[1] == "between date":
+                    order_min_time = values[0]
+                    order_max_time = values[1]
+                elif relations[1] == 'before':
+                    order_max_time = values[0]
+                elif relations[1] == 'after':
+                    order_min_time = values[0]
+                if condition == "Customer paid order":
+                    sql = "select `customer_uuid` where create_time>=%s and status=1"
+
+
+
+
+
+
+
+
+
+
+def pinterest_client():
+    pass
+
 
 if __name__ == '__main__':
     # test()
     # main()
     #TaskProcessor().update_shopify_collections()
     # TaskProcessor().update_shopify_product()
-    TaskProcessor().update_shopify_sales_volume()
+    # TaskProcessor().update_shopify_sales_volume()
+    # pinterest_client()
+    print(date_relation_convert("in the past", [30], unit="years"))
+    print(date_relation_convert("is between", [15, 30], unit="days"))
+    print(date_relation_convert("is between date", ["2019-01-25 00:00:00", "2019-06-25 00:00:00"]))
+    print(date_relation_convert("before", ["2019-01-25 00:00:00"]))
+
+    min_date, max_date = date_relation_convert("is between date", ["2019-07-15 22:00:00", "2019-07-19 10:00:00"])
+    print(order_filter(store_id=1, status=1, relation="less than", value=5, min_time=min_date, max_time=max_date))

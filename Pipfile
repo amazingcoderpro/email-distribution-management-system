@@ -16,6 +16,7 @@ django-filter = "*"
 djangorestframework-jwt = "*"
 xmltodict = "*"
 django-hstore = "*"
+python-dateutil = "*"
 
 [requires]
 python_version = "3.6"

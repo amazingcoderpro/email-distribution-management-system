@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "fa99f80eafc16bd302ece012f09b58738b52fd071df84485d26c9def68823b9e"
+            "sha256": "4f7ca4d4fa1a4e4c1702720b745a645f9951f2543f2790c7e48cd3233bb01e82"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -48,11 +48,11 @@
         },
         "django-filter": {
             "hashes": [
-                "sha256:3dafb7d2810790498895c22a1f31b2375795910680ac9c1432821cbedb1e176d",
-                "sha256:a3014de317bef0cd43075a0f08dfa1d319a7ccc5733c3901fb860da70b0dda68"
+                "sha256:558c727bce3ffa89c4a7a0b13bc8976745d63e5fd576b3a9a851650ef11c401b",
+                "sha256:c3deb57f0dd7ff94d7dce52a047516822013e2b441bed472b722a317658cfd14"
             ],
             "index": "pypi",
-            "version": "==2.1.0"
+            "version": "==2.2.0"
         },
         "django-hstore": {
             "hashes": [
@@ -71,10 +71,10 @@
         },
         "djangorestframework": {
             "hashes": [
-                "sha256:376f4b50340a46c15ae15ddd0c853085f4e66058f97e4dbe7d43ed62f5e60651",
-                "sha256:c12869cfd83c33d579b17b3cb28a2ae7322a53c3ce85580c2a2ebe4e3f56c4fb"
+                "sha256:1ca4a5599a5ec31f3d6238a687fcc1dd4c41b1d90edab9ad398fcbf87872b7ba",
+                "sha256:c3c5edfdbc5dd33f9121bb84305bfd603d2c791f20cff9782772f44a7684a4e4"
             ],
-            "version": "==3.9.4"
+            "version": "==3.10.1"
         },
         "djangorestframework-jwt": {
             "hashes": [
@@ -93,10 +93,11 @@
         },
         "log-config": {
             "hashes": [
-                "sha256:0d555e44bfd4cbad4af8a611323563746e08ed18a5140596077f5ad2685fc293"
+                "sha256:31f3efb7ce099e338e08d589e70b9f300ff491c310fd9fb77ba6d8ebf8bc5b74",
+                "sha256:da74d005b38d2ea269df3a6ffc0ae39c429b2d2045d16b518030a1bd4623bf82"
             ],
             "index": "pypi",
-            "version": "==1.7"
+            "version": "==1.9"
         },
         "pyjwt": {
             "hashes": [
@@ -112,6 +113,14 @@
             ],
             "index": "pypi",
             "version": "==0.9.3"
+        },
+        "python-dateutil": {
+            "hashes": [
+                "sha256:7e6584c74aeed623791615e26efd690f29817a27c73085b78e4bad02493df2fb",
+                "sha256:c89805f6f4d64db21ed966fda138f8a5ed7a4fdbc1a8ee329ce1b74e3c74da9e"
+            ],
+            "index": "pypi",
+            "version": "==2.8.0"
         },
         "pytz": {
             "hashes": [
