@@ -40,7 +40,7 @@ class Store(models.Model):
     sender_address = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_email")
     store_view_id = models.CharField(blank=True, null=True, max_length=100, verbose_name=u"店铺的GA中的view id")
     init_choices = ((0, '新店铺'), (1, '拉过一次数据'))
-    state = models.SmallIntegerField(db_index=True, choices=init_choices, default=0, verbose_name="是否是新店铺")
+    init = models.SmallIntegerField(db_index=True, choices=init_choices, default=0, verbose_name="是否是新店铺")
     user = models.OneToOneField(User, on_delete=models.DO_NOTHING, blank=True, null=True, unique=True)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")

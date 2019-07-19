@@ -105,6 +105,7 @@ class TaskProcessor:
         logger.info("TaskProcessor start all work.")
         self.start_job_update_shopify_collections(shopify_update_interval)
         self.start_job_update_shopify_product(shopify_update_interval)
+        self.start_job_update_shopify_product(shopify_update_interval)
 
     def stop_all(self):
         logger.warning("TaskProcessor stop_all work.")
@@ -315,18 +316,23 @@ class TaskProcessor:
                 return False
 
             cursor.execute(
-                    """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
+                    """select store.id, store.url, store.token, store.init from store left join user on store.user_id = user.id where user.is_active = 1""")
             stores = cursor.fetchall()
             if not stores:
                 return False
 
             for store in stores:
-                store_id, store_url, store_token = store
-                papi = ProductsApi(store_token, store_url)
-                # 更新产品类目信息
+                store_id, store_url, store_token, store_init = store
+                if store_init == 1:
+                    continue
 
-                since_id = ""
-                order_list = []
+                cursor.execute(
+                    """select order_uuid from order_event where store_id={}""".format(store_id))
+                orders = cursor.fetchall()
+                order_list = [item[0] for item in orders] if orders else []
+
+                papi = ProductsApi(store_token, store_url)
+
                 created_at_max = ""
                 for i in range(0, 100):
                     res = papi.get_all_orders(created_at_max, limit=250)
