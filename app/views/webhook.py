@@ -34,7 +34,7 @@ class EventOrderUpdate(APIView):
     def post(self, request, *args, **kwargs):
         print("------------ order update------------:")
         # print(request.META, type(request.META))
-        # print(json.dumps(request.data))
+        print(json.dumps(request.data))
         return Response({"code": 200})
 
 
@@ -112,4 +112,45 @@ class EventOrderPaid(APIView):
         updated_at = request.data["customer"]["updated_at"].replace("T", " ")[:-6]
         order_instance.order_update_time = datetime.datetime.strptime(updated_at, "%Y-%m-%d %H:%M:%S")
         order_instance.save()
+        return Response({"code": 200})
+
+
+
+
+
+
+class EventOrderFulfilled(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------ order Fulfilled ------------:")
+        # print(request.META, type(request.META))
+        print(json.dumps(request.data))
+        return Response({"code": 200})
+
+
+class EventOrderPartiallyFulfilled(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------ order Partially Fulfilled------------:")
+        # print(request.META, type(request.META))
+        print(json.dumps(request.data))
+        return Response({"code": 200})
+
+
+
+class EventDraftOrdersCreate(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------ DraftOrders  Create ------------:")
+        # print(request.META, type(request.META))
+        print(json.dumps(request.data))
+        return Response({"code": 200})
+
+
+class EventDraftOrdersUpdate(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------ DraftOrders Update ------------:")
+        # print(request.META, type(request.META))
+        print(json.dumps(request.data))
         return Response({"code": 200})
