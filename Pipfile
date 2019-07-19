@@ -17,6 +17,8 @@ djangorestframework-jwt = "*"
 xmltodict = "*"
 django-hstore = "*"
 django-mysql = "*"
+google-api-python-client = "*"
+oauth2client = "*"
 
 [requires]
 python_version = "3.6"
