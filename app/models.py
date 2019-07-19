@@ -169,7 +169,7 @@ class CustomerGroup(models.Model):
 
     class Meta:
         managed = False
-        unique_together = ("store", "uuid")
+        # unique_together = ("store", "uuid")
         db_table = 'customer_group'
 
 

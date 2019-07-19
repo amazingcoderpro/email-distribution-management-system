@@ -542,6 +542,7 @@ class TaskProcessor:
             return False
         finally:
             cursor.close() if cursor else 0
+            cursor_dict.close() if cursor else 0
             conn.close() if conn else 0
         return True
 
@@ -742,6 +743,6 @@ if __name__ == '__main__':
     #
     # min_date, max_date = date_relation_convert("is between date", ["2019-07-15 22:00:00", "2019-07-19 10:00:00"])
     # print(order_filter(store_id=1, status=1, relation="less than", value=5, min_time=min_date, max_time=max_date))
-    #TaskProcessor().update_shopify_orders()
+    TaskProcessor().update_shopify_orders()
     TaskProcessor().update_top_product()
 
