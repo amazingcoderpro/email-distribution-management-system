@@ -318,6 +318,8 @@ class TopProduct(models.Model):
     top_seven = models.TextField(blank=True, null=True, verbose_name="前七天的销售量")
     top_fifteen = models.TextField(blank=True, null=True, verbose_name="前十五天的销售量")
     top_thirty = models.TextField(blank=True, null=True, verbose_name="前三十天的销售量")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
