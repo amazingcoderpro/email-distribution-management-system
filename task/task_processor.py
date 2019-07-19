@@ -381,6 +381,54 @@ class TaskProcessor:
         return True
 
 
+    def update_top_product(self):
+        """更新tot product"""
+        logger.info("update_top_product is cheking...")
+        try:
+            conn = DBUtil().get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return False
+
+            cursor.execute(
+                """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
+            stores = cursor.fetchall()
+            if not stores:
+                return False
+
+            for store in stores:
+                store_id, store_url, store_token = store
+                top_three_product_list,top_seven_product_list,top_fifteen_product_list,top_thirty_product_list = [],[],[],[]
+                top_three_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=3),datetime.time.min)
+                top_seven_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=7),datetime.time.min)
+                top_fifteen_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=15),datetime.time.min)
+                top_thirty_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=30),datetime.time.min)
+                cursor.execute(
+                    """select id, product_info,order_update_time from order_event where store_id = %s and order_update_time >= %s""",(store_id,top_thirty_time))
+                order_events = cursor.fetchall()
+                if not order_events:
+                    continue
+                for item in order_events:
+                    id, product_info, order_update_time = item
+                    product_info = json.loads(product_info)
+                    if order_update_time >= top_thirty_time:
+                        for product in product_info:
+                            top_thirty_product_list.append(product["product_id"])
+
+
+
+
+
+
+        except Exception as e:
+            logger.exception("update_collection e={}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
+
+
 def main():
     tsp = TaskProcessor()
     tsp.start_all(rule_interval=120, publish_pin_interval=120, pinterest_update_interval=7200*3, shopify_update_interval=7200*3, update_new=120)
@@ -559,14 +607,6 @@ def get_suitable_customers(condition, store_id):
                     sql = "select `customer_uuid` where create_time>=%s and status=1"
 
 
-
-
-
-
-
-
-
-
 def pinterest_client():
     pass
 
@@ -586,5 +626,6 @@ if __name__ == '__main__':
     #
     # min_date, max_date = date_relation_convert("is between date", ["2019-07-15 22:00:00", "2019-07-19 10:00:00"])
     # print(order_filter(store_id=1, status=1, relation="less than", value=5, min_time=min_date, max_time=max_date))
-    TaskProcessor().update_shopify_orders()
+    # TaskProcessor().update_shopify_orders()
+    TaskProcessor().update_top_product()
 

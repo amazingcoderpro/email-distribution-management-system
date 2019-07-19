@@ -47,6 +47,7 @@ class ShopifyCallback(APIView):
             user_instance = models.User.objects.create(**user_data)
             instance.user = user_instance
             instance.email = email
+            instance.init = 0
             instance.save()
         return HttpResponseRedirect(redirect_to="{}shopfy_regist?shop={}&email={}&id={}".format(WEB_URL,shop, email, user_instance.id))
 
