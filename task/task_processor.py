@@ -5,6 +5,7 @@ import time
 import pymysql
 from dateutil.relativedelta import relativedelta
 import json
+from collections import Counter
 
 from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, SHOPIFY_CONFIG
@@ -316,7 +317,7 @@ class TaskProcessor:
                 return False
 
             cursor.execute(
-                    """select store.id, store.url, store.token, store.init from store left join user on store.user_id = user.id where user.is_active = 1""")
+                    """select store.id, store.url, store.token, store.order_init from store left join user on store.user_id = user.id where user.is_active = 1""")
             stores = cursor.fetchall()
             if not stores:
                 return False
@@ -367,7 +368,10 @@ class TaskProcessor:
                             order_list.append(order_uuid)
 
                         # 拉完了
-                        if len(orders) < 15:
+                        if len(orders) < 100:
+                            cursor.execute(
+                                '''update `store` set order_init=1 where id=%s''',(store_id))
+                            conn.commit()
                             break
                         else:
                             created_at_max = orders[-1].get("created_at", "")
@@ -414,9 +418,27 @@ class TaskProcessor:
                     if order_update_time >= top_thirty_time:
                         for product in product_info:
                             top_thirty_product_list.append(product["product_id"])
+                    if order_update_time >= top_fifteen_time:
+                        for product in product_info:
+                            top_fifteen_product_list.append(product["product_id"])
+                    if order_update_time >= top_seven_time:
+                        for product in product_info:
+                            top_seven_product_list.append(product["product_id"])
+                    if order_update_time >= top_three_time:
+                        for product in product_info:
+                            top_three_product_list.append(product["product_id"])
 
+                cursor_two = conn.cursor(cursor=pymysql.cursors.DictCursor)
 
+                top_three_product_list = [item[0] for item in Counter(top_three_product_list).most_common(6)]
+                top_seven_product_list = [item[0] for item in Counter(top_seven_product_list).most_common(6)]
+                top_fifteen_product_list = [item[0] for item in Counter(top_fifteen_product_list).most_common(6)]
+                top_thirty_product_list = [item[0] for item in Counter(top_thirty_product_list).most_common(6)]
 
+                cursor.execute(
+                    """select id,name,url,image_url from product where store_id = %s and id in %s""",(store_id, top_three_product_list))
+                top_three_product = cursor.fetchall()
+                print("111111")
 
 
 
@@ -616,8 +638,7 @@ if __name__ == '__main__':
     # test()
     # main()
     # TaskProcessor().update_shopify_collections()
-    # TaskProcessor().update_shopify_product()
-    # TaskProcessor().update_shopify_sales_volume()
+    TaskProcessor().update_shopify_product()
     # pinterest_client()
     # print(date_relation_convert("in the past", [30], unit="years"))
     # print(date_relation_convert("is between", [15, 30], unit="days"))
@@ -626,6 +647,6 @@ if __name__ == '__main__':
     #
     # min_date, max_date = date_relation_convert("is between date", ["2019-07-15 22:00:00", "2019-07-19 10:00:00"])
     # print(order_filter(store_id=1, status=1, relation="less than", value=5, min_time=min_date, max_time=max_date))
-    # TaskProcessor().update_shopify_orders()
+    TaskProcessor().update_shopify_orders()
     TaskProcessor().update_top_product()
 
