@@ -5,6 +5,7 @@ import time
 import pymysql
 
 import json
+from collections import Counter
 
 from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, SHOPIFY_CONFIG
@@ -104,6 +105,7 @@ class TaskProcessor:
     def start_all(self, shopify_update_interval=7200):
         logger.info("TaskProcessor start all work.")
         self.start_job_update_shopify_collections(shopify_update_interval)
+        self.start_job_update_shopify_product(shopify_update_interval)
         self.start_job_update_shopify_product(shopify_update_interval)
 
     def stop_all(self):
@@ -315,18 +317,23 @@ class TaskProcessor:
                 return False
 
             cursor.execute(
-                    """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
+                    """select store.id, store.url, store.token, store.order_init from store left join user on store.user_id = user.id where user.is_active = 1""")
             stores = cursor.fetchall()
             if not stores:
                 return False
 
             for store in stores:
-                store_id, store_url, store_token = store
-                papi = ProductsApi(store_token, store_url)
-                # 更新产品类目信息
+                store_id, store_url, store_token, store_init = store
+                if store_init == 1:
+                    continue
 
-                since_id = ""
-                order_list = []
+                cursor.execute(
+                    """select order_uuid from order_event where store_id={}""".format(store_id))
+                orders = cursor.fetchall()
+                order_list = [item[0] for item in orders] if orders else []
+
+                papi = ProductsApi(store_token, store_url)
+
                 created_at_max = ""
                 for i in range(0, 100):
                     res = papi.get_all_orders(created_at_max, limit=250)
@@ -361,7 +368,10 @@ class TaskProcessor:
                             order_list.append(order_uuid)
 
                         # 拉完了
-                        if len(orders) < 15:
+                        if len(orders) < 100:
+                            cursor.execute(
+                                '''update `store` set order_init=1 where id=%s''',(store_id))
+                            conn.commit()
                             break
                         else:
                             created_at_max = orders[-1].get("created_at", "")
@@ -375,6 +385,168 @@ class TaskProcessor:
         return True
 
 
+    def update_top_product(self):
+        """更新tot product"""
+        logger.info("update_top_product is cheking...")
+        try:
+            conn = DBUtil().get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return False
+
+            cursor.execute(
+                """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
+            stores = cursor.fetchall()
+            if not stores:
+                return False
+
+            for store in stores:
+                store_id, store_url, store_token = store
+                top_three_product_list,top_seven_product_list,top_fifteen_product_list,top_thirty_product_list = [],[],[],[]
+                top_three_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=3),datetime.time.min)
+                top_seven_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=7),datetime.time.min)
+                top_fifteen_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=15),datetime.time.min)
+                top_thirty_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=30),datetime.time.min)
+                cursor.execute(
+                    """select id, product_info,order_update_time from order_event where store_id = %s and order_update_time >= %s""",(store_id,top_thirty_time))
+                order_events = cursor.fetchall()
+                if not order_events:
+                    continue
+                for item in order_events:
+                    id, product_info, order_update_time = item
+                    product_info = json.loads(product_info)
+                    if order_update_time >= top_thirty_time:
+                        for product in product_info:
+                            top_thirty_product_list.append(product["product_id"])
+                    if order_update_time >= top_fifteen_time:
+                        for product in product_info:
+                            top_fifteen_product_list.append(product["product_id"])
+                    if order_update_time >= top_seven_time:
+                        for product in product_info:
+                            top_seven_product_list.append(product["product_id"])
+                    if order_update_time >= top_three_time:
+                        for product in product_info:
+                            top_three_product_list.append(product["product_id"])
+
+                cursor_dict = conn.cursor(cursor=pymysql.cursors.DictCursor)
+
+                top_three_product_list = [item[0] for item in Counter(top_three_product_list).most_common(6)]
+                top_seven_product_list = [item[0] for item in Counter(top_seven_product_list).most_common(6)]
+                top_fifteen_product_list = [item[0] for item in Counter(top_fifteen_product_list).most_common(6)]
+                top_thirty_product_list = [item[0] for item in Counter(top_thirty_product_list).most_common(6)]
+                current_time = datetime.datetime.now()
+
+
+                # top_three
+                cursor_dict.execute(
+                    """select id,name,url,uuid, image_url from product where store_id = %s and uuid in %s""",(store_id, top_three_product_list))
+                top_three_product = cursor_dict.fetchall()
+
+                top_three_list = []
+                exit_top_three_list = []
+                for item in top_three_product:
+                    if item["uuid"] not in exit_top_three_list:
+                        exit_top_three_list.append(item["uuid"])
+                        top_three_list.append(item)
+                cursor.execute(
+                    """select id from top_product where store_id = %s """,(store_id))
+                store = cursor.fetchall()
+                if not store:
+                    cursor.execute(
+                        "insert into `top_product` (`top_three`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s)",
+                        (json.dumps(top_three_list),store_id, current_time,current_time))
+                    conn.commit()
+                else:
+                    cursor.execute(
+                        '''update `top_product` set top_three=%s,update_time=%s where store_id=%s''', (json.dumps(top_three_list),current_time, store_id))
+                    conn.commit()
+
+
+                # top_seven
+                cursor_dict.execute(
+                    """select id,name,url,uuid, image_url from product where store_id = %s and uuid in %s""",(store_id, top_seven_product_list))
+                top_seven_product = cursor_dict.fetchall()
+
+                top_seven_list = []
+                exit_top_seven_list = []
+                for item in top_seven_product:
+                    if item["uuid"] not in exit_top_seven_list:
+                        exit_top_seven_list.append(item["uuid"])
+                        top_seven_list.append(item)
+                cursor.execute(
+                    """select id from top_product where store_id = %s """,(store_id))
+                store = cursor.fetchall()
+                if not store:
+                    cursor.execute(
+                        "insert into `top_product` (`top_seven`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s)",
+                        (json.dumps(top_seven_list),store_id, current_time,current_time))
+                    conn.commit()
+                else:
+                    cursor.execute(
+                        '''update `top_product` set top_seven=%s,update_time=%s where store_id=%s''', (json.dumps(top_seven_list),current_time, store_id))
+                    conn.commit()
+
+
+                # top_fifteen
+                cursor_dict.execute(
+                    """select id,name,url,uuid, image_url from product where store_id = %s and uuid in %s""",(store_id, top_fifteen_product_list))
+                top_fifteen_product = cursor_dict.fetchall()
+
+                top_fifteen_list = []
+                exit_top_fifteen_list = []
+                for item in top_fifteen_product:
+                    if item["uuid"] not in exit_top_fifteen_list:
+                        exit_top_fifteen_list.append(item["uuid"])
+                        top_fifteen_list.append(item)
+                cursor.execute(
+                    """select id from top_product where store_id = %s """,(store_id))
+                store = cursor.fetchall()
+                if not store:
+                    cursor.execute(
+                        "insert into `top_product` (`top_fifteen`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s)",
+                        (json.dumps(top_fifteen_list),store_id, current_time,current_time))
+                    conn.commit()
+                else:
+                    cursor.execute(
+                        '''update `top_product` set top_fifteen=%s,update_time=%s where store_id=%s''', (json.dumps(top_fifteen_list),current_time, store_id))
+                    conn.commit()
+
+
+                ## top_thirty
+                cursor_dict.execute(
+                    """select id,name,url,uuid, image_url from product where store_id = %s and uuid in %s""",(store_id, top_thirty_product_list))
+                top_thirty_product = cursor_dict.fetchall()
+
+                top_thirty_list = []
+                exit_top_thirty_list = []
+                for item in top_thirty_product:
+                    if item["uuid"] not in exit_top_thirty_list:
+                        exit_top_thirty_list.append(item["uuid"])
+                        top_thirty_list.append(item)
+                cursor.execute(
+                    """select id from top_product where store_id = %s """,(store_id))
+                store = cursor.fetchall()
+                if not store:
+                    cursor.execute(
+                        "insert into `top_product` (`top_thirty`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s)",
+                        (json.dumps(top_thirty_list),store_id, current_time,current_time))
+                    conn.commit()
+                else:
+                    cursor.execute(
+                        '''update `top_product` set top_thirty=%s,update_time=%s where store_id=%s''', (json.dumps(top_thirty_list),current_time, store_id))
+                    conn.commit()
+
+
+        except Exception as e:
+            logger.exception("update_collection e={}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            cursor_dict.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
+
+
 def main():
     tsp = TaskProcessor()
     tsp.start_all(rule_interval=120, publish_pin_interval=120, pinterest_update_interval=7200*3, shopify_update_interval=7200*3, update_new=120)
@@ -382,12 +554,12 @@ def main():
         time.sleep(1)
 
 
+
 if __name__ == '__main__':
     # test()
     # main()
     # TaskProcessor().update_shopify_collections()
-    # TaskProcessor().update_shopify_product()
-    # TaskProcessor().update_shopify_sales_volume()
+    #TaskProcessor().update_shopify_product()
     # pinterest_client()
     # print(date_relation_convert("in the past", [30], unit="years"))
     # print(date_relation_convert("is between", [15, 30], unit="days"))
@@ -397,4 +569,5 @@ if __name__ == '__main__':
     # min_date, max_date = date_relation_convert("is between date", ["2019-07-15 22:00:00", "2019-07-19 10:00:00"])
     # print(order_filter(store_id=1, status=1, relation="less than", value=5, min_time=min_date, max_time=max_date))
     TaskProcessor().update_shopify_orders()
+    TaskProcessor().update_top_product()
 

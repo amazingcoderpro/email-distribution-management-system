@@ -39,8 +39,10 @@ class Store(models.Model):
     customer_shop = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_shop")
     sender_address = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_email")
     store_view_id = models.CharField(blank=True, null=True, max_length=100, verbose_name=u"店铺的GA中的view id")
-    init_choices = ((0, '新店铺'), (1, '拉过一次数据'))
-    state = models.SmallIntegerField(db_index=True, choices=init_choices, default=0, verbose_name="是否是新店铺")
+    order_init_choices = ((0, '新店铺没有拉过order'), (1, '拉过一次数据'))
+    order_init = models.SmallIntegerField(db_index=True, choices=order_init_choices, default=0, verbose_name="店铺是否拉过order")
+    customer_init_choices = ((0, '新店铺没有拉过customer'), (1, '拉过一次数据'))
+    customer_init = models.SmallIntegerField(db_index=True, choices=customer_init_choices, default=0, verbose_name="店铺是否拉过customer")
     user = models.OneToOneField(User, on_delete=models.DO_NOTHING, blank=True, null=True, unique=True)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
@@ -167,7 +169,7 @@ class CustomerGroup(models.Model):
 
     class Meta:
         managed = False
-        unique_together = ("store", "uuid")
+        # unique_together = ("store", "uuid")
         db_table = 'customer_group'
 
 
@@ -316,6 +318,8 @@ class TopProduct(models.Model):
     top_seven = models.TextField(blank=True, null=True, verbose_name="前七天的销售量")
     top_fifteen = models.TextField(blank=True, null=True, verbose_name="前十五天的销售量")
     top_thirty = models.TextField(blank=True, null=True, verbose_name="前三十天的销售量")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
