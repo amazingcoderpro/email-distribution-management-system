@@ -39,6 +39,8 @@ class Store(models.Model):
     customer_shop = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_shop")
     sender_address = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_email")
     store_view_id = models.CharField(blank=True, null=True, max_length=100, verbose_name=u"店铺的GA中的view id")
+    init_choices = ((0, '新店铺'), (1, '拉过一次数据'))
+    state = models.SmallIntegerField(db_index=True, choices=init_choices, default=0, verbose_name="是否是新店铺")
     user = models.OneToOneField(User, on_delete=models.DO_NOTHING, blank=True, null=True, unique=True)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
@@ -307,93 +309,16 @@ class CartEvent(models.Model):
         managed = False
         db_table = 'cart_event'
 
-# class WebhookTransaction(models.Model):
-#     UNPROCESSED = 1
-#     PROCESSED = 2
-#     ERROR = 3
-#     STATUSES = (
-#         (UNPROCESSED, 'Unprocessed'),
-#         (PROCESSED, 'Processed'),
-#         (ERROR, 'Error'),
-#     )
-#     date_generated = models.DateTimeField()
-#     date_received = models.DateTimeField(default=timezone.now)
-#     body = hstore.SerializedDictionaryField()
-#     request_meta = hstore.SerializedDictionaryField()
-#     status = models.CharField(max_length=250, choices=STATUSES, default=UNPROCESSED)
-#     objects = hstore.HStoreManager()
-#
-#     def __unicode__(self):
-#         return u'{0}'.format(self.date_event_generated)
 
-#
-# class Message(models.Model):
-#     date_processed = models.DateTimeField(default=timezone.now)
-#     webhook_transaction = models.OneToOneField(WebhookTransaction)
-#
-#     team_id = models.CharField(max_length=250)
-#     team_domain = models.CharField(max_length=250)
-#     channel_id = models.CharField(max_length=250)
-#     channel_name = models.CharField(max_length=250)
-#     user_id = models.CharField(max_length=250)
-#     user_name = models.CharField(max_length=250)
-#     text = models.TextField()
-#     trigger_word = models.CharField(max_length=250)
-#
-#     def __unicode__(self):
-#         return u'{}'.format(self.user_name)
-#
-#     """
-#     pass
+class TopProduct(models.Model):
+    """TopProduct"""
+    top_three = models.TextField(blank=True, null=True, verbose_name="前三天的销售量")
+    top_seven = models.TextField(blank=True, null=True, verbose_name="前七天的销售量")
+    top_fifteen = models.TextField(blank=True, null=True, verbose_name="前十五天的销售量")
+    top_thirty = models.TextField(blank=True, null=True, verbose_name="前三十天的销售量")
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
-#
-
-# class WebhookTransaction(models.Model):
-#     UNPROCESSED = 1
-#     PROCESSED = 2
-#     ERROR = 3
-#     STATUSES = (
-#         (UNPROCESSED, 'Unprocessed'),
-#         (PROCESSED, 'Processed'),
-#         (ERROR, 'Error'),
-#     )
-#     date_generated = models.DateTimeField()
-#     date_received = models.DateTimeField(default=timezone.now)
-#     body = hstore.SerializedDictionaryField()
-#     request_meta = hstore.SerializedDictionaryField()
-#     status = models.CharField(max_length=250, choices=STATUSES, default=UNPROCESSED)
-#     objects = hstore.HStoreManager()
-#
-#     def __unicode__(self):
-#         return u'{0}'.format(self.date_event_generated)
-#
-#
-# class Message(models.Model):
-#     date_processed = models.DateTimeField(default=timezone.now)
-#     webhook_transaction = models.OneToOneField(WebhookTransaction)
-#
-#     team_id = models.CharField(max_length=250)
-#     team_domain = models.CharField(max_length=250)
-#     channel_id = models.CharField(max_length=250)
-#     channel_name = models.CharField(max_length=250)
-#     user_id = models.CharField(max_length=250)
-#     user_name = models.CharField(max_length=250)
-#     text = models.TextField()
-#     trigger_word = models.CharField(max_length=250)
-#
-#     def __unicode__(self):
-#         return u'{}'.format(self.user_name)
-
-
-# class SalesVolume(models.Model):
-#     """销售量"""
-#     three_val = models.TextField(blank=True, null=True, verbose_name="前三天的销售量")
-#     seven_val = models.TextField(blank=True, null=True, verbose_name="前七天的销售量")
-#     fifteen_val = models.TextField(blank=True, null=True, verbose_name="前十五天的销售量")
-#     thirty_val = models.TextField(blank=True, null=True, verbose_name="前三十天的销售量")
-#     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-#     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-#
-#     class Meta:
-#         managed = False
-#         db_table = 'sales_volume'
+    class Meta:
+        #managed = False
+        db_table = 'top_product'
