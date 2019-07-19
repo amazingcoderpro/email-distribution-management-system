@@ -345,7 +345,7 @@ class TaskProcessor:
                             for item in order["line_items"]:
                                 product_id = item["product_id"]
                                 title = item["title"]
-                                price = item["price"]
+                                price = float(item["price"])
                                 quantity = item["quantity"]
                                 li.append({"product_id":product_id,"title":title,"price":price,"quantity":quantity})
                             product_info = json.dumps(li)
