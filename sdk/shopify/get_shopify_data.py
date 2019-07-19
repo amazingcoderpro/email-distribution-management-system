@@ -107,7 +107,7 @@ class ProductsApi:
             logger.error("get shopify all products is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_all_customers(self, limit=5, since_id=""):
+    def get_all_customers(self, limit=250, created_at_max=""):
         """
         获取collections_id的product
         # 接口  /admin/api/2019-04/smart_collections.json
@@ -115,10 +115,10 @@ class ProductsApi:
         # 连接地址 https://help.shopify.com/en/api/reference/orders/order#index-2019-07
         :return:
           """
-        if not since_id:
+        if not created_at_max:
             shop_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}customers.json?limit={limit}"
-        if since_id:
-            shop_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}customers.json?limit={limit}&since_id={since_id}"
+        if created_at_max:
+            shop_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}customers.json?limit={limit}&created_at_max={created_at_max}"
         result = requests.get(shop_url)
         try:
             if result.status_code == 200:
@@ -132,19 +132,19 @@ class ProductsApi:
             logger.error("get shopify all customers info is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_all_orders(self, limit=10, since_id="1225404776521", created_at_min="",  financial_status="paid"):
+    def get_all_orders(self, created_at_max="", financial_status="paid", limit=250):
         """
        获取collections_id的product
        # 接口  /admin/api/201 -07/orders.json
        # 连接地址 https://help.shopify.com/en/api/reference/orders/order#index-2019-07
        :return:
         """
-        if not since_id:
+        if not created_at_max:
             order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
-                f"?limit={limit}&created_at_min={created_at_min}&financial_status={financial_status}"
-        if since_id:
+                f"?limit={limit}&financial_status={financial_status}"
+        if created_at_max:
             order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
-                f"?limit={limit}&financial_status={financial_status}&since_id={since_id}"
+                f"?limit={limit}&financial_status={financial_status}&created_at_max={created_at_max}"
         try:
             result = requests.get(order_url)
             if result.status_code == 200:
@@ -178,6 +178,36 @@ class ProductsApi:
             logger.error("get shopify orders is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
+    def get_customer_count(self):
+        shop_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}customers/count.json"
+        result = requests.get(shop_url)
+        try:
+            if result.status_code == 200:
+                logger.info("get shopify all customers info is success")
+                res_dict = json.loads(result.text)
+                return {"code": 1, "msg": "", "data": res_dict}
+            else:
+                logger.info("get shopify all customers info is failed")
+                return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
+        except Exception as e:
+            logger.error("get shopify all customers info is failed info={}".format(str(e)))
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def get_customer_bydate(self, updated_at_min, updated_at_max, limit=6):
+        shop_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}customers.json?limit={limit}&updated_at_min={updated_at_min}&updated_at_max={updated_at_max}&fields=id"
+        result = requests.get(shop_url)
+        try:
+            if result.status_code == 200:
+                logger.info("get shopify all customers info is success")
+                res_dict = json.loads(result.text)
+                return {"code": 1, "msg": "", "data": res_dict}
+            else:
+                logger.info("get shopify all customers info is failed")
+                return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
+        except Exception as e:
+            logger.error("get shopify all customers info is failed info={}".format(str(e)))
+            return {"code": -1, "msg": str(e), "data": ""}
+
 
 if __name__ == '__main__':
     access_token = "d1063808be79897450ee5030e1c163ef"
@@ -185,6 +215,11 @@ if __name__ == '__main__':
     id = "3583116148816"
     shop_uri = "charrcter.myshopify.com"
     products_api = ProductsApi(access_token=access_token, shop_uri=shop_uri)
-    # print(products_api.get_all_customers())
-    # products_api.get_all_orders()
-    products_api.get_orders_id(order_id="1225404776521")
+    # print(products_api.get_all_customers(since_id="1488718266441"))
+    # since_id="1487712747593"
+    # order_num = products_api.get_all_orders()
+    # print(order_num["data"])
+    products_api.get_all_orders("2019-05-19T10:02:37+08:00")
+    # products_api.get_customer_count()
+    # products_api.get_orders_id(order_id="503834869833")
+    # print(products_api.get_customer_bydate("2019-03-1T00:00:00+08:00","2019-04-30T00:00:00+08:00"))

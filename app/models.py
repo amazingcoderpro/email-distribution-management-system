@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 # from django_hstore import hstore
+from django_mysql.models import JSONField
 
 
 class User(AbstractUser):
@@ -38,6 +39,8 @@ class Store(models.Model):
     customer_shop = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_shop")
     sender_address = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_email")
     store_view_id = models.CharField(blank=True, null=True, max_length=100, verbose_name=u"店铺的GA中的view id")
+    init_choices = ((0, '新店铺'), (1, '拉过一次数据'))
+    state = models.SmallIntegerField(db_index=True, choices=init_choices, default=0, verbose_name="是否是新店铺")
     user = models.OneToOneField(User, on_delete=models.DO_NOTHING, blank=True, null=True, unique=True)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
@@ -102,8 +105,7 @@ class EmailTemplate(models.Model):
 
 class EmailRecord(models.Model):
     uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="邮件ID")
-    customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
-    # store_id = models.IntegerField(verbose_name="店铺id")
+    # customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
     clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
@@ -111,8 +113,11 @@ class EmailRecord(models.Model):
     open_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件打开率")
     click_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件单击率")
     unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件退订率")
+    type_choice = ((0, 'Newsletter'), (1, 'Transactional'), (2, 'Test'))
+    type = models.SmallIntegerField(blank=True, null=True, verbose_name="邮件类型")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
+    email_template_id = models.IntegerField(blank=True, null=True,  verbose_name="模版id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -162,6 +167,7 @@ class CustomerGroup(models.Model):
 
     class Meta:
         managed = False
+        unique_together = ("store", "uuid")
         db_table = 'customer_group'
 
 
@@ -194,7 +200,8 @@ class Customer(models.Model):
     #
     # last_click_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后单击邮箱时间")
     # clicked_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户单击邮箱次数")
-
+    orders_count = models.IntegerField(blank=True, null=True, verbose_name="订单数量")
+    last_order_id = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_order_id")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
@@ -202,6 +209,7 @@ class Customer(models.Model):
 
     class Meta:
         managed = False
+        unique_together = ("store", "uuid")
         db_table = 'customer'
 
 
@@ -221,7 +229,6 @@ class SubscriberActivity(models.Model):
     class Meta:
         managed = False
         db_table = 'subscriber_activity'
-        unique_together = ("opt_time", "email", "type", "message_uuid")
 
 
 class ProductCategory(models.Model):
@@ -263,18 +270,26 @@ class OrderEvent(models.Model):
     """
     订单事件信息
     """
-    event_uuid = models.CharField(max_length=255, verbose_name="事件的唯一标识符")
+    event_uuid = models.CharField(max_length=255, blank=True, null=True, verbose_name="事件的唯一标识符")
     order_uuid = models.CharField(max_length=255, verbose_name="订单的唯一标识符")
-    status = models.IntegerField(default=0, verbose_name="订单事件类型, 0-创建(未支付)，1-支付")
-    store_url = models.CharField(max_length=255, verbose_name="订单对应的店铺的url")
-    customer = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
+    status = models.IntegerField(db_index=True, default=0, verbose_name="订单事件类型, 0-创建(未支付)，1-支付")
+    # store_url = models.CharField(db_index=True, max_length=255, verbose_name="订单对应的店铺的url")
+    customer_uuid = models.CharField(db_index=True,max_length=255, verbose_name="订单对应客户id")
 
     # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
-    products = models.TextField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
-    create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="订单创建时间")
+    product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
+    total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(verbose_name="店铺id")
+    order_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
+    order_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
+    create_time = models.DateTimeField(db_index=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
+
 
     class Meta:
         managed = False
+        unique_together = ("store", "order_uuid")
         db_table = 'order_event'
 
 
@@ -283,102 +298,27 @@ class CartEvent(models.Model):
     购物车事件信息
     """
     event_uuid = models.CharField(max_length=255, verbose_name="购物车事件的唯一标识符")
-    store_url = models.CharField(max_length=255, verbose_name="事件对应的店铺的url")
-    customer = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
-    products = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
+    # store_url = models.CharField(max_length=255, verbose_name="事件对应的店铺的url")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(verbose_name="店铺id")
+    customer_uuid = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
+    product_list = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
     create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="创建时间")
 
     class Meta:
         managed = False
         db_table = 'cart_event'
 
-# class WebhookTransaction(models.Model):
-#     UNPROCESSED = 1
-#     PROCESSED = 2
-#     ERROR = 3
-#     STATUSES = (
-#         (UNPROCESSED, 'Unprocessed'),
-#         (PROCESSED, 'Processed'),
-#         (ERROR, 'Error'),
-#     )
-#     date_generated = models.DateTimeField()
-#     date_received = models.DateTimeField(default=timezone.now)
-#     body = hstore.SerializedDictionaryField()
-#     request_meta = hstore.SerializedDictionaryField()
-#     status = models.CharField(max_length=250, choices=STATUSES, default=UNPROCESSED)
-#     objects = hstore.HStoreManager()
-#
-#     def __unicode__(self):
-#         return u'{0}'.format(self.date_event_generated)
 
-#
-# class Message(models.Model):
-#     date_processed = models.DateTimeField(default=timezone.now)
-#     webhook_transaction = models.OneToOneField(WebhookTransaction)
-#
-#     team_id = models.CharField(max_length=250)
-#     team_domain = models.CharField(max_length=250)
-#     channel_id = models.CharField(max_length=250)
-#     channel_name = models.CharField(max_length=250)
-#     user_id = models.CharField(max_length=250)
-#     user_name = models.CharField(max_length=250)
-#     text = models.TextField()
-#     trigger_word = models.CharField(max_length=250)
-#
-#     def __unicode__(self):
-#         return u'{}'.format(self.user_name)
-#
-#     """
-#     pass
-
-#
-
-# class WebhookTransaction(models.Model):
-#     UNPROCESSED = 1
-#     PROCESSED = 2
-#     ERROR = 3
-#     STATUSES = (
-#         (UNPROCESSED, 'Unprocessed'),
-#         (PROCESSED, 'Processed'),
-#         (ERROR, 'Error'),
-#     )
-#     date_generated = models.DateTimeField()
-#     date_received = models.DateTimeField(default=timezone.now)
-#     body = hstore.SerializedDictionaryField()
-#     request_meta = hstore.SerializedDictionaryField()
-#     status = models.CharField(max_length=250, choices=STATUSES, default=UNPROCESSED)
-#     objects = hstore.HStoreManager()
-#
-#     def __unicode__(self):
-#         return u'{0}'.format(self.date_event_generated)
-#
-#
-# class Message(models.Model):
-#     date_processed = models.DateTimeField(default=timezone.now)
-#     webhook_transaction = models.OneToOneField(WebhookTransaction)
-#
-#     team_id = models.CharField(max_length=250)
-#     team_domain = models.CharField(max_length=250)
-#     channel_id = models.CharField(max_length=250)
-#     channel_name = models.CharField(max_length=250)
-#     user_id = models.CharField(max_length=250)
-#     user_name = models.CharField(max_length=250)
-#     text = models.TextField()
-#     trigger_word = models.CharField(max_length=250)
-#
-#     def __unicode__(self):
-#         return u'{}'.format(self.user_name)
-
-
-class SalesVolume(models.Model):
-    """销售量"""
-    three_val = models.TextField(blank=True, null=True, verbose_name="前三天的销售量")
-    seven_val = models.TextField(blank=True, null=True, verbose_name="前七天的销售量")
-    fifteen_val = models.TextField(blank=True, null=True, verbose_name="前十五天的销售量")
-    thirty_val = models.TextField(blank=True, null=True, verbose_name="前三十天的销售量")
+class TopProduct(models.Model):
+    """TopProduct"""
+    top_three = models.TextField(blank=True, null=True, verbose_name="前三天的销售量")
+    top_seven = models.TextField(blank=True, null=True, verbose_name="前七天的销售量")
+    top_fifteen = models.TextField(blank=True, null=True, verbose_name="前十五天的销售量")
+    top_thirty = models.TextField(blank=True, null=True, verbose_name="前三十天的销售量")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
-        db_table = 'sales_volume'
+        #managed = False
+        db_table = 'top_product'

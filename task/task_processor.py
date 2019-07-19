@@ -3,8 +3,9 @@ import datetime
 import threading
 import time
 import pymysql
-import os
 from dateutil.relativedelta import relativedelta
+import json
+
 from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, SHOPIFY_CONFIG
 
@@ -304,10 +305,8 @@ class TaskProcessor:
             conn.close() if conn else 0
         return True
 
-
-
-    def update_shopify_sales_volume(self):
-        """更新产品销售量"""
+    def update_shopify_orders(self):
+        """更新店铺的订单"""
         logger.info("update_collection is cheking...")
         try:
             conn = DBUtil().get_instance()
@@ -325,11 +324,55 @@ class TaskProcessor:
                 store_id, store_url, store_token = store
                 papi = ProductsApi(store_token, store_url)
                 # 更新产品类目信息
-                res = papi.get_all_collections()
-                if res["code"] == 1:
-                    pass
-        except:
-            pass
+
+                since_id = ""
+                order_list = []
+                created_at_max = ""
+                for i in range(0, 100):
+                    res = papi.get_all_orders(created_at_max, limit=250)
+                    if res["code"] != 1:
+                        break
+                    if res["code"] == 1:
+                        orders = res["data"]["orders"]
+                        for order in orders:
+                            order_uuid = order["id"]
+                            if order_uuid in order_list:
+                                continue
+                            status = 1
+                            customer_uuid = order["customer"]["id"]
+                            order_create_time = order["created_at"].replace("T"," ").split("+")[0]
+                            order_update_time = order["updated_at"].replace("T"," ").split("+")[0]
+                            total_price = order["total_price"]
+                            create_time = datetime.datetime.now()
+                            update_time = datetime.datetime.now()
+                            li = []
+                            for item in order["line_items"]:
+                                product_id = item["product_id"]
+                                title = item["title"]
+                                price = float(item["price"])
+                                quantity = item["quantity"]
+                                li.append({"product_id":product_id,"title":title,"price":price,"quantity":quantity})
+                            product_info = json.dumps(li)
+                            cursor.execute(
+                                "insert into `order_event` (`order_uuid`, `status`,`product_info`,`customer_uuid`,`total_price`,`store_id`,`order_create_time`,`order_update_time`,`create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                (order_uuid, status, product_info, customer_uuid, total_price, store_id, order_create_time, order_update_time, create_time, update_time))
+                            conn.commit()
+                            order_id = cursor.lastrowid
+                            order_list.append(order_uuid)
+
+                        # 拉完了
+                        if len(orders) < 15:
+                            break
+                        else:
+                            created_at_max = orders[-1].get("created_at", "")
+
+        except Exception as e:
+            logger.exception("update_collection e={}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
 
 
 def main():
@@ -522,17 +565,20 @@ def pinterest_client():
     pass
 
 
+
 if __name__ == '__main__':
     # test()
     # main()
-    #TaskProcessor().update_shopify_collections()
+    # TaskProcessor().update_shopify_collections()
     # TaskProcessor().update_shopify_product()
     # TaskProcessor().update_shopify_sales_volume()
     # pinterest_client()
-    print(date_relation_convert("in the past", [30], unit="years"))
-    print(date_relation_convert("is between", [15, 30], unit="days"))
-    print(date_relation_convert("is between date", ["2019-01-25 00:00:00", "2019-06-25 00:00:00"]))
-    print(date_relation_convert("before", ["2019-01-25 00:00:00"]))
+    # print(date_relation_convert("in the past", [30], unit="years"))
+    # print(date_relation_convert("is between", [15, 30], unit="days"))
+    # print(date_relation_convert("is between date", ["2019-01-25 00:00:00", "2019-06-25 00:00:00"]))
+    # print(date_relation_convert("before", ["2019-01-25 00:00:00"]))
+    #
+    # min_date, max_date = date_relation_convert("is between date", ["2019-07-15 22:00:00", "2019-07-19 10:00:00"])
+    # print(order_filter(store_id=1, status=1, relation="less than", value=5, min_time=min_date, max_time=max_date))
+    TaskProcessor().update_shopify_orders()
 
-    min_date, max_date = date_relation_convert("is between date", ["2019-07-15 22:00:00", "2019-07-19 10:00:00"])
-    print(order_filter(store_id=1, status=1, relation="less than", value=5, min_time=min_date, max_time=max_date))
