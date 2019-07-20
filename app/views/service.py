@@ -88,7 +88,7 @@ class EmailTemplateOptView(generics.DestroyAPIView):
         instance.save()
 
 
-class TopProduct(APIView):
+class aTopProduct(APIView):
     """Top product 展示"""
     permission_classes = (IsAuthenticated,)
     authentication_classes = (JSONWebTokenAuthentication,)
@@ -105,7 +105,7 @@ class TopProduct(APIView):
         top_product = models.TopProduct.objects.filter(store=store).values("id", "top_three", "top_seven", "top_fifteen",
                                                              "top_thirty").first()
         if not top_product:
-            return res
+            return Response(res)
         res["id"] = top_product["id"]
         res["top_three"] = top_product["top_three"]
         res["top_seven"] = top_product["top_seven"]
@@ -137,3 +137,25 @@ class UploadPicture(APIView):
         base64_str = base64_str.decode("utf-8")
 
         return Response({"base64_str": base64_str})
+
+
+class EmailTrigger(generics.ListCreateAPIView):
+    """邮件 Trigger展示 增加"""
+    queryset = models.EmailTrigger.objects.all()
+    serializer_class = service.EmailTemplateSerializer
+    pagination_class = PNPagination
+    filter_backends = (service_filter.EmailTempFilter,)
+    permission_classes = (IsAuthenticated, StorePermission)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+
+class EmailTriggerOptView(generics.DestroyAPIView):
+    """邮件 Trigger 删除"""
+    queryset = models.EmailTrigger.objects.all()
+    serializer_class = service.EmailTemplateSerializer
+    permission_classes = (IsAuthenticated, CustomerGroupOptPermission)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+    def perform_destroy(self, instance):
+        instance.state = 2
+        instance.save()

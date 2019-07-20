@@ -337,7 +337,7 @@ class TaskProcessor:
                 papi = ProductsApi(store_token, store_url)
 
                 created_at_max = datetime.datetime.now()
-                created_at_min = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=5000), datetime.time.min)
+                created_at_min = datetime.datetime.combaine(datetime.date.today() - datetime.timedelta(days=5000), datetime.time.min)
                 for i in range(0, 1000):
                     res = papi.get_all_orders(created_at_min, created_at_max)
                     if res["code"] != 1:
@@ -570,6 +570,6 @@ if __name__ == '__main__':
     # print(order_filter(store_id=1, status=1, relation="less than", value=5, min_time=min_date, max_time=max_date))
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     TaskProcessor(db_info=db_info).update_shopify_orders()
-    TaskProcessor(db_info=db_info).update_top_product()
+    # TaskProcessor(db_info=db_info).update_top_product()
 
 

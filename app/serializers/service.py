@@ -55,7 +55,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
                   "banner",
                   "headline",
                   "body_text",
-                  "top_type",
+                  "product_list",
                   "send_rule",
                   "customer_group_list",
                   "state",

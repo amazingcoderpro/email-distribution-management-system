@@ -28,9 +28,12 @@ v1_urlpatterns = [
     url(r'^email_template/$', service.EmailTemplate.as_view()),
     url(r'^email_template/(?P<pk>[0-9]+)/$', service.EmailTemplateOptView.as_view()),
     url(r'^top_product/$', service.TopProduct.as_view()),
-
-
     url(r'^upload_picture/$', service.UploadPicture.as_view()),
+
+    # 邮件触发器
+    url(r'^email_trigger/$', servaice.EmailTrigger.as_view()),
+    url(r'^email_trigger/(?P<pk>[0-9]+)/$', service.EmailTriggerOptView.as_view()),
+
 
     # 店铺管理
     url(r'store/$', service.StoreView.as_view()),
