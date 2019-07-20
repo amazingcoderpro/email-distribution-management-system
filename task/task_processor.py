@@ -336,9 +336,10 @@ class TaskProcessor:
 
                 papi = ProductsApi(store_token, store_url)
 
-                created_at_max = ""
-                for i in range(0, 100):
-                    res = papi.get_all_orders(created_at_max, limit=250)
+                created_at_max = datetime.datetime.now()
+                created_at_min = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=5000), datetime.time.min)
+                for i in range(0, 1000):
+                    res = papi.get_all_orders(created_at_min, created_at_max)
                     if res["code"] != 1:
                         break
                     if res["code"] == 1:
@@ -347,11 +348,16 @@ class TaskProcessor:
                             order_uuid = order["id"]
                             if order_uuid in order_list:
                                 continue
-                            status = 1
+                            if order["financial_status"] != "unpaid":
+                                status = 1
+                            else:
+                                status = 0
                             customer_uuid = order["customer"]["id"]
                             order_create_time = order["created_at"].replace("T"," ").split("+")[0]
                             order_update_time = order["updated_at"].replace("T"," ").split("+")[0]
                             total_price = order["total_price"]
+                            status_tag = order["financial_status"]
+                            status_url = order["order_status_url"]
                             create_time = datetime.datetime.now()
                             update_time = datetime.datetime.now()
                             li = []
@@ -363,8 +369,8 @@ class TaskProcessor:
                                 li.append({"product_id":product_id,"title":title,"price":price,"quantity":quantity})
                             product_info = json.dumps(li)
                             cursor.execute(
-                                "insert into `order_event` (`order_uuid`, `status`,`product_info`,`customer_uuid`,`total_price`,`store_id`,`order_create_time`,`order_update_time`,`create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                                (order_uuid, status, product_info, customer_uuid, total_price, store_id, order_create_time, order_update_time, create_time, update_time))
+                                "insert into `order_event` (`order_uuid`, `status`,`status_tag`,`status_url`,`product_info`,`customer_uuid`,`total_price`,`store_id`,`order_create_time`,`order_update_time`,`create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                (order_uuid, status, status_tag, status_url, product_info, customer_uuid, total_price, store_id, order_create_time, order_update_time, create_time, update_time))
                             conn.commit()
                             order_id = cursor.lastrowid
                             order_list.append(order_uuid)
@@ -549,10 +555,6 @@ class TaskProcessor:
         return True
 
 
-
-
-
-
 if __name__ == '__main__':
     # test()
     # main()
@@ -569,4 +571,5 @@ if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     TaskProcessor(db_info=db_info).update_shopify_orders()
     TaskProcessor(db_info=db_info).update_top_product()
+
 
