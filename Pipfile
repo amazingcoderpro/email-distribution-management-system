@@ -20,6 +20,8 @@ python-dateutil = "*"
 django-mysql = "*"
 google-api-python-client = "*"
 oauth2client = "*"
+pil = "*"
+pillow = "*"
 
 [requires]
 python_version = "3.6"

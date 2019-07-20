@@ -27,3 +27,12 @@ class StoreFilter(BaseFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
         return queryset.filter(user=request.user)
+
+
+class EmailTempFilter(BaseFilterBackend):
+    """邮件模版 过滤"""
+
+    def filter_queryset(self, request, queryset, view):
+        store = models.Store.objects.filter(user=request.user).first()
+        filte_kwargs = {"store":  store, "send_type": 0, "state__in": [0,1]}
+        return queryset.filter(**filte_kwargs)
