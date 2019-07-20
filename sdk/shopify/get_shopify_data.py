@@ -132,6 +132,7 @@ class ProductsApi:
             logger.error("get shopify all customers info is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
+
     def get_all_orders(self, created_at_max="", since_id="", financial_status="any", limit=250):
         """
        获取collections_id的product
@@ -139,9 +140,6 @@ class ProductsApi:
        # 连接地址 https://help.shopify.com/en/api/reference/orders/order#index-2019-07
        :return:
         """
-        # if not created_at_max:
-        #     order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
-        #         f"?limit={limit}&financial_status={financial_status}"
         if since_id:
             order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
                 f"?limit={limit}&financial_status={financial_status}&since_id={since_id}"
@@ -149,6 +147,7 @@ class ProductsApi:
             order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
                 f"?limit={limit}&financial_status={financial_status}"
         print(order_url)
+
         try:
             result = requests.get(order_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36"})
             if result.status_code == 200:
@@ -160,6 +159,7 @@ class ProductsApi:
         except Exception as e:
             logger.error("get shopify orders is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
+
 
     def get_orders_id(self, order_id):
         """

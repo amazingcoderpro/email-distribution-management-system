@@ -41,12 +41,17 @@ v1_urlpatterns = [
 
 
 webhook_urlpatterns = [
-    url(r'cart/update/$', webhook.EventCartUpdate.as_view()),
-    url(r'cart/create/$', webhook.EventCartCreate.as_view()),
+    # url(r'cart/update/$', webhook.EventCartUpdate.as_view()),
+    # url(r'cart/create/$', webhook.EventCartCreate.as_view()),
 
     url(r'order/update/$', webhook.EventOrderUpdate.as_view()),
     url(r'order/create/$', webhook.EventOrderCreate.as_view()),
     url(r'order/paid/$', webhook.EventOrderPaid.as_view()),
+
+    url(r'order/fulfilled/$', webhook.EventOrderFulfilled.as_view()),
+    url(r'order/partially_fulfilled/$', webhook.EventOrderPartiallyFulfilled.as_view()),
+    url(r'draft_orders/create/$', webhook.EventDraftOrdersCreate.as_view()),
+    url(r'draft_orders/update/$', webhook.EventDraftOrdersUpdate.as_view()),
 
 ]
 

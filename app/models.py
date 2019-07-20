@@ -39,6 +39,10 @@ class Store(models.Model):
     customer_shop = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_shop")
     sender_address = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_email")
     store_view_id = models.CharField(blank=True, null=True, max_length=100, verbose_name=u"店铺的GA中的view id")
+    order_init_choices = ((0, '新店铺没有拉过order'), (1, '拉过一次数据'))
+    order_init = models.SmallIntegerField(db_index=True, choices=order_init_choices, default=0, verbose_name="店铺是否拉过order")
+    customer_init_choices = ((0, '新店铺没有拉过customer'), (1, '拉过一次数据'))
+    customer_init = models.SmallIntegerField(db_index=True, choices=customer_init_choices, default=0, verbose_name="店铺是否拉过customer")
     user = models.OneToOneField(User, on_delete=models.DO_NOTHING, blank=True, null=True, unique=True)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
@@ -165,7 +169,7 @@ class CustomerGroup(models.Model):
 
     class Meta:
         managed = False
-        unique_together = ("store", "uuid")
+        # unique_together = ("store", "uuid")
         db_table = 'customer_group'
 
 
@@ -271,6 +275,8 @@ class OrderEvent(models.Model):
     event_uuid = models.CharField(max_length=255, blank=True, null=True, verbose_name="事件的唯一标识符")
     order_uuid = models.CharField(max_length=255, verbose_name="订单的唯一标识符")
     status = models.IntegerField(db_index=True, default=0, verbose_name="订单事件类型, 0-创建(未支付)，1-支付")
+    status_tag = models.CharField(max_length=255, blank=True, null=True, verbose_name="订单类型tag")
+    status_url = models.CharField(max_length=255, blank=True, null=True, verbose_name="订单类型url")
     # store_url = models.CharField(db_index=True, max_length=255, verbose_name="订单对应的店铺的url")
     customer_uuid = models.CharField(db_index=True,max_length=255, verbose_name="订单对应客户id")
 
@@ -307,93 +313,18 @@ class CartEvent(models.Model):
         managed = False
         db_table = 'cart_event'
 
-# class WebhookTransaction(models.Model):
-#     UNPROCESSED = 1
-#     PROCESSED = 2
-#     ERROR = 3
-#     STATUSES = (
-#         (UNPROCESSED, 'Unprocessed'),
-#         (PROCESSED, 'Processed'),
-#         (ERROR, 'Error'),
-#     )
-#     date_generated = models.DateTimeField()
-#     date_received = models.DateTimeField(default=timezone.now)
-#     body = hstore.SerializedDictionaryField()
-#     request_meta = hstore.SerializedDictionaryField()
-#     status = models.CharField(max_length=250, choices=STATUSES, default=UNPROCESSED)
-#     objects = hstore.HStoreManager()
-#
-#     def __unicode__(self):
-#         return u'{0}'.format(self.date_event_generated)
 
-#
-# class Message(models.Model):
-#     date_processed = models.DateTimeField(default=timezone.now)
-#     webhook_transaction = models.OneToOneField(WebhookTransaction)
-#
-#     team_id = models.CharField(max_length=250)
-#     team_domain = models.CharField(max_length=250)
-#     channel_id = models.CharField(max_length=250)
-#     channel_name = models.CharField(max_length=250)
-#     user_id = models.CharField(max_length=250)
-#     user_name = models.CharField(max_length=250)
-#     text = models.TextField()
-#     trigger_word = models.CharField(max_length=250)
-#
-#     def __unicode__(self):
-#         return u'{}'.format(self.user_name)
-#
-#     """
-#     pass
+class TopProduct(models.Model):
+    """TopProduct"""
+    top_three = models.TextField(blank=True, null=True, verbose_name="前三天的销售量")
+    top_seven = models.TextField(blank=True, null=True, verbose_name="前七天的销售量")
+    top_fifteen = models.TextField(blank=True, null=True, verbose_name="前十五天的销售量")
+    top_thirty = models.TextField(blank=True, null=True, verbose_name="前三十天的销售量")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
-#
-
-# class WebhookTransaction(models.Model):
-#     UNPROCESSED = 1
-#     PROCESSED = 2
-#     ERROR = 3
-#     STATUSES = (
-#         (UNPROCESSED, 'Unprocessed'),
-#         (PROCESSED, 'Processed'),
-#         (ERROR, 'Error'),
-#     )
-#     date_generated = models.DateTimeField()
-#     date_received = models.DateTimeField(default=timezone.now)
-#     body = hstore.SerializedDictionaryField()
-#     request_meta = hstore.SerializedDictionaryField()
-#     status = models.CharField(max_length=250, choices=STATUSES, default=UNPROCESSED)
-#     objects = hstore.HStoreManager()
-#
-#     def __unicode__(self):
-#         return u'{0}'.format(self.date_event_generated)
-#
-#
-# class Message(models.Model):
-#     date_processed = models.DateTimeField(default=timezone.now)
-#     webhook_transaction = models.OneToOneField(WebhookTransaction)
-#
-#     team_id = models.CharField(max_length=250)
-#     team_domain = models.CharField(max_length=250)
-#     channel_id = models.CharField(max_length=250)
-#     channel_name = models.CharField(max_length=250)
-#     user_id = models.CharField(max_length=250)
-#     user_name = models.CharField(max_length=250)
-#     text = models.TextField()
-#     trigger_word = models.CharField(max_length=250)
-#
-#     def __unicode__(self):
-#         return u'{}'.format(self.user_name)
-
-
-# class SalesVolume(models.Model):
-#     """销售量"""
-#     three_val = models.TextField(blank=True, null=True, verbose_name="前三天的销售量")
-#     seven_val = models.TextField(blank=True, null=True, verbose_name="前七天的销售量")
-#     fifteen_val = models.TextField(blank=True, null=True, verbose_name="前十五天的销售量")
-#     thirty_val = models.TextField(blank=True, null=True, verbose_name="前三十天的销售量")
-#     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-#     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-#
-#     class Meta:
-#         managed = False
-#         db_table = 'sales_volume'
+    class Meta:
+        #managed = False
+        db_table = 'top_product'
