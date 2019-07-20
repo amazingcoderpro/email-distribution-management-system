@@ -350,26 +350,28 @@ class TaskProcessor:
                                 status = 1
                             else:
                                 status = 0
-                            # customer_uuid = order["customer"]["id"]
-                            # order_create_time = order["created_at"].replace("T"," ").split("+")[0]
-                            # order_update_time = order["updated_at"].replace("T"," ").split("+")[0]
-                            # total_price = order["total_price"]
-                            # create_time = datetime.datetime.now()
-                            # update_time = datetime.datetime.now()
-                            # li = []
-                            # for item in order["line_items"]:
-                            #     product_id = item["product_id"]
-                            #     title = item["title"]
-                            #     price = float(item["price"])
-                            #     quantity = item["quantity"]
-                            #     li.append({"product_id":product_id,"title":title,"price":price,"quantity":quantity})
-                            # product_info = json.dumps(li)
-                            # cursor.execute(
-                            #     "insert into `order_event` (`order_uuid`, `status`,`product_info`,`customer_uuid`,`total_price`,`store_id`,`order_create_time`,`order_update_time`,`create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                            #     (order_uuid, status, product_info, customer_uuid, total_price, store_id, order_create_time, order_update_time, create_time, update_time))
-                            # conn.commit()
-                            # order_id = cursor.lastrowid
-                            # order_list.append(order_uuid)
+                            customer_uuid = order["customer"]["id"]
+                            order_create_time = order["created_at"].replace("T"," ").split("+")[0]
+                            order_update_time = order["updated_at"].replace("T"," ").split("+")[0]
+                            total_price = order["total_price"]
+                            status_tag = order["financial_status"]
+                            status_url = order["order_status_url"]
+                            create_time = datetime.datetime.now()
+                            update_time = datetime.datetime.now()
+                            li = []
+                            for item in order["line_items"]:
+                                product_id = item["product_id"]
+                                title = item["title"]
+                                price = float(item["price"])
+                                quantity = item["quantity"]
+                                li.append({"product_id":product_id,"title":title,"price":price,"quantity":quantity})
+                            product_info = json.dumps(li)
+                            cursor.execute(
+                                "insert into `order_event` (`order_uuid`, `status`,`status_tag`,`status_url`,`product_info`,`customer_uuid`,`total_price`,`store_id`,`order_create_time`,`order_update_time`,`create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                (order_uuid, status, status_tag, status_url, product_info, customer_uuid, total_price, store_id, order_create_time, order_update_time, create_time, update_time))
+                            conn.commit()
+                            order_id = cursor.lastrowid
+                            order_list.append(order_uuid)
 
                         # 拉完了
                         if len(orders) < 100:
@@ -573,5 +575,5 @@ if __name__ == '__main__':
     # min_date, max_date = date_relation_convert("is between date", ["2019-07-15 22:00:00", "2019-07-19 10:00:00"])
     # print(order_filter(store_id=1, status=1, relation="less than", value=5, min_time=min_date, max_time=max_date))
     TaskProcessor().update_shopify_orders()
-    TaskProcessor().update_top_product()
+    # TaskProcessor().update_top_product()
 
