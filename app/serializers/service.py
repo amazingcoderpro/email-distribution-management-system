@@ -52,11 +52,17 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
                   "logo",
                   "banner",
                   "headline",
-                  "headline",
-                  "product_list",
+                  "body_text",
+                  "top_type",
+                  "send_rule",
                   "customer_group_list",
                   "state",
                   "send_type",
                   "create_time",
                   "update_time"
         )
+
+    def create(self, validated_data):
+        validated_data["store"] = models.Store.objects.filter(user=self.context["request"].user).first()
+        instance = super(EmailTemplateSerializer, self).create(validated_data)
+        return instance
