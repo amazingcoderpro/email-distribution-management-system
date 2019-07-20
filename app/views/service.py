@@ -88,7 +88,7 @@ class EmailTemplateOptView(generics.DestroyAPIView):
         instance.save()
 
 
-class aTopProduct(APIView):
+class TopProductView(APIView):
     """Top product 展示"""
     permission_classes = (IsAuthenticated,)
     authentication_classes = (JSONWebTokenAuthentication,)

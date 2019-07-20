@@ -98,18 +98,25 @@ class ShopifyDataProcessor:
                                     pro_image = pro.get("images")[0]
                                 else:
                                     pro_image = ""
+
+                                variants = pro.get("variants", [])
+
+                                price = 0
+                                if variants:
+                                    price = float(variants[0].get("price", "0"))
+
                                 try:
                                     uuid_id = str(pro_uuid) + "_" + str(id)
                                     if uuid_id in store_product_dict[store_id].keys():
                                         pro_id = store_product_dict[store_id][uuid_id]
                                         logger.info("[update_shopify_product] product is already exist, store_id={} store_url={}, product_id={} ".format(store_id,store_url,pro_id))
-                                        cursor.execute('''update `product` set name=%s, url=%s, image_url=%s, product_category_id=%s, update_time=%s where id=%s''',
-                                                       (pro_title, pro_url, pro_image, id, time_now, pro_id))
+                                        cursor.execute('''update `product` set name=%s, url=%s, image_url=%s,price=%s,product_category_id=%s, update_time=%s where id=%s''',
+                                                       (pro_title, pro_url, pro_image,price, id, time_now, pro_id))
                                         conn.commit()
                                     else:
                                         cursor.execute(
-                                            "insert into `product` (`name`, `url`, `uuid`, `image_url`,`product_category_id`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s)",
-                                            (pro_title, pro_url, pro_uuid, pro_image, id, store_id, time_now, time_now))
+                                            "insert into `product` (`name`, `url`, `uuid`,`price`,`image_url`,`product_category_id`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                            (pro_title, pro_url, pro_uuid, price, pro_image, id, store_id, time_now, time_now))
                                         pro_id = cursor.lastrowid
                                         logger.info("[update_shopify_product] product is new, store_id={},store_url={}, product_id={}，product_category_id={}".format(store_id,store_url, pro_id, id))
                                         conn.commit()
@@ -228,7 +235,7 @@ class ShopifyDataProcessor:
                 papi = ProductsApi(store_token, store_url)
 
                 created_at_max = datetime.datetime.now()
-                created_at_min = datetime.datetime.combaine(datetime.date.today() - datetime.timedelta(days=5000), datetime.time.min)
+                created_at_min = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=5000), datetime.time.min)
                 for i in range(0, 1000):
                     res = papi.get_all_orders(created_at_min, created_at_max)
                     if res["code"] != 1:
@@ -445,6 +452,8 @@ class ShopifyDataProcessor:
 
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
-    ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    ShopifyDataProcessor(db_info=db_info).update_top_product()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_product()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
+    #ShopifyDataProcessor(db_info=db_info).update_top_product()
 
