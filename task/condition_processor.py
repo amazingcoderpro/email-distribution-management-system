@@ -7,7 +7,7 @@ import datetime
 import json
 from dateutil.relativedelta import relativedelta
 from config import logger
-from task.task_processor import DBUtil
+from task.shopify_data_processor import DBUtil
 
 
 class AnalyzeCondition:

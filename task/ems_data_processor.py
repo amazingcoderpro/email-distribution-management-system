@@ -5,7 +5,7 @@ import datetime
 
 from config import logger
 from sdk.ems.ems_api import ExpertSender
-from task.task_processor import DBUtil
+from task.shopify_data_processor import DBUtil
 
 
 class GetEMSData:

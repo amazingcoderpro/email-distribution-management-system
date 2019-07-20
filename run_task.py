@@ -5,9 +5,9 @@
 import os
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
-from task.task_processor import ShopifyDataProcessor
+from task.shopify_data_processor import ShopifyDataProcessor
 from config import logger
-from task.analyze_condition import AnalyzeCondition
+from task.condition_processor import AnalyzeCondition
 
 
 MYSQL_PASSWD = os.getenv('MYSQL_PASSWD', None)
