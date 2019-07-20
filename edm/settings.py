@@ -29,11 +29,7 @@ SECRET_KEY = 'l=4&z+#mae1#tdf*uq6wpkp)o334_ulr^-bsr&97xi=le(4l!-'
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    # "127.0.0.1",
-    "smartsend.seamarketings.com",
-    # "myshopify.com",
-    # "www.shopify.com",
-    # "shopify.com"
+    "*"
 ]
 
 

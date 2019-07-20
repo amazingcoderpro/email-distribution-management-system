@@ -26,17 +26,13 @@ v1_urlpatterns = [
 
     # 邮件管理
     url(r'^email_template/$', service.EmailTemplate.as_view()),
+    url(r'^upload_picture/$', service.UploadPicture.as_view()),
 
     # 店铺管理
     url(r'store/$', service.StoreView.as_view()),
     url(r'store/(?P<pk>[0-9]+)/$', service.StoreOperView.as_view()),
 
-    # url(r'webhook/cart/update/$', webhook.EventCartUpdate.as_view()),
-    # url(r'webhook/cart/create/$', webhook.EventCartCreate.as_view()),
-    #
-    # url(r'webhook/order/update/$', webhook.EventOrderUpdate.as_view()),
-    # url(r'webhook/order/create/$', webhook.EventOrderCreate.as_view()),
-    # url(r'webhook/order/paid/$', webhook.EventOrderPaid.as_view()),
+
 ]
 
 

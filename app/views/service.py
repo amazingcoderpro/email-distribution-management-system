@@ -1,7 +1,11 @@
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
-
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from io import BytesIO
+import base64
+from PIL import Image
 
 from app import models
 from app.pageNumber.pageNumber import PNPagination
@@ -55,3 +59,24 @@ class EmailTemplate(generics.CreateAPIView):
     serializer_class = service.EmailTemplateSerializer
     permission_classes = (IsAuthenticated, StorePermission)
     authentication_classes = (JSONWebTokenAuthentication,)
+
+
+class UploadPicture(APIView):
+    """上传图片"""
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+    def post(self, request, *args, **kwargs):
+
+        file = request.FILES["file"]
+        image = Image.open(BytesIO(file.read()))
+
+        output_buffer = BytesIO()
+        if "jp" in file._name[-4:]:
+            format = "JPEG"
+        image.save(output_buffer, format=format)
+        byte_data = output_buffer.getvalue()
+        base64_str = base64.b64encode(byte_data)
+        base64_str = base64_str.decode("utf-8")
+
+        return Response({"str": base64_str})
