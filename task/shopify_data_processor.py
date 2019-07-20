@@ -344,7 +344,7 @@ class ShopifyDataProcessor:
 
                 # top_three
                 cursor_dict.execute(
-                    """select id,name,url,uuid, image_url from product where store_id = %s and uuid in %s""",(store_id, top_three_product_list))
+                    """select id,name,url,uuid,price image_url from product where store_id = %s and uuid in %s""",(store_id, top_three_product_list))
                 top_three_product = cursor_dict.fetchall()
 
                 top_three_list = []
@@ -455,5 +455,5 @@ if __name__ == '__main__':
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    #ShopifyDataProcessor(db_info=db_info).update_top_product()
+    ShopifyDataProcessor(db_info=db_info).update_top_product()
 
