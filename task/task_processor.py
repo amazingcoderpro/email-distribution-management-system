@@ -334,9 +334,10 @@ class TaskProcessor:
 
                 papi = ProductsApi(store_token, store_url)
 
-                created_at_max = ""
-                for i in range(0, 100):
-                    res = papi.get_all_orders(created_at_max, limit=250)
+                created_at_max = datetime.datetime.now()
+                created_at_min = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=5000), datetime.time.min)
+                for i in range(0, 1000):
+                    res = papi.get_all_orders(created_at_min, created_at_max)
                     if res["code"] != 1:
                         break
                     if res["code"] == 1:
@@ -345,27 +346,30 @@ class TaskProcessor:
                             order_uuid = order["id"]
                             if order_uuid in order_list:
                                 continue
-                            status = 1
-                            customer_uuid = order["customer"]["id"]
-                            order_create_time = order["created_at"].replace("T"," ").split("+")[0]
-                            order_update_time = order["updated_at"].replace("T"," ").split("+")[0]
-                            total_price = order["total_price"]
-                            create_time = datetime.datetime.now()
-                            update_time = datetime.datetime.now()
-                            li = []
-                            for item in order["line_items"]:
-                                product_id = item["product_id"]
-                                title = item["title"]
-                                price = float(item["price"])
-                                quantity = item["quantity"]
-                                li.append({"product_id":product_id,"title":title,"price":price,"quantity":quantity})
-                            product_info = json.dumps(li)
-                            cursor.execute(
-                                "insert into `order_event` (`order_uuid`, `status`,`product_info`,`customer_uuid`,`total_price`,`store_id`,`order_create_time`,`order_update_time`,`create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                                (order_uuid, status, product_info, customer_uuid, total_price, store_id, order_create_time, order_update_time, create_time, update_time))
-                            conn.commit()
-                            order_id = cursor.lastrowid
-                            order_list.append(order_uuid)
+                            if order["financial_status"] != "unpaid":
+                                status = 1
+                            else:
+                                status = 0
+                            # customer_uuid = order["customer"]["id"]
+                            # order_create_time = order["created_at"].replace("T"," ").split("+")[0]
+                            # order_update_time = order["updated_at"].replace("T"," ").split("+")[0]
+                            # total_price = order["total_price"]
+                            # create_time = datetime.datetime.now()
+                            # update_time = datetime.datetime.now()
+                            # li = []
+                            # for item in order["line_items"]:
+                            #     product_id = item["product_id"]
+                            #     title = item["title"]
+                            #     price = float(item["price"])
+                            #     quantity = item["quantity"]
+                            #     li.append({"product_id":product_id,"title":title,"price":price,"quantity":quantity})
+                            # product_info = json.dumps(li)
+                            # cursor.execute(
+                            #     "insert into `order_event` (`order_uuid`, `status`,`product_info`,`customer_uuid`,`total_price`,`store_id`,`order_create_time`,`order_update_time`,`create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                            #     (order_uuid, status, product_info, customer_uuid, total_price, store_id, order_create_time, order_update_time, create_time, update_time))
+                            # conn.commit()
+                            # order_id = cursor.lastrowid
+                            # order_list.append(order_uuid)
 
                         # 拉完了
                         if len(orders) < 100:
