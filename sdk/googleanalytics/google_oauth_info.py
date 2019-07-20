@@ -6,7 +6,7 @@ from config import logger
 
 
 class GoogleApi():
-    def __init__(self, view_id, ga_source="pinbooster", json_path=""):
+    def __init__(self, view_id, ga_source="smartsend", json_path=""):
         """
         获取店铺的GA数据
         :param view_id: 视图的id
@@ -42,12 +42,12 @@ class GoogleApi():
                                     {'startDate': start_time, 'endDate': end_time},
                                 ],
                                 "metrics": [
-                                    {"expression": "ga:sessions"},  # pageviews
-                                    {"expression": "ga:Users"},      # uv
+                                    # {"expression": "ga:sessions"},  # pageviews
+                                    # {"expression": "ga:Users"},      # uv
                                     {"expression": "ga:newUsers"},
                                     {"expression": "ga:transactions"},  # 交易数量
                                     {"expression": "ga:transactionRevenue"},  # 销售总金额
-                                    {"expression": "ga:hits"},  # 点击量
+                                    # {"expression": "ga:hits"},  # 点击量
                                     # {"expression": "ga:itemRevenue"}
                                 ],
                                 "dimensions": [

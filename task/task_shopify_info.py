@@ -4,6 +4,7 @@ import threading
 import time
 import pymysql
 import os
+import sys
 
 from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger
@@ -63,17 +64,21 @@ class TaskProcessor:
                 customer_update_list = []
                 store_id, store_token, store_url = store
                 papi = ProductsApi(store_token, store_url)
-                created_at_max = ""
+                created_at_max = "2019-05-19T05:28:29+8:00"
 
                 cursor.execute('''select uuid from `customer` where store_id=%s''', (store_id, ))
                 exist_customer = cursor.fetchall()
                 exist_customer_list = [item[0] for item in exist_customer]
-
+                i = 0
+                # for i in range(40):
                 while True:
+                    logger.info("the %sth get customers;store:%s" % (i, store_id))
                     ret = papi.get_all_customers(limit=250, created_at_max=created_at_max)
+                    print(created_at_max)
                     if ret["code"] != 1:
                         logger.warning("get shop customer failed. ret={}".format(ret))
-                        break
+                        time.sleep(3)
+                        continue
                     if ret["code"] == 1:
                         customer_info = ret["data"].get("customers", "")
                         for customer in customer_info:
@@ -111,36 +116,54 @@ class TaskProcessor:
                                 if uuid not in [item[0] for item in customer_insert_list]:
                                     customer_insert_list.append(customer_tuple)
                                     # exist_customer_list.append(uuid)
-
+                        i += 1
                         if len(customer_info) < 250:
                             break
                         else:
                             created_at_max = customer_info[-1].get("created_at", "")
+                            print(created_at_max)
                             print(len(customer_info))
                             if not created_at_max:
                                 break
+
+                # 数据入库
+                logger.warn("customer insert Memory usage", sys.getsizeof(customer_insert_list), len(customer_insert_list))
+                logger.warn("customer updata Memory usage", sys.getsizeof(customer_update_list), len(customer_update_list))
+                if customer_insert_list:
+                    # customer_insert_info = str(customer_insert_list)[1:-1]
+                    logger.info("customer is already exist [insert], uuid={}".format(uuid))
+                    cursor.executemany('''insert into `customer` (`uuid`, `last_order_id`,`orders_count`,`sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
+                                                 values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                                       customer_insert_list)
+                    conn.commit()
+                if customer_update_list:
+                    logger.info("customer is already exist [update], uuid={}".format(uuid))
+                    cursor.executemany(
+                        '''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
+                        customer_update_list)
+                    conn.commit()
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
             # return False
 
-        try:
-            if customer_insert_list:
-                # customer_insert_info = str(customer_insert_list)[1:-1]
-                logger.info("customer is already exist [insert], uuid={}".format(uuid))
-                cursor.executemany('''insert into `customer` (`uuid`, `last_order_id`,`orders_count`,`sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
-                                             values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                                            customer_insert_list)
-                conn.commit()
-            if customer_update_list:
-                logger.info("customer is already exist [update], uuid={}".format(uuid))
-                cursor.executemany(
-                    '''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
-                    customer_update_list)
-                conn.commit()
-
-        except Exception as e:
-            logger.exception("update_collection e={}".format(e))
-            return False
+        # try:
+        #     if customer_insert_list:
+        #         # customer_insert_info = str(customer_insert_list)[1:-1]
+        #         logger.info("customer is already exist [insert], uuid={}".format(uuid))
+        #         cursor.executemany('''insert into `customer` (`uuid`, `last_order_id`,`orders_count`,`sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
+        #                                      values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+        #                                     customer_insert_list)
+        #         conn.commit()
+        #     if customer_update_list:
+        #         logger.info("customer is already exist [update], uuid={}".format(uuid))
+        #         cursor.executemany(
+        #             '''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
+        #             customer_update_list)
+        #         conn.commit()
+        #
+        # except Exception as e:
+        #     logger.exception("update_collection e={}".format(e))
+        #     return False
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0

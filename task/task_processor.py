@@ -1,9 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 import datetime
 import threading
-import time
 import pymysql
-
 import json
 from collections import Counter
 
@@ -14,13 +12,12 @@ from config import logger, SHOPIFY_CONFIG
 # MYSQL_HOST = os.getenv('MYSQL_HOST', None)
 
 
-# MYSQL_HOST=47.244.107.240 MYSQL_PASSWD=   use=edm db=edm
 MYSQL_HOST = "47.244.107.240"
 MYSQL_PASSWD = "edm@orderplus.com"
 
 # 47.52.221.217
 class DBUtil:
-    def __init__(self, host=MYSQL_HOST, port=3306, db="edm", user="edm", password=MYSQL_PASSWD):
+    def __init__(self, host, port, db, user, password):
         self.conn_pool = {}
         self.host = host
         self.port = port
@@ -49,7 +46,7 @@ class DBUtil:
 
 
 class TaskProcessor:
-    def __init__(self, ):
+    def __init__(self, db_info):
         self.bk_scheduler = BackgroundScheduler()
         self.bk_scheduler.start()
         self.pinterest_job = None
@@ -59,6 +56,11 @@ class TaskProcessor:
         self.update_new_job = None
         self.shopify_collections_job = None
         self.shopify_product_job = None
+        self.db_host = db_info.get("host", "")
+        self.db_port = db_info.get("port", 3306)
+        self.db_name = db_info.get("db", "")
+        self.db_user = db_info.get("user", "")
+        self.db_password = db_info.get("password", "")
 
     def start_job_update_shopify_collections(self, interval=7200):
         # 定时更新shopify collections数据
@@ -76,7 +78,7 @@ class TaskProcessor:
     def start_job_update_new(self, interval=120):
         def update_new():
             try:
-                conn = DBUtil().get_instance()
+                conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
                 cursor = conn.cursor() if conn else None
                 if not cursor:
                     return False
@@ -128,7 +130,7 @@ class TaskProcessor:
          """
         logger.info("[update_shopify_product] is cheking...")
         try:
-            conn = DBUtil().get_instance()
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
@@ -246,7 +248,7 @@ class TaskProcessor:
         """
         logger.info("update_collection is cheking...")
         try:
-            conn = DBUtil().get_instance()
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
@@ -311,7 +313,7 @@ class TaskProcessor:
         """更新店铺的订单"""
         logger.info("update_collection is cheking...")
         try:
-            conn = DBUtil().get_instance()
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
@@ -395,7 +397,7 @@ class TaskProcessor:
         """更新tot product"""
         logger.info("update_top_product is cheking...")
         try:
-            conn = DBUtil().get_instance()
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
@@ -553,14 +555,6 @@ class TaskProcessor:
         return True
 
 
-def main():
-    tsp = TaskProcessor()
-    tsp.start_all(rule_interval=120, publish_pin_interval=120, pinterest_update_interval=7200*3, shopify_update_interval=7200*3, update_new=120)
-    while 1:
-        time.sleep(1)
-
-
-
 if __name__ == '__main__':
     # test()
     # main()
@@ -574,6 +568,8 @@ if __name__ == '__main__':
     #
     # min_date, max_date = date_relation_convert("is between date", ["2019-07-15 22:00:00", "2019-07-19 10:00:00"])
     # print(order_filter(store_id=1, status=1, relation="less than", value=5, min_time=min_date, max_time=max_date))
-    TaskProcessor().update_shopify_orders()
-    # TaskProcessor().update_top_product()
+    db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
+    TaskProcessor(db_info=db_info).update_shopify_orders()
+    TaskProcessor(db_info=db_info).update_top_product()
+
 
