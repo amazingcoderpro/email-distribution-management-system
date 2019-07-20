@@ -10,7 +10,7 @@ from config import logger
 from task.task_processor import DBUtil
 
 
-class AnalyzeCondition():    
+class AnalyzeCondition:
     def __init__(self, db_info):        
         self.db_host = db_info.get("host", "")
         self.db_port = db_info.get("port", 3306)
@@ -587,7 +587,7 @@ class AnalyzeCondition():
     
         return min_time, max_time
 
-    def get_adapt_customers(self, condition, store_id):
+    def get_customers_by_condition(self, condition, store_id):
         """
         根据综合条件，筛选出符合的顾客列表
         :param condition: 条件　字典
@@ -648,9 +648,9 @@ class AnalyzeCondition():
                         final_customers = list(set(final_customers).union(set(child_customers)))
                 i += 1
         except Exception as e:
-            logger.exception("get_adapt_customers catch exception: {}, condition={}".format(e, condition))
+            logger.exception("get_customers_by_condition catch exception: {}, condition={}".format(e, condition))
     
-        logger.debug("get_adapt_customers succeed: \nstore_id={}, \ncondition={}, \nfinal_customers={}".format(store_id, condition, final_customers))
+        logger.debug("get_customers_by_condition succeed: \nstore_id={}, \ncondition={}, \nfinal_customers={}".format(store_id, condition, final_customers))
         return final_customers
 
     def get_conditions(self, store_id=None, condition_id=None):
@@ -689,7 +689,35 @@ class AnalyzeCondition():
             cursor.close() if cursor else 0
             conn.close() if conn else 0
         return result
-    
+
+    def update_customer_group_list(self, store_id=None):
+        logger.info("update_customer_group_list trigger, store_id={}".format(store_id))
+        conditions = self.get_conditions(store_id=store_id)
+        values = []
+        for cond in conditions:
+            customer_list = self.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
+            values.append((str(customer_list), datetime.datetime.now(), cond["id"]))
+
+        if not values:
+            logger.warning("there have not customer group need update customer list")
+            return True
+
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+
+            cursor.executemany("update `customer_group` set customer_list=%s, update_time=%s where id=%s", values)
+            conn.commit()
+        except Exception as e:
+            logger.exception("update_customer_group_list e={}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
+
 
 if __name__ == '__main__':
     # condition = {"relation": "&&,||", "group_condition":
@@ -707,5 +735,5 @@ if __name__ == '__main__':
     ac = AnalyzeCondition(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
     conditions = ac.get_conditions()
     for cond in conditions:
-        cus = ac.get_adapt_customers(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
+        cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
         print(cus)
