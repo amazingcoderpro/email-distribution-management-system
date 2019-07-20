@@ -157,23 +157,18 @@ class ProductsApi:
             logger.error("get shopify all customers info is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_all_orders(self, created_at_max="", since_id="", financial_status="any", limit=250):
+    def get_all_orders(self, created_at_min, created_at_max, financial_status="any", limit=250):
         """
        获取collections_id的product
        # 接口  /admin/api/201 -07/orders.json
        # 连接地址 https://help.shopify.com/en/api/reference/orders/order#index-2019-07
        :return:
         """
-        if since_id:
-            order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
-                f"?limit={limit}&financial_status={financial_status}&since_id={since_id}"
-        else:
-            order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
-                f"?limit={limit}&financial_status={financial_status}"
-        print(order_url)
+        order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
+                f"?limit={limit}&financial_status={financial_status}&created_at_min={created_at_min}&created_at_max={created_at_max}"
 
         try:
-            result = requests.get(order_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36"})
+            result = requests.get(order_url)
             if result.status_code == 200:
                 logger.info("get shopify orders is success")
                 return {"code": 1, "msg": "", "data": json.loads(result.text)}

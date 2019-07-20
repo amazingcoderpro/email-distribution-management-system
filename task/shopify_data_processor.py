@@ -1,125 +1,19 @@
-from apscheduler.schedulers.background import BackgroundScheduler
 import datetime
-import threading
-import time
-import pymysql
-
 import json
+import pymysql
 from collections import Counter
-
 from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, SHOPIFY_CONFIG
-
-# MYSQL_PASSWD = os.getenv('MYSQL_PASSWD', None)
-# MYSQL_HOST = os.getenv('MYSQL_HOST', None)
+from task.db_util import DBUtil
 
 
-# MYSQL_HOST=47.244.107.240 MYSQL_PASSWD=   use=edm db=edm
-MYSQL_HOST = "47.244.107.240"
-MYSQL_PASSWD = "edm@orderplus.com"
-
-# 47.52.221.217
-class DBUtil:
-    def __init__(self, host=MYSQL_HOST, port=3306, db="edm", user="edm", password=MYSQL_PASSWD):
-        self.conn_pool = {}
-        self.host = host
-        self.port = port
-        self.db = db
-        self.user = user
-        self.pwd = password
-
-    def get_instance(self):
-        try:
-            name = threading.current_thread().name
-            if name not in self.conn_pool:
-                conn = pymysql.connect(
-                    host=self.host,
-                    port=self.port,
-                    db=self.db,
-                    user=self.user,
-                    password=self.pwd,
-                    charset='utf8'
-                )
-                # conn.connect_timeout
-                self.conn_pool[name] = conn
-        except Exception as e:
-            logger.exception("connect mysql error, e={}".format(e))
-            return None
-        return self.conn_pool[name]
-
-
-class TaskProcessor:
-    def __init__(self, ):
-        self.bk_scheduler = BackgroundScheduler()
-        self.bk_scheduler.start()
-        self.pinterest_job = None
-        self.shopify_job = None
-        self.rule_job = None
-        self.publish_pin_job = None
-        self.update_new_job = None
-        self.shopify_collections_job = None
-        self.shopify_product_job = None
-
-    def start_job_update_shopify_collections(self, interval=7200):
-        # 定时更新shopify collections数据
-        logger.info("start_job_update_shopify_collections")
-        self.update_shopify_collections()
-        self.shopify_collections_job = self.bk_scheduler.add_job(self.update_shopify_collections, 'cron', day_of_week="*", hour=1,
-                                                     minute=10)
-
-    def start_job_update_shopify_product(self,interval=7200):
-        # 定时更新shopify product
-        logger.info("start_job_update_shopify_product")
-        self.update_shopify_product()
-        self.shopify_product_job = self.bk_scheduler.add_job(self.update_shopify_product, 'cron', day_of_week="*", hour=1,)
-
-    def start_job_update_new(self, interval=120):
-        def update_new():
-            try:
-                conn = DBUtil().get_instance()
-                cursor = conn.cursor() if conn else None
-                if not cursor:
-                    return False
-
-                last_update = datetime.datetime.now()-datetime.timedelta(seconds=interval)
-
-                cursor.execute('''select id from `pinterest_account` where add_time>=%s and state=0 and authorized=1''', (last_update, ))
-                accounts = cursor.fetchall()
-                for id in accounts:
-                    self.update_pinterest_data(id[0])
-
-                cursor.execute('''select username from `user` where create_time>=%s and is_active=1''', (last_update, ))
-                users = cursor.fetchall()
-                for username in users:
-                    self.update_shopify_data(username[0])
-            except Exception as e:
-                logger.exception("update new exception e={}".format(e))
-                return False
-            finally:
-                cursor.close() if cursor else 0
-                conn.close() if conn else 0
-
-        # update_new()
-        self.update_new_job = self.bk_scheduler.add_job(update_new, 'interval', seconds=interval, max_instances=50)
-
-    def start_all(self, shopify_update_interval=7200):
-        logger.info("TaskProcessor start all work.")
-        self.start_job_update_shopify_collections(shopify_update_interval)
-        self.start_job_update_shopify_product(shopify_update_interval)
-        self.start_job_update_shopify_product(shopify_update_interval)
-
-    def stop_all(self):
-        logger.warning("TaskProcessor stop_all work.")
-        self.bk_scheduler.remove_all_jobs()
-
-    def pause(self):
-        logger.info("TaskProcessor pause work.")
-        if self.bk_scheduler.running:
-            self.bk_scheduler.pause()
-
-    def resume(self):
-        logger.info("TaskProcessor resume.")
-        self.bk_scheduler.resume()
+class ShopifyDataProcessor:
+    def __init__(self, db_info):
+        self.db_host = db_info.get("host", "")
+        self.db_port = db_info.get("port", 3306)
+        self.db_name = db_info.get("db", "")
+        self.db_user = db_info.get("user", "")
+        self.db_password = db_info.get("password", "")
 
     def update_shopify_product(self):
         """
@@ -128,7 +22,7 @@ class TaskProcessor:
          """
         logger.info("[update_shopify_product] is cheking...")
         try:
-            conn = DBUtil().get_instance()
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
@@ -204,18 +98,25 @@ class TaskProcessor:
                                     pro_image = pro.get("images")[0]
                                 else:
                                     pro_image = ""
+
+                                variants = pro.get("variants", [])
+
+                                price = 0
+                                if variants:
+                                    price = float(variants[0].get("price", "0"))
+
                                 try:
                                     uuid_id = str(pro_uuid) + "_" + str(id)
                                     if uuid_id in store_product_dict[store_id].keys():
                                         pro_id = store_product_dict[store_id][uuid_id]
                                         logger.info("[update_shopify_product] product is already exist, store_id={} store_url={}, product_id={} ".format(store_id,store_url,pro_id))
-                                        cursor.execute('''update `product` set name=%s, url=%s, image_url=%s, product_category_id=%s, update_time=%s where id=%s''',
-                                                       (pro_title, pro_url, pro_image, id, time_now, pro_id))
+                                        cursor.execute('''update `product` set name=%s, url=%s, image_url=%s,price=%s,product_category_id=%s, update_time=%s where id=%s''',
+                                                       (pro_title, pro_url, pro_image,price, id, time_now, pro_id))
                                         conn.commit()
                                     else:
                                         cursor.execute(
-                                            "insert into `product` (`name`, `url`, `uuid`, `image_url`,`product_category_id`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s)",
-                                            (pro_title, pro_url, pro_uuid, pro_image, id, store_id, time_now, time_now))
+                                            "insert into `product` (`name`, `url`, `uuid`,`price`,`image_url`,`product_category_id`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                            (pro_title, pro_url, pro_uuid, price, pro_image, id, store_id, time_now, time_now))
                                         pro_id = cursor.lastrowid
                                         logger.info("[update_shopify_product] product is new, store_id={},store_url={}, product_id={}，product_category_id={}".format(store_id,store_url, pro_id, id))
                                         conn.commit()
@@ -239,14 +140,13 @@ class TaskProcessor:
         logger.exception("[update_shopify_product] is finished")
         return True
 
-
     def update_shopify_collections(self):
         """
         1. 获取所有店铺的所有类目，并保存至数据库
         """
         logger.info("update_collection is cheking...")
         try:
-            conn = DBUtil().get_instance()
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
@@ -311,7 +211,7 @@ class TaskProcessor:
         """更新店铺的订单"""
         logger.info("update_collection is cheking...")
         try:
-            conn = DBUtil().get_instance()
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
@@ -390,12 +290,11 @@ class TaskProcessor:
             conn.close() if conn else 0
         return True
 
-
     def update_top_product(self):
         """更新tot product"""
         logger.info("update_top_product is cheking...")
         try:
-            conn = DBUtil().get_instance()
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
@@ -445,7 +344,7 @@ class TaskProcessor:
 
                 # top_three
                 cursor_dict.execute(
-                    """select id,name,url,uuid, image_url from product where store_id = %s and uuid in %s""",(store_id, top_three_product_list))
+                    """select id,name,url,uuid,price image_url from product where store_id = %s and uuid in %s""",(store_id, top_three_product_list))
                 top_three_product = cursor_dict.fetchall()
 
                 top_three_list = []
@@ -541,8 +440,6 @@ class TaskProcessor:
                     cursor.execute(
                         '''update `top_product` set top_thirty=%s,update_time=%s where store_id=%s''', (json.dumps(top_thirty_list),current_time, store_id))
                     conn.commit()
-
-
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
             return False
@@ -553,27 +450,10 @@ class TaskProcessor:
         return True
 
 
-def main():
-    tsp = TaskProcessor()
-    tsp.start_all(rule_interval=120, publish_pin_interval=120, pinterest_update_interval=7200*3, shopify_update_interval=7200*3, update_new=120)
-    while 1:
-        time.sleep(1)
-
-
-
 if __name__ == '__main__':
-    # test()
-    # main()
-    # TaskProcessor().update_shopify_collections()
-    #TaskProcessor().update_shopify_product()
-    # pinterest_client()
-    # print(date_relation_convert("in the past", [30], unit="years"))
-    # print(date_relation_convert("is between", [15, 30], unit="days"))
-    # print(date_relation_convert("is between date", ["2019-01-25 00:00:00", "2019-06-25 00:00:00"]))
-    # print(date_relation_convert("before", ["2019-01-25 00:00:00"]))
-    #
-    # min_date, max_date = date_relation_convert("is between date", ["2019-07-15 22:00:00", "2019-07-19 10:00:00"])
-    # print(order_filter(store_id=1, status=1, relation="less than", value=5, min_time=min_date, max_time=max_date))
-    TaskProcessor().update_shopify_orders()
-    # TaskProcessor().update_top_product()
+    db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_product()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
+    ShopifyDataProcessor(db_info=db_info).update_top_product()
 
