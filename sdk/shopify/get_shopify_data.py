@@ -132,21 +132,25 @@ class ProductsApi:
             logger.error("get shopify all customers info is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_all_orders(self, created_at_max="", financial_status="paid", limit=250):
+    def get_all_orders(self, created_at_max="", since_id="", financial_status="any", limit=250):
         """
        获取collections_id的product
        # 接口  /admin/api/201 -07/orders.json
        # 连接地址 https://help.shopify.com/en/api/reference/orders/order#index-2019-07
        :return:
         """
-        if not created_at_max:
+        # if not created_at_max:
+        #     order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
+        #         f"?limit={limit}&financial_status={financial_status}"
+        if since_id:
+            order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
+                f"?limit={limit}&financial_status={financial_status}&since_id={since_id}"
+        else:
             order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
                 f"?limit={limit}&financial_status={financial_status}"
-        if created_at_max:
-            order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}orders.json" \
-                f"?limit={limit}&financial_status={financial_status}&created_at_max={created_at_max}"
+        print(order_url)
         try:
-            result = requests.get(order_url)
+            result = requests.get(order_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36"})
             if result.status_code == 200:
                 logger.info("get shopify orders is success")
                 return {"code": 1, "msg": "", "data": json.loads(result.text)}
@@ -211,7 +215,6 @@ class ProductsApi:
 
 if __name__ == '__main__':
     access_token = "d1063808be79897450ee5030e1c163ef"
-    shop = "mrbeauti.myshopify.com"
     id = "3583116148816"
     shop_uri = "charrcter.myshopify.com"
     products_api = ProductsApi(access_token=access_token, shop_uri=shop_uri)
@@ -219,7 +222,19 @@ if __name__ == '__main__':
     # since_id="1487712747593"
     # order_num = products_api.get_all_orders()
     # print(order_num["data"])
-    products_api.get_all_orders("2019-05-19T10:02:37+08:00")
+    # products_api.get_all_orders("2019-05-19T10:02:37+08:00")
     # products_api.get_customer_count()
     # products_api.get_orders_id(order_id="503834869833")
     # print(products_api.get_customer_bydate("2019-03-1T00:00:00+08:00","2019-04-30T00:00:00+08:00"))
+    since_id = ""
+    while 1:
+        ret = products_api.get_all_orders(since_id=since_id)
+
+        orders = ret.get("data", {}).get("orders", [])
+        print(len(orders))
+        if orders:
+            since_id = orders[0]["id"]
+        else:
+            since_id = ""
+            break
+
