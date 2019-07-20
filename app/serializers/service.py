@@ -47,6 +47,8 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.EmailTemplate
         fields = ("id",
+                  "title",
+                  "description",
                   "subject",
                   "heading_text",
                   "logo",
