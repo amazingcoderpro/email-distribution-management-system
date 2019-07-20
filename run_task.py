@@ -174,9 +174,12 @@ def run():
     ac = AnalyzeCondition(db_info=db_info)
     tp.create_periodic_task(ac.update_customer_group_list, seconds=2220)
 
-    #shopify更新任务
+    #shopify 定时更新任务, 请放在这下面
     sdp = ShopifyDataProcessor(db_info=db_info)
     tp.create_periodic_task(sdp.update_top_product, seconds=100)
+
+    # ems 定时更新任务请放在这下面
+    pass
 
     while 1:
         time.sleep(1)

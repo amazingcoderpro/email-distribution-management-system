@@ -1,5 +1,6 @@
 import datetime
 import json
+import pymysql
 from collections import Counter
 from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, SHOPIFY_CONFIG
@@ -432,8 +433,6 @@ class ShopifyDataProcessor:
                     cursor.execute(
                         '''update `top_product` set top_thirty=%s,update_time=%s where store_id=%s''', (json.dumps(top_thirty_list),current_time, store_id))
                     conn.commit()
-
-
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
             return False

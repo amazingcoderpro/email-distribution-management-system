@@ -5,16 +5,21 @@ import datetime
 
 from config import logger
 from sdk.ems.ems_api import ExpertSender
-from task.shopify_data_processor import DBUtil
+from task.db_util import DBUtil
 
 
-class GetEMSData:
-    def __init__(self, api_key, from_name, from_email, store_id):
+class EMSDataProcessor:
+    def __init__(self, api_key, from_name, from_email, store_id, db_info):
         self.store_id = store_id
         self.from_name = from_name
         self.from_email = from_email
         self.api_key = api_key
         self.ems = ExpertSender(self.api_key, self.from_name, self.from_email)
+        self.db_host = db_info.get("host", "")
+        self.db_port = db_info.get("port", 3306)
+        self.db_name = db_info.get("db", "")
+        self.db_user = db_info.get("user", "")
+        self.db_password = db_info.get("password", "")
 
     def insert_subscriber_activity(self, query_date):
         """
@@ -23,7 +28,7 @@ class GetEMSData:
         :return:
         """
         try:
-            conn = DBUtil().get_instance()
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
@@ -67,7 +72,7 @@ class GetEMSData:
         :return:
         """
         try:
-            conn = DBUtil().get_instance()
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
@@ -103,7 +108,7 @@ class GetEMSData:
         :return:
         """
         try:
-            conn = DBUtil().get_instance()
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
@@ -135,7 +140,8 @@ class GetEMSData:
 
 
 if __name__ == '__main__':
-    obj = GetEMSData("0x53WuKGWlbq2MQlLhLk", "Leemon", "leemon.li@orderplus.com", 1)
+    db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
+    obj = EMSDataProcessor("0x53WuKGWlbq2MQlLhLk", "Leemon", "leemon.li@orderplus.com", 1, db_info=db_info)
     # obj.insert_subscriber_activity("2019-07-15")
     # obj.update_customer_group_data()
     obj.update_email_reocrd_data()
