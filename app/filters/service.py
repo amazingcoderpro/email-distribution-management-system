@@ -34,5 +34,5 @@ class EmailTempFilter(BaseFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
         store = models.Store.objects.filter(user=request.user).first()
-        filte_kwargs = {"store":  store, "send_type": 0, "state__in": [0,1]}
+        filte_kwargs = {"store":  store}
         return queryset.filter(**filte_kwargs)

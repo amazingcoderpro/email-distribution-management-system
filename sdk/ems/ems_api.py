@@ -11,7 +11,7 @@ import requests
 
 
 class ExpertSender:
-    def __init__(self, apiKey, fromName, fromEmail):
+    def __init__(self, fromName, fromEmail, apiKey="0x53WuKGWlbq2MQlLhLk"):
         self.api_key = apiKey
         self.host = "https://api6.esv2.com/v2/"
         self.headers = {"Content-Type": "text/xml"}
@@ -101,7 +101,7 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def create_and_send_newsletter(self, listId_list, subject, plain="", html="", contentFromUrl=None, deliveryDate=None, timeZone="UTC"):
+    def create_and_send_newsletter(self, listId_list, subject, contentFromUrl=None, plain="", html="", deliveryDate=None, timeZone="UTC"):
         """
         创建及发送Newsletter, 注：如多个listId中存在同样的邮件，只会发一封邮件
         接口Url：http://sms.expertsender.cn/api/v2/methods/email-messages/create-and-send-newsletter/
@@ -489,7 +489,7 @@ if __name__ == '__main__':
 </div>
 </body>
 </html>"""
-    ems = ExpertSender("0x53WuKGWlbq2MQlLhLk", "Leemon", "leemon.li@orderplus.com")
+    ems = ExpertSender("Leemon", "leemon.li@orderplus.com")
     print(ems.get_message_statistics(328))
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))
