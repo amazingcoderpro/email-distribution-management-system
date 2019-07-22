@@ -101,7 +101,7 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def create_and_send_newsletter(self, listId_list, subject, plain="", html="", contentFromUrl=None, deliveryDate=None, timeZone="UTC"):
+    def create_and_send_newsletter(self, listId_list, subject, contentFromUrl=None, plain="", html="", deliveryDate=None, timeZone="UTC"):
         """
         创建及发送Newsletter, 注：如多个listId中存在同样的邮件，只会发一封邮件
         接口Url：http://sms.expertsender.cn/api/v2/methods/email-messages/create-and-send-newsletter/
