@@ -134,7 +134,7 @@ class ExpertSender:
         for listId in listId_list:
             data["ApiRequest"]["Data"]["Recipients"]["SubscriberLists"]["SubscriberList"].append(listId)
         if contentFromUrl:
-            data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": contentFromUrl})
+            data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": {"Url": contentFromUrl}})
         if deliveryDate:
             data["ApiRequest"]["Data"]["DeliverySettings"].update({"DeliveryDate": deliveryDate.replace(" ", "T")})
         try:
@@ -494,7 +494,7 @@ if __name__ == '__main__':
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))
     # print(ems.add_subscriber(26, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
-    # print(ems.create_and_send_newsletter(25, "HelloWorld","expertsender",html_b)) # ,"2019-07-09 21:09:00"
+    print(ems.create_and_send_newsletter([29], "HelloWorld T","http://sources.aopcdn.com/edm/html/buzzyly/20190625/1561447955806.html")) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
