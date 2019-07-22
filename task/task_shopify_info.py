@@ -58,7 +58,7 @@ def sync_last_order_info(store_id, cursor=None):
         conn.commit()
 
 
-def save_moth_customer(customer_insert_list,customer_update_list, uuid, store_id, cursor=None):
+def save_moth_customer(customer_insert_list, uuid, store_id, cursor=None):
     if not cursor:
         conn = DBUtil().get_instance()
         cursor = conn.cursor() if conn else None
@@ -71,14 +71,11 @@ def save_moth_customer(customer_insert_list,customer_update_list, uuid, store_id
                                                      values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
                            customer_insert_list)
         conn.commit()
-    if customer_update_list:
-        logger.info("customer is already exist [update], uuid={}".format(uuid))
-        cursor.executemany('''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
-                           customer_update_list)
-        conn.commit()
-
-    # 更新customer中的order数据
-    sync_last_order_info(store_id, cursor=cursor)
+    # if customer_update_list:
+    #     logger.info("customer is already exist [update], uuid={}".format(uuid))
+    #     cursor.executemany('''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
+    #                        customer_update_list)
+    #     conn.commit()
 
 
 class TaskProcessor:
@@ -175,7 +172,9 @@ class TaskProcessor:
                         print(create_at_min.strftime(time_format))
                         create_at_max = create_at_min
                         create_at_min = create_at_max - datetime.timedelta(days=30)
-                        save_moth_customer(customer_insert_list, customer_update_list, uuid=uuid, store_id=store_id)
+                        save_moth_customer(customer_insert_list, uuid=uuid, store_id=store_id)
+                        # 更新customer中的order数据
+                        # sync_last_order_info(store_id, cursor=cursor)
                         customer_insert_list = []
                         customer_update_list = []
 

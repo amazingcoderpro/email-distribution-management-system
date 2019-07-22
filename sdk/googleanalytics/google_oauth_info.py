@@ -44,7 +44,7 @@ class GoogleApi():
                                 "metrics": [
                                     # {"expression": "ga:sessions"},  # pageviews
                                     # {"expression": "ga:Users"},      # uv
-                                    {"expression": "ga:newUsers"},
+                                    # {"expression": "ga:newUsers"},
                                     {"expression": "ga:transactions"},  # 交易数量
                                     {"expression": "ga:transactionRevenue"},  # 销售总金额
                                     # {"expression": "ga:hits"},  # 点击量
@@ -96,7 +96,7 @@ class GoogleApi():
 if __name__ == '__main__':
     google_data = GoogleApi(view_id="195406097")
     google_data.get_report(key_word="", start_time="7daysAgo", end_time="today")
-    print(1)
+
 
 
 
