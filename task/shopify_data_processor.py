@@ -109,13 +109,13 @@ class ShopifyDataProcessor:
                                     uuid_id = str(pro_uuid) + "_" + str(id)
                                     if uuid_id in store_product_dict[store_id].keys():
                                         pro_id = store_product_dict[store_id][uuid_id]
-                                        logger.info("[update_shopify_product] product is already exist, store_id={} store_url={}, product_id={} ".format(store_id,store_url,pro_id))
+                                        logger.info("[update_shopify_product] product is already exist, store_id={} store_url={}, product_id={},product_category_id={} ".format(store_id,store_url,pro_id,id))
                                         cursor.execute('''update `product` set name=%s, url=%s, image_url=%s,price=%s,product_category_id=%s, update_time=%s where id=%s''',
                                                        (pro_title, pro_url, pro_image,price, id, time_now, pro_id))
                                         conn.commit()
                                     else:
                                         cursor.execute(
-                                            "insert into `product` (`name`, `url`, `uuid`,`price`,`image_url`,`product_category_id`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                            "insert into `product` (`name`, `url`, `uuid`, `price`,`image_url`,`product_category_id`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
                                             (pro_title, pro_url, pro_uuid, price, pro_image, id, store_id, time_now, time_now))
                                         pro_id = cursor.lastrowid
                                         logger.info("[update_shopify_product] product is new, store_id={},store_url={}, product_id={}，product_category_id={}".format(store_id,store_url, pro_id, id))
@@ -344,7 +344,7 @@ class ShopifyDataProcessor:
 
                 # top_three
                 cursor_dict.execute(
-                    """select id,name,url,uuid,price image_url from product where store_id = %s and uuid in %s""",(store_id, top_three_product_list))
+                    """select id,name,url,uuid,price,image_url,state from product where store_id = %s and uuid in %s""",(store_id, top_three_product_list))
                 top_three_product = cursor_dict.fetchall()
 
                 top_three_list = []
@@ -369,7 +369,7 @@ class ShopifyDataProcessor:
 
                 # top_seven
                 cursor_dict.execute(
-                    """select id,name,url,uuid, image_url from product where store_id = %s and uuid in %s""",(store_id, top_seven_product_list))
+                    """select id,name,url,uuid,price,image_url,state from product where store_id = %s and uuid in %s""",(store_id, top_seven_product_list))
                 top_seven_product = cursor_dict.fetchall()
 
                 top_seven_list = []
@@ -394,7 +394,7 @@ class ShopifyDataProcessor:
 
                 # top_fifteen
                 cursor_dict.execute(
-                    """select id,name,url,uuid, image_url from product where store_id = %s and uuid in %s""",(store_id, top_fifteen_product_list))
+                    """select id,name,url,uuid,price, image_url,state from product where store_id = %s and uuid in %s""",(store_id, top_fifteen_product_list))
                 top_fifteen_product = cursor_dict.fetchall()
 
                 top_fifteen_list = []
@@ -419,7 +419,7 @@ class ShopifyDataProcessor:
 
                 ## top_thirty
                 cursor_dict.execute(
-                    """select id,name,url,uuid, image_url from product where store_id = %s and uuid in %s""",(store_id, top_thirty_product_list))
+                    """select id,name,url,uuid,price, image_url,state from product where store_id = %s and uuid in %s""",(store_id, top_thirty_product_list))
                 top_thirty_product = cursor_dict.fetchall()
 
                 top_thirty_list = []
@@ -453,7 +453,7 @@ class ShopifyDataProcessor:
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
-    ShopifyDataProcessor(db_info=db_info).update_shopify_product()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    ShopifyDataProcessor(db_info=db_info).update_top_product()
+    #ShopifyDataProcessor(db_info=db_info).update_top_product()
 
