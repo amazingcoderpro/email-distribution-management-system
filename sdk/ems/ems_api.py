@@ -202,7 +202,7 @@ class ExpertSender:
         http://sms.expertsender.cn/api/v2/methods/start-a-new-export/
         :param queryId:
         :param types:
-        :return:
+        :return:a csv file
         """
         url = f"{self.host}Api/Exports"
         data = {"ApiRequest": {
@@ -224,21 +224,6 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_export_progress(self, exportId):
-        """
-        获取数据导出进度http://sms.expertsender.cn/api/v2/methods/get-export-progress/
-        :param exportId: 导出任务ID
-        :return:
-        """
-        url = f"{self.host}Api/Exports/{exportId}?apiKey={self.api_key}"
-        try:
-            result = requests.get(url)
-            result = self.retrun_result("get export progress", result)
-            if result["code"] != 1 or result["data"]["Status"]!="Completed":
-                result["code"] = 2
-            return result
-        except Exception as e:
-            return {"code": -1, "msg": str(e), "data": ""}
 
     def add_subscriber(self, listId, emailList):
         """
@@ -283,23 +268,6 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def clear_subscriber(self, listId, csvUrl):
-        """
-        清空收件人列表所有收件人http://sms.expertsender.cn/api/v2/methods/imports/import-subscribers-to-list/
-        """
-        url = f"{self.host}Api/ImportToListTasks"
-        data = {"ApiRequest": {
-            "ApiKey": self.api_key,
-            "Data": {
-                "Source": {"Url": csvUrl},
-                "Target": {"Name": "clear subscriber", "SubscriberList": listId},
-                "ImportSetup": {"Mode": "Synchronize"}}
-            }}
-        try:
-            result = requests.post(url, self.jsontoxml(data), headers=self.headers)
-            return self.retrun_result("clear subscriber", result)
-        except Exception as e:
-            return {"code": -1, "msg": str(e), "data": ""}
 
     def get_subscriber_activity(self, types, date=datetime.datetime.today().date()):
         """
@@ -490,11 +458,11 @@ if __name__ == '__main__':
 </body>
 </html>"""
     ems = ExpertSender("Leemon", "leemon.li@orderplus.com")
-    print(ems.get_message_statistics(328))
+    # print(ems.get_message_statistics(328))
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))
-    # print(ems.add_subscriber(26, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
-    print(ems.create_and_send_newsletter([29], "HelloWorld T","http://sources.aopcdn.com/edm/html/buzzyly/20190625/1561447955806.html")) # ,"2019-07-09 21:09:00"
+    # print(ems.add_subscriber(29, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
+    # print(ems.create_and_send_newsletter([29], "HelloWorld T","http://sources.aopcdn.com/edm/html/buzzyly/20190625/1561447955806.html")) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
@@ -503,14 +471,14 @@ if __name__ == '__main__':
     # print(ems.get_message_statistics(349))
     # print(ems.create_and_send_newsletter([25,26], "two listID", "expertsender test 2")) # ,"2019-07-09 21:09:00"
     # print(ems.get_messages(349))
-    # print(ems.get_subscriber_lists())
+    print(ems.get_subscriber_lists())
     # print(ems.create_subscribers_list("Test001"))
     # print(ems.get_subscriber_activity("Opens", "2019-07-15"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
     # print(ems.get_summary_statistics(63))
     # print(ems.delete_subscriber("leemon.li@orderplus.com", 26))
-    # print(ems.get_list_or_segment_data(25))  # 11
+    # print(ems.get_list_or_segment_data(29))  # 11
     # print(ems.get_export_progress(11))  # 11
     # print(ems.clear_subscriber(25, ""))  # 11
     # print(ems.add_subscriber(25, ["limengqiAliase@163.com", "leemon.li@orderplus.com"]))
