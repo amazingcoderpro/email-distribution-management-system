@@ -1,4 +1,4 @@
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework.views import APIView
@@ -12,6 +12,7 @@ from app.pageNumber.pageNumber import PNPagination
 from app.serializers import service
 from app.filters import service as service_filter
 from app.permission.permission import CustomerGroupOptPermission, StorePermission
+from sdk.ems import ems_api
 
 
 class CustomerGroupView(generics.ListCreateAPIView):
@@ -164,7 +165,27 @@ class EmailTriggerOptView(generics.DestroyAPIView):
 
 class SendMail(generics.CreateAPIView):
     """邮件模版增加，测试发送邮件"""
-    queryset = models.EmailTemplate.objects.all()
-    serializer_class = service.SendMailSerializer
+    # queryset = models.EmailTemplate.objects.all()
+    # serializer_class = service.SendMailSerializer
     permission_classes = (IsAuthenticated, StorePermission)
     authentication_classes = (JSONWebTokenAuthentication,)
+
+    def post(self, request, *args, **kwargs):
+
+        email_address = request.data["email_address"]
+        html = request.data["html"]
+        subject = request.data["subject"]
+        store_instance = models.Store.objects.filter(user=request.user).first()
+
+        ems_instance = ems_api.ExpertSender(store_instance.name, store_instance.email)
+
+        subscribers_res = ems_instance.create_subscribers_list(store_instance.name)
+        if subscribers_res["code"] != 1:
+            return Response({"detail": subscribers_res["msg"]}, status=status.HTTP_400_BAD_REQUEST)
+        subscriber_flag =  ems_instance.add_subscriber(subscribers_res["data"], [email_address])
+        if subscriber_flag["code"] != 1:
+            return Response({"detail": subscriber_flag["msg"]}, status=status.HTTP_400_BAD_REQUEST)
+        result = ems_instance.create_and_send_newsletter([subscribers_res["data"]], store_instance.name, html=html)
+        if result["code"] != 1:
+            return Response({"detail": result["msg"]}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"status":"successful"}, status=status.HTTP_200_OK)

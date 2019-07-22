@@ -98,13 +98,14 @@ class EmailTemplate(models.Model):
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="状态")
     send_type_choices = ((0, '定时邮件'), (1, '触发邮件'), (3, '测试邮件'))
     send_type = models.SmallIntegerField(db_index=True, choices=send_type_choices, default=0, verbose_name="邮件模板发送类型")
+    html = models.TextField(blank=True, null=True, verbose_name="描述")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        #managed = False
+        managed = False
         db_table = 'email_template'
         ordering = ["update_time"]
 
