@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from app import models
+from sdk.ems import ems_api
 
 
 class CustomerGroupSerializer(serializers.ModelSerializer):
@@ -113,8 +114,12 @@ class SendMailSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         print(self.context["request"].data["email_address"])
-        validated_data["store"] = models.Store.objects.filter(user=self.context["request"].user).first()
+        store_instance = models.Store.objects.filter(user=self.context["request"].user).first()
+        validated_data["store"] = store_instance
         validated_data["send_type"] = 3
         validated_data["state"] = 1
         instance = super(SendMailSerializer, self).create(validated_data)
+
+        subscribers_res = ems_api.ExpertSender(store_instance.name,store_instance.email).create_subscribers_list(store_instance.name)
+        print(subscribers_res)
         return instance
