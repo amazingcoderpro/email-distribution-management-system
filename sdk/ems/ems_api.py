@@ -11,7 +11,7 @@ import requests
 
 
 class ExpertSender:
-    def __init__(self, apiKey, fromName, fromEmail):
+    def __init__(self, fromName, fromEmail, apiKey="0x53WuKGWlbq2MQlLhLk"):
         self.api_key = apiKey
         self.host = "https://api6.esv2.com/v2/"
         self.headers = {"Content-Type": "text/xml"}
@@ -489,7 +489,7 @@ if __name__ == '__main__':
 </div>
 </body>
 </html>"""
-    ems = ExpertSender("0x53WuKGWlbq2MQlLhLk", "Leemon", "leemon.li@orderplus.com")
+    ems = ExpertSender("Leemon", "leemon.li@orderplus.com")
     print(ems.get_message_statistics(328))
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))

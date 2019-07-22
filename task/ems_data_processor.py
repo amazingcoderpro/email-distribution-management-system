@@ -9,12 +9,11 @@ from task.db_util import DBUtil
 
 
 class EMSDataProcessor:
-    def __init__(self, api_key, from_name, from_email, store_id, db_info):
+    def __init__(self, from_name, from_email, store_id, db_info):
         self.store_id = store_id
         self.from_name = from_name
         self.from_email = from_email
-        self.api_key = api_key
-        self.ems = ExpertSender(self.api_key, self.from_name, self.from_email)
+        self.ems = ExpertSender(self.from_name, self.from_email)
         self.db_host = db_info.get("host", "")
         self.db_port = db_info.get("port", 3306)
         self.db_name = db_info.get("db", "")
