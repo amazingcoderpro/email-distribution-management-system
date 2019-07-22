@@ -81,7 +81,7 @@ class Dashboard(models.Model):
 
 class EmailTemplate(models.Model):
     """邮件模版"""
-    title = models.CharField(db_index=True, max_length=255, verbose_name="标题")
+    title = models.CharField(db_index=True, blank=True, null=True, max_length=255, verbose_name="标题")
     description = models.TextField(blank=True, null=True, verbose_name="描述")
     subject = models.TextField(verbose_name="邮件标题")
     heading_text = models.TextField(verbose_name="邮件")
@@ -96,10 +96,10 @@ class EmailTemplate(models.Model):
     send_rule = models.TextField(verbose_name="发送邮件规则")
     state_choices = ((0, '待解析'), (1, '已解析'), (2, '已删除'))
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="状态")
-    send_type_choices = ((0, '定时邮件'), (1, '触发邮件'))
+    send_type_choices = ((0, '定时邮件'), (1, '触发邮件'), (3, '测试邮件'))
     send_type = models.SmallIntegerField(db_index=True, choices=send_type_choices, default=0, verbose_name="邮件模板发送类型")
-    #store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -139,8 +139,8 @@ class EmailTrigger(models.Model):
     open_rate = models.DecimalField(default=0.00,  max_digits=3, decimal_places=2, verbose_name="邮件打开率")
     click_rate = models.DecimalField(default=0.00,  max_digits=3, decimal_places=2, verbose_name="邮件单击率")
     members = models.IntegerField(blank=True, null=True,  verbose_name="数量")
-    trigger_info = models.TextField(blank=True, null=True,  verbose_name="trigger关系")
-    email_delay = models.TextField(blank=True, null=True,  verbose_name="发送邮件顺序")
+    trigger_info = models.TextField(verbose_name="trigger关系")
+    email_delay = models.TextField(verbose_name="发送邮件顺序")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
@@ -149,6 +149,7 @@ class EmailTrigger(models.Model):
     class Meta:
         managed = False
         db_table = 'email_trigger'
+        ordering = ["-id"]
 
 
 class CustomerGroup(models.Model):

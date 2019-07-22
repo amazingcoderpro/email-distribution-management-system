@@ -59,7 +59,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
                   "send_rule",
                   "customer_group_list",
                   "state",
-                  "send_type",
+                  # "send_type",
                   "create_time",
                   "update_time"
         )
@@ -67,4 +67,54 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data["store"] = models.Store.objects.filter(user=self.context["request"].user).first()
         instance = super(EmailTemplateSerializer, self).create(validated_data)
+        return instance
+
+
+class EmailTriggerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmailTrigger
+        fields = ("id",
+                  "title",
+                  "description",
+                  "open_rate",
+                  "click_rate",
+                  "click_rate",
+                  "members",
+                  "trigger_info",
+                  "email_delay",
+                  "create_time",
+                  "update_time"
+        )
+
+    def create(self, validated_data):
+        validated_data["store"] = models.Store.objects.filter(user=self.context["request"].user).first()
+        instance = super(EmailTriggerSerializer, self).create(validated_data)
+        return instance
+
+
+class SendMailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmailTemplate
+        fields = ("id",
+                  "title",
+                  "description",
+                  "subject",
+                  "heading_text",
+                  "logo",
+                  "banner",
+                  "headline",
+                  "body_text",
+                  "product_list",
+                  "state",
+                  # "send_type",
+                  "create_time",
+                  "update_time",
+        )
+
+    def create(self, validated_data):
+        print(self.context["request"].data["email_address"])
+        validated_data["store"] = models.Store.objects.filter(user=self.context["request"].user).first()
+        validated_data["send_type"] = 3
+        validated_data["state"] = 1
+        instance = super(SendMailSerializer, self).create(validated_data)
         return instance

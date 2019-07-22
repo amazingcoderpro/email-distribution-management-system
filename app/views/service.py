@@ -142,10 +142,11 @@ class UploadPicture(APIView):
 class EmailTrigger(generics.ListCreateAPIView):
     """邮件 Trigger展示 增加"""
     queryset = models.EmailTrigger.objects.all()
-    serializer_class = service.EmailTemplateSerializer
+    serializer_class = service.EmailTriggerSerializer
     pagination_class = PNPagination
     filter_backends = (service_filter.EmailTempFilter,)
-    permission_classes = (IsAuthenticated, StorePermission)
+    # permission_classes = (IsAuthenticated, StorePermission)
+    permission_classes = (IsAuthenticated,)
     authentication_classes = (JSONWebTokenAuthentication,)
 
 
@@ -159,3 +160,11 @@ class EmailTriggerOptView(generics.DestroyAPIView):
     def perform_destroy(self, instance):
         instance.state = 2
         instance.save()
+
+
+class SendMail(generics.CreateAPIView):
+    """邮件模版增加，测试发送邮件"""
+    queryset = models.EmailTemplate.objects.all()
+    serializer_class = service.SendMailSerializer
+    permission_classes = (IsAuthenticated, StorePermission)
+    authentication_classes = (JSONWebTokenAuthentication,)
