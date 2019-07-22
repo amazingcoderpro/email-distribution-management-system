@@ -6,7 +6,7 @@ from config import logger
 
 
 class GoogleApi():
-    def __init__(self, view_id, ga_source="smartsend", json_path=""):
+    def __init__(self, view_id, ga_source="pinbooster", json_path=""):
         """
         获取店铺的GA数据
         :param view_id: 视图的id
@@ -34,60 +34,27 @@ class GoogleApi():
             analytics = discovery.build('analyticsreporting', 'v4', credentials=credentials)
             analytics_info = analytics.reports().batchGet(
                 body={
-                    "reportRequests":
-                        [
-                            {
-                                "viewId": self.VIEW_ID,
-                                "dateRanges": [
-                                    {'startDate': start_time, 'endDate': end_time},
-                                ],
-                                "metrics": [
-                                    # {"expression": "ga:sessions"},  # pageviews
-                                    # {"expression": "ga:Users"},      # uv
-                                    # {"expression": "ga:newUsers"},
-                                    {"expression": "ga:transactions"},  # 交易数量
-                                    {"expression": "ga:transactionRevenue"},  # 销售总金额
-                                    # {"expression": "ga:hits"},  # 点击量
-                                    # {"expression": "ga:itemRevenue"}
-                                ],
-                                "dimensions": [
-                                    {"name": "ga:source"},
-                                    {"name": "ga:keyword"},
-                                ],
-                                "dimensionFilterClauses": [
-                                    {
-                                        "filters": [
-                                            {
-                                                "dimensionName": "ga:source",
-                                                "operator": "EXACT",
-                                                "expressions": [self.ga_source]
-                                            }]
-                                        }]
-                                 }]
-                                }).execute()
-
-            results = {}
+                    'reportRequests': [
+                        {
+                            'viewId': self.VIEW_ID,
+                            'dateRanges': [{'startDate': '1000daysAgo', 'endDate': 'today'}],
+                            'metrics': [
+                                {"expression": "ga:transactions"},  # 交易数量
+                                {"expression": "ga:transactionRevenue"},  # 销售总金额
+                            ],
+                            "dimensions": [
+                                                {"name": "ga:source"},
+                                                # {"name": "ga:keyword"},
+                                            ],
+                        }]
+                }
+            ).execute()
             for report in analytics_info.get('reports', []):
-                for row in report.get('data', {}).get('rows', []):
-                    dimensions = row.get('dimensions', [])
-                    dateRangeValues = row.get('metrics', [])
-                    if dimensions[1] == key_word or not key_word:
-                        temp_key_word = dimensions[1]
-                        values = dateRangeValues[0].get('values', [])
-                        if values:
-                            if temp_key_word not in results:
-                                results[temp_key_word] = {"sessions": int(values[0]), "users": int(values[1]),"new_users": int(values[2]),
-                                                  "transactions": int(values[3]), "revenue": float(values[4]),
-                                                  "hits": int(values[5])}
-                            else:
-                                results[temp_key_word]["sessions"] += int(values[0])
-                                results[temp_key_word]["users"] += int(values[1])
-                                results[temp_key_word]["new_users"] += int(values[2])
-                                results[temp_key_word]["transactions"] += int(values[3])
-                                results[temp_key_word]["revenue"] += float(values[4])
-                                results[temp_key_word]["hits"] += int(values[5])
-                # print(results)
-                return {"code": 1, "data": results, "msg": ""}
+                dateRangeValues = report.get('data', {}).get('totals', [])
+                results = {
+                           "transactions": int(dateRangeValues[0].get("values", "")[0]),
+                            "revenue": float(dateRangeValues[0].get("values", "")[1])}
+                return results
         except Exception as e:
             logger.error("get google analytics info is failed, msg={}".format(str(e)))
             return {"code": 2, "data": "", "msg": str(e)}
@@ -95,8 +62,8 @@ class GoogleApi():
 
 if __name__ == '__main__':
     google_data = GoogleApi(view_id="195406097")
-    google_data.get_report(key_word="", start_time="7daysAgo", end_time="today")
-
+    print(google_data.get_report(key_word="", start_time="7daysAgo", end_time="today"))
+    print(1)
 
 
 
