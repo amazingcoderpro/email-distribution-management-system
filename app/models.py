@@ -114,7 +114,7 @@ class EmailTemplate(models.Model):
 
 class EmailTask(models.Model):
     template = models.ForeignKey(EmailTemplate, on_delete=models.DO_NOTHING)
-    state_choices = ((0, '待发布'), (1, '已发布(成功)'), (2, "模板已删除"), (3, '已发布且发送失败'))
+    state_choices = ((0, '待发送'), (1, '已发送(成功)'), (2, "模板已删除"), (3, '已发送但发送失败'))
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件发送状态")
     remark = models.TextField(blank=True, null=True, verbose_name="备注")
     execute_time = models.DateTimeField(db_index=True, verbose_name="执行时间")
