@@ -8,7 +8,7 @@ import json
 from dateutil.relativedelta import relativedelta
 from config import logger
 from task.shopify_data_processor import DBUtil
-
+from sdk.ems import ems_api
 
 class AnalyzeCondition:
     def __init__(self, db_info):        
@@ -654,6 +654,12 @@ class AnalyzeCondition:
         return final_customers
 
     def get_conditions(self, store_id=None, condition_id=None):
+        """
+        批量获取customer group中的condition
+        :param store_id:
+        :param condition_id:
+        :return:
+        """
         result = []
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
@@ -675,8 +681,9 @@ class AnalyzeCondition:
                     """select `store_id`, `id`, `title`, `relation_info` from `customer_group` where id=%s""",
                     (condition_id, ))
             else:
+                # 未删除的才取出来
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info` from `customer_group` where id>=0""")
+                    """select `store_id`, `id`, `title`, `relation_info` from `customer_group` where id>=0 and state!=2""")
     
             res = cursor.fetchall()
             if res:
@@ -696,7 +703,8 @@ class AnalyzeCondition:
         values = []
         for cond in conditions:
             customer_list = self.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
-            values.append((str(customer_list), datetime.datetime.now(), cond["id"]))
+            # values.append((str(customer_list), datetime.datetime.now(), cond["id"]))
+            values.append({"customer_list": customer_list, "group_id": cond["id"], "store_id": cond["store_id"], "group_title": cond["title"]})
 
         if not values:
             logger.warning("there have not customer group need update customer list")
@@ -708,8 +716,89 @@ class AnalyzeCondition:
             if not cursor:
                 return False
 
-            cursor.executemany("update `customer_group` set customer_list=%s, update_time=%s where id=%s", values)
-            conn.commit()
+            for value in values:
+                group_id = value["group_id"]
+                store_id = value["store_id"]
+                group_title = value["group_title"]
+                # 新的顾客列表，转成邮件
+                new_customer_list = value["customer_list"]
+                if new_customer_list:
+                    cursor.execute("""select `customer_email` from `customer` where `uuid` in %s""", (new_customer_list, ))
+                    emails = cursor.fetchall()
+                    new_customer_email_list = [em["customer_email"] for em in emails]
+                    new_customer_email_list = [em for em in new_customer_email_list if em]
+                else:
+                    new_customer_email_list = []
+
+                # 获取这个group, 看看他有没有已经创建过email group id
+                cursor.execute("select `uuid`, `customer_list` from `customer_group` where id=%s", (value["group_id"], ))
+                customer_group = cursor.fetchone()
+                if customer_group:
+                    old_uuid = customer_group["uuid"]
+                    if customer_group["customer_list"]:
+                        old_customer_list = eval(customer_group["customer_list"])
+                    else:
+                        old_customer_list = []
+                else:
+                    old_uuid = ""
+                    old_customer_list = []
+
+                cursor.execute("select `name`, `sender`, `sender_address` from `store` where id=%s", (store_id,))
+                store = cursor.fetchone()
+                if not store:
+                    continue
+
+                exp = ems_api.ExpertSender(fromName=store["sender"], fromEmail=store["sender_address"])
+
+                # 判断这个group是不是已经被解析过且创建了邮件组id
+                if old_uuid:
+                    new_add_customers = list(set(new_customer_list) - set(old_customer_list))   #新增加的客户id
+                    delete_customers = list(set(old_customer_list) - set(new_customer_list))     #需要删除的客户id
+                    if new_add_customers:
+                        cursor.execute("""select `customer_email` from `customer` where `uuid` in %s""", (new_add_customers,))
+                        emails = cursor.fetchall()
+                        new_add_customers_email_list = [em["customer_email"] for em in emails]
+                        new_add_customers_email_list = [em for em in new_add_customers_email_list if em] #只要不为空的邮箱
+                        if new_add_customers_email_list:
+                            diff_add_result = exp.add_subscriber(old_uuid, new_add_customers_email_list)
+                            if diff_add_result["code"] != 1:
+                                logger.error("update_customer_group_list add_subscriber failed, diff_add_result={}".format(diff_add_result))
+                    if delete_customers:
+                        cursor.execute("""select `customer_email` from `customer` where `uuid` in %s""", (delete_customers,))
+                        emails = cursor.fetchall()
+                        delete_customers_email_list = [em["customer_email"] for em in emails]
+                        delete_customers_email_list = [em for em in delete_customers_email_list if em]  # 只要不为空的邮箱
+                        if delete_customers_email_list:
+                            diff_delete_result = exp.delete_subscriber(delete_customers_email_list, old_uuid)
+                            if diff_delete_result["code"] != 1:
+                                logger.error("update_customer_group_list delete_subscriber failed, diff_delete_result={}".format(diff_delete_result))
+
+                    cursor.execute(
+                        "update `customer_group` set customer_list=%s, update_time=%s, state=1 where id=%s",
+                        (str(new_customer_list), datetime.datetime.now(), group_id))
+                    conn.commit()
+                else:
+                    # 还没有创建过email group id
+
+                    # 如果customer list为空，则暂时不创建email group
+                    if not new_customer_email_list:
+                        continue
+
+                    email_group_name = f"{store['name']}_{group_title}_{datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}".replace(" ", "_")
+                    create_result = exp.create_subscribers_list(name=email_group_name)
+
+                    if create_result["code"] == 1:
+                        uuid = create_result["data"]
+                        add_result = exp.add_subscriber(str(uuid), new_customer_email_list)
+                        if add_result["code"] != 1:
+                            logger.error("update_customer_group_list add_subscriber failed, result={}".format(add_result))
+                        cursor.execute(
+                            "update `customer_group` set uuid=%s, customer_list=%s, update_time=%s, state=1 where id=%s",
+                            (str(uuid), str(new_customer_list), datetime.datetime.now(), group_id))
+                        conn.commit()
+                    else:
+                        logger.error("update_customer_group_list create_subscribers_list failed, result={}".format(create_result))
+
         except Exception as e:
             logger.exception("update_customer_group_list e={}".format(e))
             return False
@@ -717,6 +806,8 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
         return True
+
+
 
 
 if __name__ == '__main__':
@@ -733,7 +824,8 @@ if __name__ == '__main__':
     #              }
 
     ac = AnalyzeCondition(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
-    conditions = ac.get_conditions()
-    for cond in conditions:
-        cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
-        print(cus)
+    ac.update_customer_group_list()
+    # conditions = ac.get_conditions()
+    # for cond in conditions:
+    #     cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
+    #     print(cus)
