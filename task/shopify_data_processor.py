@@ -478,7 +478,7 @@ class ShopifyDataProcessor:
         return True
 
     def update_new_shopify(self):
-        logger.info("main is cheking...")
+        logger.info("update_new_shopify is cheking...")
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
@@ -489,6 +489,7 @@ class ShopifyDataProcessor:
                 """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
             store = cursor.fetchone()
             if not store:
+                logger.info("update_new_shopify no store need update")
                 return False
 
             update_time = datetime.datetime.now()
@@ -496,13 +497,14 @@ class ShopifyDataProcessor:
             cursor.execute(
                 '''update `store` set init=%s,update_time=%s where id=%s''',(1, update_time, store[0]))
             conn.commit()
-
+            logger.info("update_new_shopify begin init data store_id={}".format(store[0]))
             store = (store,)
             self.update_shopify_collections(store)
             self.update_shopify_orders(store)
             self.update_shopify_product(store)
             # TODD 拉客户
             self.update_top_product(store)
+            logger.info("update_new_shopify end init data store_id={}".format(store[0]))
 
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
