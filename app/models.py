@@ -57,8 +57,8 @@ class Dashboard(models.Model):
     """Dashboard"""
     revenue = models.FloatField(default=0, verbose_name="Revenue")
     orders = models.IntegerField(default=0, verbose_name="Orders")
-    repeat_purchase_rate = models.FloatField(blank=True, null=True,  verbose_name="Repeat Purchase Rate")
-    conversion_rate = models.FloatField(blank=True, null=True,   verbose_name="Conversion Rate")
+    # repeat_purchase_rate = models.FloatField(blank=True, null=True,  verbose_name="Repeat Purchase Rate")
+    # conversion_rate = models.FloatField(blank=True, null=True,   verbose_name="Conversion Rate")
     # delta_sent = models.IntegerField(blank=True, null=True,  verbose_name="Sent 增量")
     # delta_open = models.IntegerField(blank=True, null=True,  verbose_name="Open 增量")
     # delta_click = models.IntegerField(blank=True, null=True,  verbose_name="Click 增量")
@@ -78,13 +78,13 @@ class Dashboard(models.Model):
     avg_open_rate = models.FloatField(blank=True, null=True,  verbose_name="Open Rate")
     avg_click_rate = models.FloatField(blank=True, null=True,  verbose_name="Click Rate")
     avg_unsubscribe_rate = models.FloatField(blank=True, null=True,  verbose_name="Unsubscribe Rate")
-    #store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        #managed = False
+        managed = False
         db_table = 'dashboard'
 
 
