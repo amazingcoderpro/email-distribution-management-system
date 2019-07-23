@@ -82,7 +82,7 @@ class Dashboard(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        #managed = False
+        managed = False
         db_table = 'dashboard'
 
 
