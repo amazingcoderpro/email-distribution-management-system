@@ -39,10 +39,12 @@ class Store(models.Model):
     customer_shop = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_shop")
     sender_address = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_email")
     store_view_id = models.CharField(blank=True, null=True, max_length=100, verbose_name=u"店铺的GA中的view id")
-    order_init_choices = ((0, '新店铺没有拉过order'), (1, '拉过一次数据'))
-    order_init = models.SmallIntegerField(db_index=True, choices=order_init_choices, default=0, verbose_name="店铺是否拉过order")
-    customer_init_choices = ((0, '新店铺没有拉过customer'), (1, '拉过一次数据'))
-    customer_init = models.SmallIntegerField(db_index=True, choices=customer_init_choices, default=0, verbose_name="店铺是否拉过customer")
+    init_choices = ((0, '新店铺'), (1, '旧店铺'))
+    init = models.SmallIntegerField(db_index=True, choices=init_choices, default=0, verbose_name="店铺初始化")
+    # order_init_choices = ((0, '新店铺没有拉过order'), (1, '拉过一次数据'))
+    # order_init = models.SmallIntegerField(db_index=True, choices=order_init_choices, default=0, verbose_name="店铺是否拉过order")
+    # customer_init_choices = ((0, '新店铺没有拉过customer'), (1, '拉过一次数据'))
+    # customer_init = models.SmallIntegerField(db_index=True, choices=customer_init_choices, default=0, verbose_name="店铺是否拉过customer")
     user = models.OneToOneField(User, on_delete=models.DO_NOTHING, blank=True, null=True, unique=True)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
@@ -102,15 +104,30 @@ class EmailTemplate(models.Model):
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="状态")
     send_type_choices = ((0, '定时邮件'), (1, '触发邮件'), (3, '测试邮件'))
     send_type = models.SmallIntegerField(db_index=True, choices=send_type_choices, default=0, verbose_name="邮件模板发送类型")
+    html = models.TextField(blank=True, null=True, verbose_name="描述")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        #managed = False
+        managed = False
         db_table = 'email_template'
         ordering = ["update_time"]
+
+
+class EmailTask(models.Model):
+    template = models.ForeignKey(EmailTemplate, on_delete=models.DO_NOTHING)
+    state_choices = ((0, '待发送'), (1, '已发送(成功)'), (2, "模板已删除"), (3, '已发送但发送失败'))
+    state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件发送状态")
+    remark = models.TextField(blank=True, null=True, verbose_name="备注")
+    execute_time = models.DateTimeField(db_index=True, verbose_name="执行时间")
+    finished_time = models.DateTimeField(blank=True, null=True, verbose_name="完成时间")
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    class Meta:
+        db_table = 'email_task'
 
 
 class EmailRecord(models.Model):

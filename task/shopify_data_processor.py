@@ -449,11 +449,38 @@ class ShopifyDataProcessor:
             conn.close() if conn else 0
         return True
 
+    def update_new_shopify(self):
+        logger.info("main is cheking...")
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return False
+
+            cursor.execute(
+                """select store.id, store.url, store.token, store.init from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
+            stores = cursor.fetchall()
+            if not stores:
+                return False
+
+            for store in stores:
+                store_id, store_url, store_token = store
+
+
+
+        except Exception as e:
+            logger.exception("update_collection e={}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
 
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
-    ShopifyDataProcessor(db_info=db_info).update_shopify_product()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     #ShopifyDataProcessor(db_info=db_info).update_top_product()
 
+
+    ShopifyDataProcessor(db_info=db_info).update_new_shopify()

@@ -60,6 +60,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
                   "send_rule",
                   "customer_group_list",
                   "state",
+                  "html",
                   # "send_type",
                   "create_time",
                   "update_time"
@@ -96,30 +97,41 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
 class SendMailSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.EmailTemplate
-        fields = ("id",
-                  "title",
-                  "description",
+        fields = (
+                  # "id",
+                  # "title",
+                  # "description",
                   "subject",
-                  "heading_text",
-                  "logo",
-                  "banner",
-                  "headline",
-                  "body_text",
-                  "product_list",
-                  "state",
-                  # "send_type",
-                  "create_time",
-                  "update_time",
+                  # "heading_text",
+                  # "logo",
+                  # "banner",
+                  # "headline",
+                  # "body_text",
+                  # "product_list",
+                  # "state",
+                  # # "send_type",
+                  # "create_time",
+                  # "update_time",
         )
 
     def create(self, validated_data):
-        print(self.context["request"].data["email_address"])
+        email_address = [self.context["request"].data["email_address"]]
+        html = [self.context["request"].data["html"]]
         store_instance = models.Store.objects.filter(user=self.context["request"].user).first()
         validated_data["store"] = store_instance
         validated_data["send_type"] = 3
         validated_data["state"] = 1
         instance = super(SendMailSerializer, self).create(validated_data)
 
-        subscribers_res = ems_api.ExpertSender(store_instance.name,store_instance.email).create_subscribers_list(store_instance.name)
-        print(subscribers_res)
+        ems_instance = ems_api.ExpertSender(store_instance.name, store_instance.email)
+
+        subscribers_res = ems_instance.create_subscribers_list(store_instance.name)
+        if subscribers_res["code"] != 1:
+            raise serializers.ValidationError(subscribers_res["msg"])
+        subscriber_flag =  ems_instance.add_subscriber(subscribers_res["data"],email_address)
+        if subscriber_flag["code"] != 1:
+            raise serializers.ValidationError(subscriber_flag["msg"])
+        result = ems_instance.create_and_send_newsletter([subscribers_res["data"]], store_instance.name, "https://smartsend.seamarketings.com/EmailPage?id={}".format(instance.id))
+        if result["code"] != 1:
+            raise serializers.ValidationError(result["msg"])
         return instance
