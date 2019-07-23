@@ -9,8 +9,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from task.ems_data_processor import EMSDataProcessor
 from task.shopify_data_processor import ShopifyDataProcessor
 from config import logger
-from task.condition_processor import AnalyzeCondition
-
+from task.customer_group_processor import AnalyzeCondition
+from task.template_task_processor import TemplateProcessor
 
 MYSQL_PASSWD = os.getenv('MYSQL_PASSWD', None)
 MYSQL_HOST = os.getenv('MYSQL_HOST', None)
@@ -173,8 +173,18 @@ def run():
     tp = TaskProcessor()
 
     # 所有定时任务在此创建
+
+    # 定期更新customer group
     ac = AnalyzeCondition(db_info=db_info)
-    tp.create_periodic_task(ac.update_customer_group_list, seconds=2220)
+    tp.create_periodic_task(ac.update_customer_group_list, seconds=3600)
+
+    # 模板解析定时任务
+    tmp = TemplateProcessor(db_info=db_info)
+    tp.create_periodic_task(tmp.analyze_templates,  seconds=900)
+
+    # 模板邮件定时发送任务
+    tp.create_periodic_task(tmp.execute_email_task, seconds=120, interval=120)
+
 
     #shopify 定时更新任务, 请放在这下面
     sdp = ShopifyDataProcessor(db_info=db_info)
@@ -187,7 +197,6 @@ def run():
     tp.create_cron_task(ems.update_customer_group_data, "*", 23, 50)  # 每天23:50:0更新到目前时间用户组最新ems数据
     tp.create_cron_task(ems.update_email_reocrd_data, "*", 23, 50)  # 每天23:50:0更新到目前时间已发送邮件最新ems数据
     tp.create_cron_task(ems.insert_dashboard_data, "*", 23, 50)  # 每天23:50:0更新dashboard最新数据
-
 
     while 1:
         time.sleep(1)
