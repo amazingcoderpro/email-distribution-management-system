@@ -176,7 +176,11 @@ def run():
 
     #shopify 定时更新任务, 请放在这下面
     sdp = ShopifyDataProcessor(db_info=db_info)
+    #tp.create_periodic_task(sdp.update_top_product, seconds=100)
+
+    # 更新新店铺
     tp.create_periodic_task(sdp.update_top_product, seconds=100)
+
 
     # ems 定时更新任务请放在这下面
     pass
