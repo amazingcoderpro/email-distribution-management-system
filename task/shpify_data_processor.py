@@ -4,8 +4,10 @@ import threading
 import time
 import pymysql
 import os
+import sys
 
 from sdk.shopify.get_shopify_data import ProductsApi
+from sdk.googleanalytics.google_oauth_info import GoogleApi
 from config import logger
 
 MYSQL_PASSWD = os.getenv('MYSQL_PASSWD', None)
@@ -175,6 +177,38 @@ class TaskProcessor:
             conn.close() if conn else 0
         return True
 
+    def update_google_data(self):
+        """
+        1. 更新所有店铺的销售总量和销售总额
+        2. 保存数据库
+        """
+        try:
+            conn = DBUtil().get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return False
+            cursor.execute(
+                """select store.id, store.store_view_id from store left join user on store.user_id = user.id where user.is_active = 1""")
+            stores = cursor.fetchall()
+            for store in stores:
+                store_id, store_view_id = store
+                if store_view_id:
+                    papi = GoogleApi(view_id=store_view_id, json_path=os.path.join(sys.path[0], "sdk\\googleanalytics\\client_secrets.json"))
+                    shopify_google_data = papi.get_report()
+                    revenue = shopify_google_data.get("transactions", "")
+                    total_revenue = shopify_google_data.get("revenue", "")
+
+                    cursor.executemany('''insert into `dashboard` (`uuid`, `revenue`, `total_revenue`)
+                                                                         values (%s, %s, %)''',
+                                                                    store_id, revenue, total_revenue)
+
+        except Exception as e:
+            logger.exception("update_collection e={}".format(e))
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
+
 
 def main():
     tsp = TaskProcessor()
@@ -188,5 +222,5 @@ if __name__ == '__main__':
     access_token = "d1063808be79897450ee5030e1c163ef"
     id = "3583116148816"
     shop_uri = "charrcter.myshopify.com"
-    TaskProcessor().update_shopify_cuntomers()
+    TaskProcessor().update_google_data()
 
