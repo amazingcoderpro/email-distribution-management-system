@@ -137,7 +137,6 @@ class EMSDataProcessor:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
-
     def insert_dashboard_data(self):
         """
         每天定时拉取数据入库，最新数据为截止到昨天23:59:59
@@ -153,16 +152,24 @@ class EMSDataProcessor:
             sum(unsubscribe_rate),count(uuid) from email_record where type in (0,1) and store_id=%s""", (self.store_id,))
             sents,opens,clicks,unsubscribes,open_rate,click_rate,unsubscribe_rate,email_count = cursor.fetchone()
             avg_open_rate,avg_click_rate,avg_unsubscribe_rate = round(open_rate/email_count,2),round(click_rate/email_count,2),round(unsubscribe_rate/email_count,2)
-
-
-
+            # 获取GA数据
+            revenue,orders,repeat_purchase_rate,conversion_rate,total_revenue,total_orders,total_repeat_purchase_rate,total_conversion_rate = None
+            # 数据入库
+            now_date = datetime.datetime.now()
+            cursor.execute("""insert into dashboard (total_sent, total_open, total_click, total_unsubscribe, avg_open_rate,
+             avg_click_rate, avg_unsubscribe_rate, create_time, update_time, store_id,
+            revenue,orders,repeat_purchase_rate,conversion_rate,total_revenue,total_orders,total_repeat_purchase_rate,total_conversion_rate) 
+            values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            (sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date,now_date,self.store_id,
+             revenue, orders, repeat_purchase_rate,conversion_rate, total_revenue,total_orders, total_repeat_purchase_rate,total_conversion_rate))
+            logger.info("update dashboard success at %s." % now_date)
+            conn.commit()
         except Exception as e:
             logger.exception("update dashboard data exception e={}".format(e))
             return False
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-
 
 
 if __name__ == '__main__':
