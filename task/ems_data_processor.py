@@ -158,35 +158,49 @@ class EMSDataProcessor:
             avg_open_rate,avg_click_rate,avg_unsubscribe_rate = round(open_rate/email_count,2),round(click_rate/email_count,2),round(unsubscribe_rate/email_count,2)
 
             # 获取当前店铺所有的orders
-            cursor.execute("""select total_orders, total_revenue from dashboard where store_id= %s order by -id limit=1""", (self.store_id,))
-            orders_info = cursor.fethone()
+            cursor.execute("""select total_orders, total_revenue, total_sessions from dashboard where store_id= %s order by -id limit=1""", (self.store_id,))
+            orders_info = cursor.fetchone()
             if orders_info:
-                total_orders, total_revenue = orders_info[0]
+                total_orders, total_revenue, total_sessions = orders_info[0]
             else:
-                total_orders, total_revenue = 0
+                total_orders, total_revenue, total_sessions = 0
+
+            # 获取当前店铺支付订单大于等于2的用户数
+            cursor.execute("""select count(customer_uuid) from (SELECT customer_uuid, count(id) as num FROM order_event where store_id= %s and status_tag='paid' group by customer_uuid) as res where num >= 2;""", (self.store_id, ))
+            orders_gte2 = cursor.fetchone()[0]
+
+            # 获取当前店铺的用户总量
+            cursor.execute("""SELECT count(id)  FROM  order_event where store_id= %s;
+                           """, (self.store_id, ))
+            total_cumtomers = cursor.fetchone()[0]
+
 
             # 获取GA数据
             cursor.execute(
                 """select store.store_view_id from store where store.id = %s""", (self.store_id, ))
             store_view_id = cursor.fetchone()[0]
             if store_view_id:
-                papi = GoogleApi(view_id=store_view_id, json_path=r"E:\edm\sdk\googleanalytics\client_secrets.json")
+                papi = GoogleApi(view_id=store_view_id, json_path=os.path)
                 shopify_google_data = papi.get_report()
                 sessions = shopify_google_data.get("sessions", "")
                 orders = shopify_google_data.get("transactions", "")
                 revenue = shopify_google_data.get("revenue", "")
                 total_orders += orders
+                total_sessions += sessions
                 total_revenue += revenue
-                conversion_rate = round(orders * 100 / sessions, 2)
-            revenue, orders, repeat_purchase_rate, conversion_rate,total_revenue,total_orders,total_repeat_purchase_rate,total_conversion_rate = None
+                avg_conversion_rate = round(total_orders * 100 / total_sessions, 2)
+                avg_repeat_purchase_rate = round(orders_gte2*100/total_cumtomers, 2)
+            else:
+                sessions, orders, revenue, total_orders, total_sessions, total_revenue, avg_conversion_rate, avg_repeat_purchase_rate = 0
+
             # 数据入库
             now_date = datetime.datetime.now()
             cursor.execute("""insert into dashboard (total_sent, total_open, total_click, total_unsubscribe, avg_open_rate,
              avg_click_rate, avg_unsubscribe_rate, create_time, update_time, store_id,
-            revenue,orders,repeat_purchase_rate,conversion_rate,total_revenue,total_orders,total_repeat_purchase_rate,total_conversion_rate) 
+            sessions, orders, revenue, total_orders, total_sessions, total_revenue, avg_conversion_rate, avg_repeat_purchase_rate) 
             values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
             (sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date,now_date,self.store_id,
-             revenue, orders, repeat_purchase_rate,conversion_rate, total_revenue,total_orders, total_repeat_purchase_rate,total_conversion_rate))
+             sessions, orders, revenue, total_orders, total_sessions, total_revenue, avg_conversion_rate, avg_repeat_purchase_rate))
             logger.info("update dashboard success at %s." % now_date)
             conn.commit()
         except Exception as e:
