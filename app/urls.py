@@ -35,7 +35,12 @@ v1_urlpatterns = [
     url(r'^email_trigger/(?P<pk>[0-9]+)/$', service.EmailTriggerOptView.as_view()),
 
     # 测试发送邮件
-    url(r'^send_mail/$', service.SendMail.as_view()),
+    url(r'^send_mail/$', service.SendMailView.as_view()),
+
+
+    # dashboard
+    url(r'^top_dashboard/$', service.TopDashboardView.as_view()),
+    url(r'^bottom_dashboard/$', service.BottomDashboardView.as_view()),
 
 
     # 店铺管理

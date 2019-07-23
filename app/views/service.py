@@ -163,7 +163,7 @@ class EmailTriggerOptView(generics.DestroyAPIView):
         instance.save()
 
 
-class SendMail(generics.CreateAPIView):
+class SendMailView(generics.CreateAPIView):
     """邮件模版增加，测试发送邮件"""
     # queryset = models.EmailTemplate.objects.all()
     # serializer_class = service.SendMailSerializer
@@ -189,3 +189,40 @@ class SendMail(generics.CreateAPIView):
         if result["code"] != 1:
             return Response({"detail": result["msg"]}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"status":"successful"}, status=status.HTTP_200_OK)
+
+
+
+class TopDashboardView(generics.ListAPIView):
+    """top Dashboard"""
+    queryset = models.Dashboard.objects.all()
+    serializer_class = service.DashboardSerializer
+    # filter_backends = (service_filter.TopDashboardFilter,)
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+    def list(self, request, *args, **kwargs):
+        store = models.Store.objects.filter(user=request.user).first()
+        filte_kwargs = {"store": store}
+        instance = models.Dashboard.objects.filter(**filte_kwargs).order_by("-update_time").first()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+
+class BottomDashboardView(generics.ListAPIView):
+    """bottom Dashboard"""
+    queryset = models.Dashboard.objects.all()
+    serializer_class = service.DashboardSerializer
+    filter_backends = (service_filter.TopDashboardFilter,)
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        if request.query_params.get("page", ''):
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

@@ -135,3 +135,26 @@ class SendMailSerializer(serializers.ModelSerializer):
         if result["code"] != 1:
             raise serializers.ValidationError(result["msg"])
         return instance
+
+
+class DashboardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Dashboard
+        fields = (
+            "revenue",
+            "orders",
+            "total_open",
+            "total_click",
+            "total_sent",
+
+            "total_revenue",
+            "total_orders",
+            "avg_repeat_purchase_rate",
+            "avg_conversion_rate",
+            "total_sent",
+            "avg_open_rate",
+            "avg_click_rate",
+            "avg_unsubscribe_rate",
+            "create_time",
+            "update_time",
+        )

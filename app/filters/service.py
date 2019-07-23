@@ -36,3 +36,20 @@ class EmailTempFilter(BaseFilterBackend):
         store = models.Store.objects.filter(user=request.user).first()
         filte_kwargs = {"store":  store}
         return queryset.filter(**filte_kwargs)
+
+
+class TopDashboardFilter(BaseFilterBackend):
+    """Dashboard 过滤"""
+    filter_keys = {
+        "begin_time": "create_time__gte",
+        "end_time": "create_time__lte",
+    }
+
+    def filter_queryset(self, request, queryset, view):
+        store = models.Store.objects.filter(user=request.user).first()
+        filte_kwargs = {"store":  store}
+        for filter_key in self.filter_keys.keys():
+            val = request.query_params.get(filter_key, '')
+            if val is not '':
+                filte_kwargs[self.filter_keys[filter_key]] = val
+        return queryset.filter(**filte_kwargs)
