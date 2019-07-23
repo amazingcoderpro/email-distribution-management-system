@@ -68,6 +68,7 @@ class Dashboard(models.Model):
     total_revenue = models.FloatField(blank=True, null=True,  verbose_name="Revenue")
     total_orders = models.IntegerField(blank=True, null=True,  verbose_name="Orders")
     total_sessions = models.IntegerField(blank=True, null=True, verbose_name="sessions总量")
+    session = models.IntegerField(blank=True, null=True, verbose_name="session")
     avg_repeat_purchase_rate = models.FloatField(blank=True, null=True,  verbose_name="Repeat Purchase Rate")
     avg_conversion_rate = models.FloatField(blank=True, null=True,  verbose_name="Conversion Rate")
     total_sent = models.IntegerField(blank=True, null=True,  verbose_name="Sent总量")

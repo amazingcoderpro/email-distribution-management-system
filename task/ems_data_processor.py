@@ -180,7 +180,7 @@ class EMSDataProcessor:
                 """select store.store_view_id from store where store.id = %s""", (self.store_id, ))
             store_view_id = cursor.fetchone()[0]
             if store_view_id:
-                papi = GoogleApi(view_id=store_view_id, json_path=os.path)
+                papi = GoogleApi(view_id=store_view_id, json_path=r"E:\edm\sdk\googleanalytics\client_secrets.json")
                 shopify_google_data = papi.get_report()
                 sessions = shopify_google_data.get("sessions", "")
                 orders = shopify_google_data.get("transactions", "")
