@@ -77,7 +77,7 @@ class Dashboard(models.Model):
     avg_click_rate = models.FloatField(blank=True, null=True,  verbose_name="Click Rate")
     avg_unsubscribe_rate = models.FloatField(blank=True, null=True,  verbose_name="Unsubscribe Rate")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(verbose_name="店铺id")
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
