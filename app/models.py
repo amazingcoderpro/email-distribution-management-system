@@ -72,6 +72,7 @@ class Dashboard(models.Model):
     total_sent = models.IntegerField(blank=True, null=True,  verbose_name="Sent总量")
     total_open = models.IntegerField(blank=True, null=True,  verbose_name="Open总量")
     total_click = models.IntegerField(blank=True, null=True,  verbose_name="Click总量")
+    total_unsubscribe = models.IntegerField(blank=True, null=True,  verbose_name="Unsubscribe总量")
     avg_open_rate = models.FloatField(blank=True, null=True,  verbose_name="Open Rate")
     avg_click_rate = models.FloatField(blank=True, null=True,  verbose_name="Click Rate")
     avg_unsubscribe_rate = models.FloatField(blank=True, null=True,  verbose_name="Unsubscribe Rate")
