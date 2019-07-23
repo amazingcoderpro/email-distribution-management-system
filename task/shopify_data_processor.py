@@ -25,23 +25,27 @@ def sync_last_order_info(store_id, cursor=None):
         conn.commit()
 
 
-def save_moth_customer(customer_insert_list, customer_update_list, cursor=None, conn=None):
+def save_month_customer(customer_insert_list, customer_update_list, cursor=None, conn=None):
     if not cursor:
         conn = DBUtil().get_instance()
         cursor = conn.cursor() if conn else None
         if not cursor:
             return False
 
-    if customer_insert_list:
-        cursor.executemany('''insert into `customer` (`uuid`, `last_order_id`,`orders_count`,`sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
-                                                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                           customer_insert_list)
-        conn.commit()
+    try:
+        if customer_insert_list:
+            cursor.executemany('''insert into `customer` (`uuid`, `last_order_id`,`orders_count`,`sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
+                                                         values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                               customer_insert_list)
+            conn.commit()
 
-    if customer_update_list:
-        cursor.executemany('''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
-                           customer_update_list)
-        conn.commit()
+        if customer_update_list:
+            cursor.executemany('''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
+                               customer_update_list)
+            conn.commit()
+    except Exception as e:
+        logger.exception("save_month_customer e={}".format(e))
+
 
 class ShopifyDataProcessor:
     def __init__(self, db_info):
@@ -549,7 +553,7 @@ class ShopifyDataProcessor:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
-    def update_shopify_cuntomers(self):
+    def update_shopify_customers(self):
         """
         1. 更新所有客戶的信息
         2. 获取所有店铺的所有类目，并保存至数据库
@@ -631,7 +635,9 @@ class ShopifyDataProcessor:
                         create_at_max = new_create_at_max.strftime(time_format)
                     else:
                         # 每拉够一月，保存一次
-                        save_moth_customer(customer_insert_list, customer_update_list, cursor=cursor, conn=conn)
+                        logger.info("save month customer, time min={}, time max={}, length of insert list={}, "
+                                    "length of update list={}".format(create_at_min, create_at_max, len(customer_insert_list), len(customer_update_list)))
+                        save_month_customer(customer_insert_list, customer_update_list, cursor=cursor, conn=conn)
 
                         create_at_max = datetime.datetime.strptime(create_at_min, time_format) - datetime.timedelta(seconds=1)
                         create_at_min = create_at_max - datetime.timedelta(days=30)
@@ -654,4 +660,4 @@ if __name__ == '__main__':
     #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     #ShopifyDataProcessor(db_info=db_info).update_top_product()
     #ShopifyDataProcessor(db_info=db_info).update_new_shopify()
-    #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
