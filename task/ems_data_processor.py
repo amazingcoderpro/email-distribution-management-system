@@ -22,7 +22,7 @@ class EMSDataProcessor:
         self.db_user = db_info.get("user", "")
         self.db_password = db_info.get("password", "")
 
-    def insert_subscriber_activity(self, query_date):
+    def insert_subscriber_activity(self, query_date=datetime.datetime.today().date()-datetime.timedelta(days=1)):
         """
         将收件人行为记录入库，type包括Opens, Clicks, Sends
         :param query_date: 需要查询的日期，单位为一天，格式为2019-07-15
@@ -235,7 +235,7 @@ class EMSDataProcessor:
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
-    # obj.insert_subscriber_activity("2019-07-15")
+    obj.insert_subscriber_activity()
     # obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
-    obj.insert_dashboard_data()
+    # obj.insert_dashboard_data()
