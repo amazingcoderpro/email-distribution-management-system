@@ -69,7 +69,7 @@ class ShopifyDataProcessor:
 
             # 遍历数据库中的所有store, 拉产品
             for key, value in store_collections_dict.items():
-                store_id, store_url, store_token, store_name = value["store"]
+                store_id, store_url, store_token, *_ = value["store"]
 
                 for collection in value["collections"]:
                     id, collection_title, collection_id = collection
@@ -473,7 +473,7 @@ class ShopifyDataProcessor:
             return False
         finally:
             cursor.close() if cursor else 0
-            cursor_dict.close() if cursor else 0
+            cursor_dict.close() if cursor_dict else 0
             conn.close() if conn else 0
         return True
 
@@ -489,7 +489,7 @@ class ShopifyDataProcessor:
                 """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
             store = cursor.fetchone()
             if not store:
-                logger.info("update_new_shopify no store need update")
+                logger.info("update_new_shopify is ending... no store need update")
                 return False
 
             update_time = datetime.datetime.now()
@@ -497,7 +497,7 @@ class ShopifyDataProcessor:
             cursor.execute(
                 '''update `store` set init=%s,update_time=%s where id=%s''',(1, update_time, store[0]))
             conn.commit()
-            logger.info("update_new_shopify begin init data store_id={}".format(store[0]))
+            logger.info("update_new_shopify begin update data store_id={}".format(store[0]))
             store = (store,)
             self.update_shopify_collections(store)
             self.update_shopify_orders(store)
