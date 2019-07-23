@@ -140,7 +140,7 @@ class ShopifyDataProcessor:
         logger.exception("[update_shopify_product] is finished")
         return True
 
-    def update_shopify_collections(self):
+    def update_shopify_collections(self, store_id):
         """
         1. 获取所有店铺的所有类目，并保存至数据库
         """
@@ -463,8 +463,17 @@ class ShopifyDataProcessor:
             if not stores:
                 return False
 
+            update_time = datetime.datetime.now()
+            store_list = [item[0] for item in stores]
+
+            cursor.execute(
+                '''update `store` set init=%s,update_time=%s where id in %s''',(1, update_time, store_list))
+            conn.commit()
+
             for store in stores:
                 store_id, store_url, store_token = store
+
+                self.update_shopify_collections(store_id)
 
 
 
