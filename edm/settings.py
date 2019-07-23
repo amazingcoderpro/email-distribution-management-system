@@ -86,8 +86,8 @@ DATABASES = {
     'ENGINE': 'django.db.backends.mysql',
     'NAME': 'edm',
     'USER': 'edm',
-    'PASSWORD': MYSQL_PASSWD,
-    'HOST': MYSQL_HOST,
+    'PASSWORD': "edm@orderplus.com",
+    'HOST': "47.244.107.240",
     'PORT': '3306',
     'OPTIONS': {"init_command": "SET foreign_key_checks = 0;",}
     }
