@@ -698,6 +698,11 @@ class AnalyzeCondition:
         return result
 
     def update_customer_group_list(self, store_id=None):
+        """
+        更新所有待解析的customer group, 同时创建email group id
+        :param store_id:
+        :return:
+        """
         logger.info("update_customer_group_list trigger, store_id={}".format(store_id))
         conditions = self.get_conditions(store_id=store_id)
         values = []
@@ -722,6 +727,9 @@ class AnalyzeCondition:
                 group_title = value["group_title"]
                 # 新的顾客列表，转成邮件
                 new_customer_list = value["customer_list"]
+
+                logger.info("update group id={}, new customer list length={}".format(group_id, len(new_customer_list)))
+
                 if new_customer_list:
                     cursor.execute("""select `customer_email` from `customer` where `uuid` in %s""", (new_customer_list, ))
                     emails = cursor.fetchall()
@@ -746,12 +754,14 @@ class AnalyzeCondition:
                 cursor.execute("select `name`, `sender`, `sender_address` from `store` where id=%s", (store_id,))
                 store = cursor.fetchone()
                 if not store:
+                    logger.warning("store is not found, store id={}".format(store_id))
                     continue
 
                 exp = ems_api.ExpertSender(fromName=store["sender"], fromEmail=store["sender_address"])
 
                 # 判断这个group是不是已经被解析过且创建了邮件组id
                 if old_uuid:
+                    logger.info("customer group have been analyzed, old uuid={}, need update".format(old_uuid))
                     new_add_customers = list(set(new_customer_list) - set(old_customer_list))   #新增加的客户id
                     delete_customers = list(set(old_customer_list) - set(new_customer_list))     #需要删除的客户id
                     if new_add_customers:
@@ -762,7 +772,9 @@ class AnalyzeCondition:
                         if new_add_customers_email_list:
                             diff_add_result = exp.add_subscriber(old_uuid, new_add_customers_email_list)
                             if diff_add_result["code"] != 1:
-                                logger.error("update_customer_group_list add_subscriber failed, diff_add_result={}".format(diff_add_result))
+                                logger.error("update_customer_group_list add_subscriber failed, diff_add_result={}, "
+                                             "group id={}, uuid={}, add emails={}".format(diff_add_result, group_id, uuid, new_add_customers_email_list))
+
                     if delete_customers:
                         cursor.execute("""select `customer_email` from `customer` where `uuid` in %s""", (delete_customers,))
                         emails = cursor.fetchall()
@@ -771,7 +783,8 @@ class AnalyzeCondition:
                         if delete_customers_email_list:
                             diff_delete_result = exp.delete_subscriber(delete_customers_email_list, old_uuid)
                             if diff_delete_result["code"] != 1:
-                                logger.error("update_customer_group_list delete_subscriber failed, diff_delete_result={}".format(diff_delete_result))
+                                logger.error("update_customer_group_list delete_subscriber failed, diff_delete_result={}"
+                                             ", group id={}, uuid={}, delete emails={}".format(diff_delete_result, group_id, old_uuid, delete_customers_email_list))
 
                     cursor.execute(
                         "update `customer_group` set customer_list=%s, update_time=%s, state=1 where id=%s",
@@ -779,7 +792,7 @@ class AnalyzeCondition:
                     conn.commit()
                 else:
                     # 还没有创建过email group id
-
+                    logger.info("customer group have not been analyzed, need analyze")
                     # 如果customer list为空，则暂时不创建email group
                     if not new_customer_email_list:
                         continue
@@ -789,16 +802,16 @@ class AnalyzeCondition:
 
                     if create_result["code"] == 1:
                         uuid = create_result["data"]
+                        logger.info("customer group analyze and create email group id={}".format(uuid))
                         add_result = exp.add_subscriber(str(uuid), new_customer_email_list)
                         if add_result["code"] != 1:
-                            logger.error("update_customer_group_list add_subscriber failed, result={}".format(add_result))
+                            logger.error("update_customer_group_list add_subscriber failed, group id={}, uuid={}, result={}".format(group_id, uuid, add_result))
                         cursor.execute(
                             "update `customer_group` set uuid=%s, customer_list=%s, update_time=%s, state=1 where id=%s",
                             (str(uuid), str(new_customer_list), datetime.datetime.now(), group_id))
                         conn.commit()
                     else:
-                        logger.error("update_customer_group_list create_subscribers_list failed, result={}".format(create_result))
-
+                        logger.error("update_customer_group_list create_subscribers_list failed, group id={}, result={}".format(group_id, create_result))
         except Exception as e:
             logger.exception("update_customer_group_list e={}".format(e))
             return False

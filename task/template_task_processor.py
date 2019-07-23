@@ -12,6 +12,9 @@ from sdk.ems import ems_api
 
 
 class TemplateProcessor:
+    """
+    模板处理类，包括模板规则解析和定时发送
+    """
     def __init__(self, db_info):
         self.db_host = db_info.get("host", "")
         self.db_port = db_info.get("port", 3306)
@@ -22,6 +25,11 @@ class TemplateProcessor:
         self.days = ["1st of the month", "15th of the month", "Last day of the month"]
 
     def analyze_templates(self, template_id=None):
+        """
+        模板规则解析，将周期性模板解析成一个个的task
+        :param template_id:
+        :return:
+        """
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
                           password=self.db_password).get_instance()
@@ -29,6 +37,7 @@ class TemplateProcessor:
             if not cursor:
                 return False
 
+            logger.info("analyze_templates start. template_id={}".format(template_id))
             if template_id:
                 cursor.execute("""select id, send_rule from `email_template` where state=0 and id=%s""", (template_id, ))
             else:
@@ -37,7 +46,7 @@ class TemplateProcessor:
             data = cursor.fetchall()
             for value in data:
                 template_id, send_rule = value
-
+                logger.info("analyze template, template id={}".format(template_id))
                 #{"begin_time": "2019-10-01 00:00:00", "end_time": "2019-10-02 00:00:00", "cron_type": "Monday", "cron_time": "18:40:00"}
                 send_rule = json.loads(send_rule)
                 execute_times = []
@@ -85,6 +94,11 @@ class TemplateProcessor:
             conn.close() if conn else 0
 
     def execute_email_task(self, interval=120):
+        """
+        执行邮件发送任务
+        :param interval:　间隔周期
+        :return:
+        """
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
                           password=self.db_password).get_instance()
@@ -102,6 +116,7 @@ class TemplateProcessor:
             for task in tasks:
                 # 遍历每一个任务，找到他对应的模板　
                 task_id, template_id = task
+                logger.info("execute_email_task get need execute task={}".format(task_id))
                 cursor.execute("select `state`, `customer_group_list`, `subject`, `html`, `store_id` from `email_template` where id=%s", (template_id, ))
 
                 # 如果模板的状态变成了已经删除，则不再发送，且把该模板对就的所有未发送的task全置成已删除
@@ -110,26 +125,44 @@ class TemplateProcessor:
                 if template_state == 2:
                     cursor.execute("""update `email_task` set `state`=2 where template_id=%s　and state=0""", (template_id,))
                     conn.commit()
+                    logger.info("task's template have been deleted, task id={}, template_id={}".format(task_id, template_id))
                 else:
                     # 拿到该模板里包含的customer group,每个group对应的邮件组id
                     cursor.execute("select `uuid` from `customer_group` where id in %s", (eval(template_group_list), ))
                     ret = cursor.fetchall()
                     uuids = [uid[0] for uid in ret]
-
+                    uuids = [uid for uid in uuids if uid]   # 去掉里面的空包弹
                     cursor.execute("select `sender`, `sender_address` from `store` where id=%s", (store_id, ))
                     store = cursor.fetchone()
 
                     if store and uuids:
                         # 拿到了所对应的邮件组id, 开始发送邮件
                         exp = ems_api.ExpertSender(fromName=store[0], fromEmail=store[1])
+
                         result = exp.create_and_send_newsletter(uuids, subject=subject, html=html)
                         send_result = result["code"]
+                        send_msg = result["msg"]
+                        email_id = result["data"]
                         if send_result != 1:
                             send_result = 3     # 发送失败
-                        send_msg = result["msg"]
+                            logger.error(
+                                "send template email failed, task={}, template={}, uuids={}, error={}".format(task_id, template_id, uuids, send_msg))
+                        else:
+                            logger.info(
+                                "send template email succeed, task={}, template={}, uuids={}, msg={}, email id={}".format(task_id,
+                                                                                                     template_id, uuids,
+                                                                                                     send_msg, email_id))
+
                         time_now = datetime.datetime.now()
+                        # 更新任务状态
                         cursor.execute("""update `email_task` set `state`=%s, `remark`=%s, `finished_time`=%s, 
                         `update_time`=%s where id=%s""", (send_result, str(send_msg), time_now, time_now, task_id))
+                        conn.commit()
+
+                        # 在email record中插入一条
+                        cursor.execute("""insert into `email_record` (`uuid`, `store_id`, `email_template_id`, 
+                        `create_time`, `update_time`, `type`) values (%s, %s, %s, %s, %s, %s)""",
+                                       (str(email_id), store_id, template_id, time_now, time_now, 0))
                         conn.commit()
         except Exception as e:
             logger.exception("execute_email_task e={}".format(e))
