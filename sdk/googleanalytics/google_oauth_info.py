@@ -20,7 +20,7 @@ class GoogleApi():
         self.VIEW_ID = view_id
         self.ga_source = ga_source
 
-    def get_report(self, key_word, start_time, end_time):
+    def get_report(self):
         """
          Queries the Analytics Reporting API V4.
         Args:
@@ -37,14 +37,15 @@ class GoogleApi():
                     'reportRequests': [
                         {
                             'viewId': self.VIEW_ID,
-                            'dateRanges': [{'startDate': '1000daysAgo', 'endDate': 'today'}],
+                            'dateRanges': [{'startDate': '1daysAgo', 'endDate': 'today'}],
                             'metrics': [
+                                {"expression": "ga:sessions"},
                                 {"expression": "ga:transactions"},  # 交易数量
                                 {"expression": "ga:transactionRevenue"},  # 销售总金额
                             ],
                             "dimensions": [
                                                 {"name": "ga:source"},
-                                                # {"name": "ga:keyword"},
+                                                {"name": "ga:keyword"},
                                             ],
                         }]
                 }
@@ -52,8 +53,9 @@ class GoogleApi():
             for report in analytics_info.get('reports', []):
                 dateRangeValues = report.get('data', {}).get('totals', [])
                 results = {
-                           "transactions": int(dateRangeValues[0].get("values", "")[0]),
-                            "revenue": float(dateRangeValues[0].get("values", "")[1])}
+                           "sessions":  int(dateRangeValues[0].get("values", "")[0]),
+                           "transactions": int(dateRangeValues[0].get("values", "")[1]),
+                            "revenue": float(dateRangeValues[0].get("values", "")[2])}
                 return results
         except Exception as e:
             logger.error("get google analytics info is failed, msg={}".format(str(e)))
@@ -61,8 +63,8 @@ class GoogleApi():
 
 
 if __name__ == '__main__':
-    google_data = GoogleApi(view_id="195406097")
-    print(google_data.get_report(key_word="", start_time="7daysAgo", end_time="today"))
+    google_data = GoogleApi(view_id="198387424")
+    print(google_data.get_report())
     print(1)
 
 

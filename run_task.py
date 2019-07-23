@@ -5,6 +5,8 @@
 import os
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
+
+from task.ems_data_processor import EMSDataProcessor
 from task.shopify_data_processor import ShopifyDataProcessor
 from config import logger
 from task.condition_processor import AnalyzeCondition
@@ -29,7 +31,7 @@ class TaskProcessor:
         self.bk_scheduler.start()
         self.tasks = []
 
-    def create_periodic_task(self, func, seconds, *args, **kwargs):
+    def create_periodic_task(self, func, seconds, max_instances=10, *args, **kwargs):
         """
         创建间隔性任务
         :param func: 任务处理函数
@@ -39,7 +41,7 @@ class TaskProcessor:
         :return: （True, task_id） --成功或失败, 成功时task id不为None
         """
         try:
-            task_id = self.bk_scheduler.add_job(func, 'interval', seconds=seconds, args=args, kwargs=kwargs)
+            task_id = self.bk_scheduler.add_job(func, 'interval', seconds=seconds, max_instances=max_instances, args=args, kwargs=kwargs)
             self.tasks.append({'task_name': func.__name__, "task_id": task_id})
         except Exception as e:
             logger.exception("create_periodic_task　failed, e={}".format(e))
@@ -176,14 +178,16 @@ def run():
 
     #shopify 定时更新任务, 请放在这下面
     sdp = ShopifyDataProcessor(db_info=db_info)
-    #tp.create_periodic_task(sdp.update_top_product, seconds=100)
-
-    # 更新新店铺
-    tp.create_periodic_task(sdp.update_top_product, seconds=100)
+    tp.create_periodic_task(sdp.update_new_shopify, seconds=120, max_instances=50)   # 新店铺拉 产品类目 产品 订单 top_product
 
 
     # ems 定时更新任务请放在这下面
-    pass
+    ems = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
+    tp.create_cron_task(ems.insert_subscriber_activity, "*", 0, 1)  # 每天0:1:0拉取昨天一整天的行为记录
+    tp.create_cron_task(ems.update_customer_group_data, "*", 23, 50)  # 每天23:50:0更新到目前时间用户组最新ems数据
+    tp.create_cron_task(ems.update_email_reocrd_data, "*", 23, 50)  # 每天23:50:0更新到目前时间已发送邮件最新ems数据
+    tp.create_cron_task(ems.insert_dashboard_data, "*", 23, 50)  # 每天23:50:0更新dashboard最新数据
+
 
     while 1:
         time.sleep(1)
