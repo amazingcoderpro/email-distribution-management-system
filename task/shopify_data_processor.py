@@ -15,7 +15,7 @@ class ShopifyDataProcessor:
         self.db_user = db_info.get("user", "")
         self.db_password = db_info.get("password", "")
 
-    def update_shopify_product(self):
+    def update_shopify_product(self, store=None):
         """
          获取所有店铺的所有products, 并保存至数据库
          :return:
@@ -27,10 +27,19 @@ class ShopifyDataProcessor:
             if not cursor:
                 return False
 
-            cursor.execute(
-                    """select store.id, store.url, store.token, store.name from store left join user on store.user_id = user.id where user.is_active = 1""")
-
-            stores = cursor.fetchall()
+            # 如果store为None，证明任务是周期性任务，否则为 新店铺
+            if not store:
+                # 判断此店铺的update_time最大一条数据，如果此数据小于当前时间23小时，就继续。
+                cursor.execute(
+                    """select * from `product` where store_id = 1 order by update_time desc limit 1""")
+                product_category = cursor.fetchone()
+                if not product_category:
+                    return False
+                cursor.execute(
+                        """select store.id, store.url, store.token, store.name from store left join user on store.user_id = user.id where user.is_active = 1""")
+                stores = cursor.fetchall()
+            else:
+                stores = store
 
             # 组装store和collection和product数据，之后放入redis中
             store_collections_dict = {}
@@ -140,7 +149,7 @@ class ShopifyDataProcessor:
         logger.exception("[update_shopify_product] is finished")
         return True
 
-    def update_shopify_collections(self, store_id):
+    def update_shopify_collections(self, store=None):
         """
         1. 获取所有店铺的所有类目，并保存至数据库
         """
@@ -151,9 +160,22 @@ class ShopifyDataProcessor:
             if not cursor:
                 return False
 
-            cursor.execute(
-                    """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
-            stores = cursor.fetchall()
+            # 如果store为None，证明任务是周期性任务，否则为 新店铺
+            if not store:
+                # 判断此店铺的update_time最大一条数据，如果此数据小于当前时间23小时，就继续。
+                cursor.execute(
+                    """select update_time from `product_category` where store_id = 1 order by update_time desc limit 1""")
+                product_category = cursor.fetchone()
+                if not product_category:
+                    return False
+                yesterday_time = (datetime.datetime.now() - datetime.timedelta(hours=24))
+                if product_category[0] > yesterday_time:
+                    return False
+                cursor.execute(
+                        """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
+                stores = cursor.fetchall()
+            else:
+                stores = store
 
             for store in stores:
                 store_id, store_url, store_token = store
@@ -207,7 +229,7 @@ class ShopifyDataProcessor:
             conn.close() if conn else 0
         return True
 
-    def update_shopify_orders(self):
+    def update_shopify_orders(self, store=None):
         """更新店铺的订单"""
         logger.info("update_collection is cheking...")
         try:
@@ -215,17 +237,24 @@ class ShopifyDataProcessor:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
-
-            cursor.execute(
-                    """select store.id, store.url, store.token, store.order_init from store left join user on store.user_id = user.id where user.is_active = 1""")
-            stores = cursor.fetchall()
-            if not stores:
-                return False
+            # 如果store为None，证明任务是周期性任务，否则为 新店铺
+            if not store:
+                # 判断此店铺的update_time最大一条数据，如果此数据小于当前时间23小时，就继续。
+                cursor.execute(
+                    """select update_time from `order_event` where store_id = 1 order by update_time desc limit 1""")
+                product_category = cursor.fetchone()
+                if not product_category:
+                    return False
+                cursor.execute(
+                        """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
+                stores = cursor.fetchall()
+                if not stores:
+                    return False
+            else:
+                stores = store
 
             for store in stores:
-                store_id, store_url, store_token, store_init = store
-                if store_init == 1:
-                    continue
+                store_id, store_url, store_token = store
 
                 cursor.execute(
                     """select order_uuid from order_event where store_id={}""".format(store_id))
@@ -275,9 +304,6 @@ class ShopifyDataProcessor:
 
                         # 拉完了
                         if len(orders) < 100:
-                            cursor.execute(
-                                '''update `store` set order_init=1 where id=%s''',(store_id))
-                            conn.commit()
                             break
                         else:
                             created_at_max = orders[-1].get("created_at", "")
@@ -290,7 +316,7 @@ class ShopifyDataProcessor:
             conn.close() if conn else 0
         return True
 
-    def update_top_product(self):
+    def update_top_product(self,store=None):
         """更新tot product"""
         logger.info("update_top_product is cheking...")
         try:
@@ -298,12 +324,14 @@ class ShopifyDataProcessor:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
-
-            cursor.execute(
-                """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
-            stores = cursor.fetchall()
-            if not stores:
-                return False
+            if not store:
+                cursor.execute(
+                    """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
+                stores = cursor.fetchall()
+                if not stores:
+                    return False
+            else:
+                stores = store
 
             for store in stores:
                 store_id, store_url, store_token = store
@@ -458,24 +486,23 @@ class ShopifyDataProcessor:
                 return False
 
             cursor.execute(
-                """select store.id, store.url, store.token, store.init from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
-            stores = cursor.fetchall()
-            if not stores:
+                """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
+            store = cursor.fetchone()
+            if not store:
                 return False
 
             update_time = datetime.datetime.now()
-            store_list = [item[0] for item in stores]
 
             cursor.execute(
-                '''update `store` set init=%s,update_time=%s where id in %s''',(1, update_time, store_list))
+                '''update `store` set init=%s,update_time=%s where id=%s''',(1, update_time, store[0]))
             conn.commit()
 
-            for store in stores:
-                store_id, store_url, store_token = store
-
-                self.update_shopify_collections(store_id)
-
-
+            store = (store,)
+            self.update_shopify_collections(store)
+            self.update_shopify_orders(store)
+            self.update_shopify_product(store)
+            # TODD 拉客户
+            self.update_top_product(store)
 
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
@@ -492,4 +519,5 @@ if __name__ == '__main__':
     #ShopifyDataProcessor(db_info=db_info).update_top_product()
 
 
-    ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    #ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
