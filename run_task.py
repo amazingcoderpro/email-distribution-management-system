@@ -29,7 +29,7 @@ class TaskProcessor:
         self.bk_scheduler.start()
         self.tasks = []
 
-    def create_periodic_task(self, func, seconds, *args, **kwargs):
+    def create_periodic_task(self, func, seconds, max_instances=10, *args, **kwargs):
         """
         创建间隔性任务
         :param func: 任务处理函数
@@ -39,7 +39,7 @@ class TaskProcessor:
         :return: （True, task_id） --成功或失败, 成功时task id不为None
         """
         try:
-            task_id = self.bk_scheduler.add_job(func, 'interval', seconds=seconds, args=args, kwargs=kwargs)
+            task_id = self.bk_scheduler.add_job(func, 'interval', seconds=seconds, max_instances=max_instances, args=args, kwargs=kwargs)
             self.tasks.append({'task_name': func.__name__, "task_id": task_id})
         except Exception as e:
             logger.exception("create_periodic_task　failed, e={}".format(e))
@@ -176,7 +176,11 @@ def run():
 
     #shopify 定时更新任务, 请放在这下面
     sdp = ShopifyDataProcessor(db_info=db_info)
-    tp.create_periodic_task(sdp.update_top_product, seconds=100)
+    #tp.create_periodic_task(sdp.update_top_product, seconds=100)
+
+    # 更新新店铺
+    tp.create_periodic_task(sdp.update_new_shopify, seconds=120, max_instances=50)
+
 
     # ems 定时更新任务请放在这下面
     pass

@@ -140,7 +140,7 @@ class ShopifyDataProcessor:
         logger.exception("[update_shopify_product] is finished")
         return True
 
-    def update_shopify_collections(self):
+    def update_shopify_collections(self, store_id):
         """
         1. 获取所有店铺的所有类目，并保存至数据库
         """
@@ -449,7 +449,7 @@ class ShopifyDataProcessor:
             conn.close() if conn else 0
         return True
 
-    def main(self):
+    def update_new_shopify(self):
         logger.info("main is cheking...")
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
@@ -458,13 +458,23 @@ class ShopifyDataProcessor:
                 return False
 
             cursor.execute(
-                """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
+                """select store.id, store.url, store.token, store.init from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
             stores = cursor.fetchall()
             if not stores:
                 return False
 
+            update_time = datetime.datetime.now()
+            store_list = [item[0] for item in stores]
+
+            cursor.execute(
+                '''update `store` set init=%s,update_time=%s where id in %s''',(1, update_time, store_list))
+            conn.commit()
+
             for store in stores:
                 store_id, store_url, store_token = store
+
+                self.update_shopify_collections(store_id)
+
 
 
         except Exception as e:
@@ -477,7 +487,9 @@ class ShopifyDataProcessor:
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
-    ShopifyDataProcessor(db_info=db_info).update_shopify_product()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     #ShopifyDataProcessor(db_info=db_info).update_top_product()
 
+
+    ShopifyDataProcessor(db_info=db_info).update_new_shopify()

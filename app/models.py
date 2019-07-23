@@ -59,20 +59,25 @@ class Dashboard(models.Model):
     orders = models.IntegerField(default=0, verbose_name="Orders")
     repeat_purchase_rate = models.FloatField(blank=True, null=True,  verbose_name="Repeat Purchase Rate")
     conversion_rate = models.FloatField(blank=True, null=True,   verbose_name="Conversion Rate")
-    sent = models.IntegerField(blank=True, null=True,  verbose_name="Sent")
-    open_rate = models.FloatField(blank=True, null=True,  verbose_name="Open Rate")
-    click_rate = models.FloatField(blank=True, null=True,  verbose_name="Click Rate")
-    unsubscribe_rate = models.FloatField(blank=True, null=True,  verbose_name="Unsubscribe Rate")
+    # delta_sent = models.IntegerField(blank=True, null=True,  verbose_name="Sent 增量")
+    # delta_open = models.IntegerField(blank=True, null=True,  verbose_name="Open 增量")
+    # delta_click = models.IntegerField(blank=True, null=True,  verbose_name="Click 增量")
+    # open_rate = models.FloatField(blank=True, null=True,  verbose_name="Open Rate")
+    # click_rate = models.FloatField(blank=True, null=True,  verbose_name="Click Rate")
+    # unsubscribe_rate = models.FloatField(blank=True, null=True,  verbose_name="Unsubscribe Rate")
     total_revenue = models.FloatField(blank=True, null=True,  verbose_name="Revenue")
     total_orders = models.IntegerField(blank=True, null=True,  verbose_name="Orders")
     total_repeat_purchase_rate = models.FloatField(blank=True, null=True,  verbose_name="Repeat Purchase Rate")
     total_conversion_rate = models.FloatField(blank=True, null=True,  verbose_name="Conversion Rate")
-    total_sent = models.IntegerField(blank=True, null=True,  verbose_name="Sent")
-    total_open_rate = models.FloatField(blank=True, null=True,  verbose_name="Open Rate")
-    total_click_rate = models.FloatField(blank=True, null=True,  verbose_name="Click Rate")
-    total_unsubscribe_rate = models.FloatField(blank=True, null=True,  verbose_name="Unsubscribe Rate")
+    total_sent = models.IntegerField(blank=True, null=True,  verbose_name="Sent总量")
+    total_open = models.IntegerField(blank=True, null=True,  verbose_name="Open总量")
+    total_click = models.IntegerField(blank=True, null=True,  verbose_name="Click总量")
+    total_unsubscribe = models.IntegerField(blank=True, null=True,  verbose_name="Unsubscribe总量")
+    avg_open_rate = models.FloatField(blank=True, null=True,  verbose_name="Open Rate")
+    avg_click_rate = models.FloatField(blank=True, null=True,  verbose_name="Click Rate")
+    avg_unsubscribe_rate = models.FloatField(blank=True, null=True,  verbose_name="Unsubscribe Rate")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(verbose_name="店铺id")
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -110,6 +115,20 @@ class EmailTemplate(models.Model):
         managed = False
         db_table = 'email_template'
         ordering = ["update_time"]
+
+
+class EmailTask(models.Model):
+    template = models.ForeignKey(EmailTemplate, on_delete=models.DO_NOTHING)
+    state_choices = ((0, '待发送'), (1, '已发送(成功)'), (2, "模板已删除"), (3, '已发送但发送失败'))
+    state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件发送状态")
+    remark = models.TextField(blank=True, null=True, verbose_name="备注")
+    execute_time = models.DateTimeField(db_index=True, verbose_name="执行时间")
+    finished_time = models.DateTimeField(blank=True, null=True, verbose_name="完成时间")
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    class Meta:
+        db_table = 'email_task'
 
 
 class EmailRecord(models.Model):
