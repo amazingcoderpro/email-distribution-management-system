@@ -37,7 +37,7 @@ class GoogleApi():
                     'reportRequests': [
                         {
                             'viewId': self.VIEW_ID,
-                            'dateRanges': [{'startDate': '1daysAgo', 'endDate': 'today'}],
+                            'dateRanges': [{'startDate': '1000daysAgo', 'endDate': 'today'}],
                             'metrics': [
                                 {"expression": "ga:sessions"},
                                 {"expression": "ga:transactions"},  # 交易数量

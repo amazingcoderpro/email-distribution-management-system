@@ -201,7 +201,9 @@ class EMSDataProcessor:
                     total_orders += orders
                     total_sessions += sessions
                     total_revenue += revenue
+                    # 平均转换率  总支付订单数÷总流量
                     avg_conversion_rate = round(total_orders * 100 / total_sessions, 2) if total_sessions else 0
+                    # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
                     avg_repeat_purchase_rate = round(orders_gte2*100/total_cumtomers, 2) if total_cumtomers else 0
                 else:
                     sessions=orders=revenue=total_orders=total_sessions=total_revenue=avg_conversion_rate=avg_repeat_purchase_rate = 0
