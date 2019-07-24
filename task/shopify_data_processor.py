@@ -277,7 +277,6 @@ class ShopifyDataProcessor:
                     return False
             else:
                 stores = input_store
-
             for store in stores:
                 store_id, store_url, store_token, *_ = store
 
@@ -341,6 +340,7 @@ class ShopifyDataProcessor:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
+        logger.info("update_shopify_orders id finished")
         return True
 
     def update_top_product(self,store=None):
@@ -496,12 +496,13 @@ class ShopifyDataProcessor:
                         '''update `top_product` set top_thirty=%s,update_time=%s where store_id=%s''', (json.dumps(top_thirty_list),current_time, store_id))
                     conn.commit()
         except Exception as e:
-            logger.exception("update_collection e={}".format(e))
+            logger.exception("update_top_product e={}".format(e))
             return False
         finally:
             cursor.close() if cursor else 0
             cursor_dict.close() if cursor_dict else 0
             conn.close() if conn else 0
+        logger.info("update_top_product is finished...")
         return True
 
     def update_new_shopify(self):
@@ -664,8 +665,8 @@ class ShopifyDataProcessor:
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
-    ShopifyDataProcessor(db_info=db_info).update_shopify_product()
-    # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     #ShopifyDataProcessor(db_info=db_info).update_top_product()
     #ShopifyDataProcessor(db_info=db_info).update_new_shopify()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
