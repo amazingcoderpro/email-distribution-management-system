@@ -226,6 +226,7 @@ class ShopifyDataProcessor:
                     continue
 
                 papi = ProductsApi(store_token, store_url)
+
                 # 更新产品类目信息
                 res = papi.get_all_collections()
                 if res["code"] == 1:
@@ -514,7 +515,7 @@ class ShopifyDataProcessor:
                 return False
 
             cursor.execute(
-                """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
+                """select store.id, store.url, store.token, store_create_time from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
             store = cursor.fetchone()
             if not store:
                 logger.info("update_new_shopify is ending... no store need update")
