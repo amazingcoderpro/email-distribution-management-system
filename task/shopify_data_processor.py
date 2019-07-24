@@ -263,12 +263,6 @@ class ShopifyDataProcessor:
                 return False
             # 如果store为None，证明任务是周期性任务，否则为 新店铺
             if not store:
-                # 判断此店铺的update_time最大一条数据，如果此数据小于当前时间23小时，就继续。
-                # cursor.execute(
-                #     """select update_time from `order_event` where store_id = 1 order by update_time desc limit 1""")
-                # product_category = cursor.fetchone()
-                # if not product_category:
-                #     return False
                 cursor.execute(
                         """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
                 stores = cursor.fetchall()
