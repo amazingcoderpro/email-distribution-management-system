@@ -531,8 +531,9 @@ class ShopifyDataProcessor:
             self.update_shopify_collections(store)
             self.update_shopify_orders(store)
             self.update_shopify_product(store)
-            # TODD 拉客户
+            # TODO 新店铺拉客户
             self.update_top_product(store)
+            # TODO 新店铺创建模版
             logger.info("update_new_shopify end init data store_id={}".format(store[0]))
 
         except Exception as e:
