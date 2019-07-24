@@ -226,6 +226,7 @@ class ShopifyDataProcessor:
                     continue
 
                 papi = ProductsApi(store_token, store_url)
+
                 # 更新产品类目信息
                 res = papi.get_all_collections()
                 if res["code"] == 1:
@@ -664,7 +665,7 @@ class ShopifyDataProcessor:
 
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
-    #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     #ShopifyDataProcessor(db_info=db_info).update_top_product()
