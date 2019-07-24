@@ -11,12 +11,12 @@ import requests
 
 
 class ExpertSender:
-    def __init__(self, fromName, fromEmail, apiKey="0x53WuKGWlbq2MQlLhLk"):
-        self.api_key = apiKey
+    def __init__(self, from_name, from_email, api_key="0x53WuKGWlbq2MQlLhLk"):
+        self.api_key = api_key
         self.host = "https://api6.esv2.com/v2/"
         self.headers = {"Content-Type": "text/xml"}
-        self.from_name = fromName
-        self.from_email = fromEmail
+        self.from_name = from_name
+        self.from_email = from_email
 
     @staticmethod
     def xmltojson(xmlstr, type):
@@ -60,12 +60,12 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_messages(self, emailID=None):
+    def get_messages(self, email_id=None):
         """获取已发送邮件列表
         接口Url：http://sms.expertsender.cn/api/v2/methods/email-messages/get-messages-list/
         """
-        if emailID:
-            url = f"{self.host}Api/Messages/{emailID}?apiKey={self.api_key}"
+        if email_id:
+            url = f"{self.host}Api/Messages/{email_id}?apiKey={self.api_key}"
         else:
             url = f"{self.host}Api/Messages?apiKey={self.api_key}"
         try:
@@ -85,32 +85,32 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_message_statistics(self, emailID, startDate="1970-01-01", endDate=datetime.datetime.today().date()):
+    def get_message_statistics(self, email_id, start_date="1970-01-01", end_date=datetime.datetime.today().date()):
         """
         获取邮件统计数据
         接口Url：http://sms.expertsender.cn/api/v2/methods/email-statistics/get-message-statistics/
-        :param emailID: 邮件ID
-        :param startDate: 查询开始时间，默认为时间元年
-        :param endDate: 查询结束时间，默认为今天
+        :param email_id: 邮件ID
+        :param start_date: 查询开始时间，默认为时间元年
+        :param end_date: 查询结束时间，默认为今天
         :return: {'Sent': '61644', 'Bounced': '145', 'Delivered': '61499', 'Opens': '1754', 'UniqueOpens': '1190', 'Clicks': '224', 'UniqueClicks': '205', 'Clickers': '111', 'Complaints': '11', 'Unsubscribes': '159'}
         """
-        url = f"{self.host}Api/MessageStatistics/{emailID}?apiKey={self.api_key}&startDate={startDate}&endDate={endDate}"
+        url = f"{self.host}Api/MessageStatistics/{email_id}?apiKey={self.api_key}&startDate={start_date}&endDate={end_date}"
         try:
             result = requests.get(url)
             return self.retrun_result("get message statistics", result)
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def create_and_send_newsletter(self, listId_list, subject, contentFromUrl=None, plain="", html="", deliveryDate=None, timeZone="UTC"):
+    def create_and_send_newsletter(self, list_id_list, subject, content_from_url=None, plain="", html="", delivery_date=None):
         """
         创建及发送Newsletter, 注：如多个listId中存在同样的邮件，只会发一封邮件
         接口Url：http://sms.expertsender.cn/api/v2/methods/email-messages/create-and-send-newsletter/
-        :param listId_list: 发送列表ID组成的列表
+        :param list_id_list: 发送列表ID组成的列表
         :param subject: 邮件主题
         :param plain: 邮件纯文本
         :param html: html格式邮件内容
-        :param contentFromUrl: 外源下载时使用的Url
-        :param deliveryDate: 指定发送日期，默认为及时发送
+        :param content_from_url: 外源下载时使用的Url
+        :param delivery_date: 指定发送日期，默认为及时发送
         :return: 邮件ID
         """
         url = f"{self.host}Api/Newsletters"
@@ -131,12 +131,12 @@ class ExpertSender:
                         }
                     }
         }}
-        for listId in listId_list:
+        for listId in list_id_list:
             data["ApiRequest"]["Data"]["Recipients"]["SubscriberLists"]["SubscriberList"].append(listId)
-        if contentFromUrl:
-            data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": {"Url": contentFromUrl}})
-        if deliveryDate:
-            data["ApiRequest"]["Data"]["DeliverySettings"].update({"DeliveryDate": deliveryDate.replace(" ", "T")})
+        if content_from_url:
+            data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": {"Url": content_from_url}})
+        if delivery_date:
+            data["ApiRequest"]["Data"]["DeliverySettings"].update({"DeliveryDate": delivery_date.replace(" ", "T")})
         try:
             xml_data = self.jsontoxml(data)
             xml_data = xml_data % ("<![CDATA[%s]]>" % html)
@@ -145,13 +145,13 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def pause_or_resume_newsletter(self, action, emailId):
+    def pause_or_resume_newsletter(self, action, email_id):
         """所有状态为 “InProgress” （进行中）的Newsletter都可以被暂停. 只有状态为 “Paused” （暂停）的Newsletters 可以被继续.
         接口Url：http://sms.expertsender.cn/api/v2/methods/email-messages/pause-or-resume-newsletter/
         :param action: PauseMessage 或者 ResumeMessage
-        :param emailId: 邮件ID
+        :param email_id: 邮件ID
         """
-        url = f"{self.host}Api/Newsletters/{emailId}"
+        url = f"{self.host}Api/Newsletters/{email_id}"
         data = {"ApiRequest": {
             "ApiKey": self.api_key,
             "Action": action}}
@@ -161,11 +161,11 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def create_subscribers_list(self, name, isSeedList=False):
+    def create_subscribers_list(self, name, is_seed_list=False):
         """
         创建收件人列表http://sms.expertsender.cn/api/v2/methods/create-subscribers-list/
         :param name: 列表名称
-        :param isSeedList: 标记说明创建列表是收件人列表还是测试列表. 选填. 默认值是“false”（收件人列表）
+        :param is_seed_list: 标记说明创建列表是收件人列表还是测试列表. 选填. 默认值是“false”（收件人列表）
         :return: 列表ID
         """
         url = f"{self.host}Api/Lists"
@@ -174,7 +174,7 @@ class ExpertSender:
             "Data": {
                 "GeneralSettings": {
                     "Name": name,
-                    "isSeedList": str(isSeedList).lower()
+                    "isSeedList": str(is_seed_list).lower()
                 },
         }}}
         try:
@@ -183,24 +183,24 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_subscriber_lists(self, seedLists=False):
+    def get_subscriber_lists(self, seed_lists=False):
         """
         获取收件人列表http://sms.expertsender.cn/api/v2/methods/get-subscriber-lists/
-        :param seedLists: 如设为 ‘true’, 只有测试列表会被返回. 如果设为 ‘false’, 只有收件人列表会被返回.
+        :param seed_lists: 如设为 ‘true’, 只有测试列表会被返回. 如果设为 ‘false’, 只有收件人列表会被返回.
         :return:
         """
-        url = f"{self.host}Api/Lists?apiKey={self.api_key}&seedLists={seedLists}"
+        url = f"{self.host}Api/Lists?apiKey={self.api_key}&seedLists={seed_lists}"
         try:
             result = requests.get(url)
             return self.retrun_result("get subscriber lists", result)
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_list_or_segment_data(self, queryId, types="List"):
+    def get_list_or_segment_data(self, query_id, types="List"):
         """
         通过listId或者segmentId获取其下email
         http://sms.expertsender.cn/api/v2/methods/start-a-new-export/
-        :param queryId:
+        :param query_id:
         :param types:
         :return:a csv file
         """
@@ -213,9 +213,9 @@ class ExpertSender:
             }
 
         if types == "List":
-            data["ApiRequest"]["Data"].update({"ListId": queryId})
+            data["ApiRequest"]["Data"].update({"ListId": query_id})
         elif types == "Segment":
-            data["ApiRequest"]["Data"].update({"SegmentId": queryId})
+            data["ApiRequest"]["Data"].update({"SegmentId": query_id})
         else:
             return {"code": -1, "msg": "types input error, select 'List' or 'Segment'", "data": ""}
         try:
@@ -225,11 +225,11 @@ class ExpertSender:
             return {"code": -1, "msg": str(e), "data": ""}
 
 
-    def add_subscriber(self, listId, emailList):
+    def add_subscriber(self, list_id, email_list):
         """
         添加收件人http://sms.expertsender.cn/api/v2/methods/subscribers/add-subscriber/
-        :param listId: 收件人列表ID
-        :param emailList: 需要添加的email列表
+        :param list_id: 收件人列表ID
+        :param email_list: 需要添加的email列表
         :return:
         """
         url = f"{self.host}Api/Subscribers"
@@ -237,11 +237,11 @@ class ExpertSender:
             "ApiKey": self.api_key,
             "ReturnData": "true",
              "MultiData": {"Subscriber": []}}}
-        for email in emailList:
+        for email in email_list:
             data["ApiRequest"]["MultiData"]["Subscriber"].append(
                 {
                     "Mode": "AddAndUpdate",
-                    "ListId": listId,
+                    "ListId": list_id,
                     "Email": email,
                 }
             )
@@ -251,15 +251,15 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def delete_subscriber(self, email, listId=None):
+    def delete_subscriber(self, email, list_id=None):
         """
         删除收件人http://sms.expertsender.cn/api/v2/methods/subscribers/delete-subscriber/
-        :param listId: 指定列表ID,若未指定，则针对所有列表删除
+        :param list_id: 指定列表ID,若未指定，则针对所有列表删除
         :param email: email 地址
         :return:
         """
-        if listId:
-            url = f"{self.host}Api/Subscribers?apiKey={self.api_key}&email={email}&listId={listId}"
+        if list_id:
+            url = f"{self.host}Api/Subscribers?apiKey={self.api_key}&email={email}&listId={list_id}"
         else:
             url = f"{self.host}Api/Subscribers?apiKey={self.api_key}&email={email}"
         try:
@@ -284,13 +284,13 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_subscriber_statistics(self, listId):
+    def get_subscriber_statistics(self, list_id):
         """
         获取列表统计数据http://sms.expertsender.cn/api/v2/methods/email-statistics/get-subscriber-statistics/
-        :param listId: 收件人列表ID
+        :param list_id: 收件人列表ID
         :return:{'SubscriberStatistics': {'SubscriberStatistic': {'IsSummaryRow': 'true', 'ListSize': '1', 'Growth': '1', 'Added': '1', 'AddedUi': '1', 'AddedImport': '0', 'AddedApi': '0', 'AddedWeb': '0', 'Removed': '0', 'RemovedOptOut': '0', 'RemovedUser': '0', 'RemovedBounceLimit': '0', 'RemovedSpam': '0', 'RemovedUserUnknown': '0', 'RemovedBlacklist': '0', 'RemovedApi': '0', 'RemovedImport': '0'}}}
         """
-        url = f"{self.host}Api/SubscriberStatistics?apiKey={self.api_key}&scope=List&scopeValue={listId}"
+        url = f"{self.host}Api/SubscriberStatistics?apiKey={self.api_key}&scope=List&scopeValue={list_id}"
         try:
             result = requests.get(url)
             return self.retrun_result("get subscriber statistics", result)
@@ -310,15 +310,15 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def get_summary_statistics(self, queryId, types="List"):
+    def get_summary_statistics(self, query_id, types="List"):
         """
         获取细分组信息/列表组信息
         接口Url：http://sms.expertsender.cn/api/v2/methods/sms-mms-statistics/get-summary-statistics/
-        :param queryId:细分ID或者列表ID
+        :param query_id:细分ID或者列表ID
         :param types:查询类型 "List" or "Segment"
         :return:
         """
-        url = f"{self.host}Api/SummaryStatistics?apiKey={self.api_key}&scope={types}&scopeValue={queryId}"
+        url = f"{self.host}Api/SummaryStatistics?apiKey={self.api_key}&scope={types}&scopeValue={query_id}"
         try:
             result = requests.get(url)
             return self.retrun_result("get summary statistics", result)
@@ -336,13 +336,13 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def create_transactional_message(self, subject, plain="", html="", contentFromUrl=None):
+    def create_transactional_message(self, subject, plain="", html="", content_from_url=None):
         """
         创建事务性邮件 http://sms.expertsender.cn/api/v2/methods/email-messages/create-transactional-message/
         :param subject: 邮件主题
         :param plain: 邮件纯文本
         :param html: 邮件html内容
-        :param contentFromUrl: 邮件资源地址，如都有取其后
+        :param content_from_url: 邮件资源地址，如都有取其后
         :return: 事务邮件ID
         """
         url = f"{self.host}Api/TransactionalsCreate"
@@ -358,8 +358,8 @@ class ExpertSender:
                 },
             }
         }}
-        if contentFromUrl:
-            data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": {"Url": contentFromUrl}})
+        if content_from_url:
+            data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": {"Url": content_from_url}})
         try:
             xml_data = self.jsontoxml(data)
             xml_data = xml_data % ("<![CDATA[%s]]>" % html)
@@ -368,18 +368,18 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def send_transactional_messages(self, emailId, toEmail):
+    def send_transactional_messages(self, email_id, to_email):
         """
         发送事务性邮件 http://sms.expertsender.cn/api/v2/methods/email-messages/send-transactional-messages/
-        :param emailId: 事务邮件ID
-        :param toEmail: 收件人，一次只能发送一个
+        :param email_id: 事务邮件ID
+        :param to_email: 收件人，一次只能发送一个
         :return:
         """
-        url = f"{self.host}Api/Transactionals/{emailId}"
+        url = f"{self.host}Api/Transactionals/{email_id}"
         data = {"ApiRequest": {
             "ApiKey": self.api_key,
             "Data": {
-                "Receiver": {"Email": toEmail}}
+                "Receiver": {"Email": to_email}}
             }}
         try:
             result = requests.post(url, self.jsontoxml(data), headers=self.headers)
@@ -387,33 +387,33 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def update_transactional_message(self, emailId, fromName, fromEmail, subject, plain="", html="", contentFromUrl=None):
+    def update_transactional_message(self, email_id, from_name, from_email, subject, plain="", html="", content_from_url=None):
         """
         更新事务性邮件 http://sms.expertsender.cn/api/v2/methods/email-messages/update-transactional-message/
-        :param emailId: 事务邮件ID
-        :param fromName: 发件人姓名
-        :param fromEmail: 发件人邮箱
+        :param email_id: 事务邮件ID
+        :param from_name: 发件人姓名
+        :param from_email: 发件人邮箱
         :param subject: 邮件主题
         :param plain: 邮件纯文本
         :param html: 邮件html内容
-        :param contentFromUrl: 邮件资源链接地址
+        :param content_from_url: 邮件资源链接地址
         :return: None
         """
-        url = f"{self.host}Api/TransactionalsUpdate/{emailId}"
+        url = f"{self.host}Api/TransactionalsUpdate/{email_id}"
         data = {"ApiRequest": {
             "ApiKey": self.api_key,
             "Data": {
                 "Content": {
-                    "FromName": fromName,
-                    "FromEmail": fromEmail,
+                    "FromName": from_name,
+                    "FromEmail": from_email,
                     "Subject": subject,
                     "Plain": plain,
                     "Html": "%s",
                 },
             }
         }}
-        if contentFromUrl:
-            data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": {"Url": contentFromUrl}})
+        if content_from_url:
+            data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": {"Url": content_from_url}})
         try:
             xml_data = self.jsontoxml(data)
             xml_data = xml_data % ("<![CDATA[%s]]>" % html)
@@ -422,14 +422,14 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def delete_message(self, emailId):
+    def delete_message(self, email_id):
         """
         移动邮件到已删除, 如果邮件正在发送中，则将被自动取消.
         http://sms.expertsender.cn/api/v2/methods/email-messages/delete-message/
-        :param emailId: 邮件ID
+        :param email_id: 邮件ID
         :return:
         """
-        url = f"{self.host}Api/Messages/{emailId}?apiKey={self.api_key}"
+        url = f"{self.host}Api/Messages/{email_id}?apiKey={self.api_key}"
         try:
             result = requests.delete(url)
             return self.retrun_result("delete message", result)
@@ -534,9 +534,9 @@ if __name__ == '__main__':
     # print(ems.get_message_statistics(328))
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))
-    # print(ems.add_subscriber(29, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
+    print(ems.add_subscriber(29, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
     # html = open("index.html")
-    print(ems.create_and_send_newsletter([29], "HelloWorld TTT", html=html_b)) # ,"2019-07-09 21:09:00"
+    # print(ems.create_and_send_newsletter([29], "HelloWorld TTT", html=html_b)) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
