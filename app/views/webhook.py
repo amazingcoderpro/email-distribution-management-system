@@ -53,6 +53,7 @@ class EventOrderCreate(APIView):
         res["order_create_time"] = datetime.datetime.strptime(create_time, "%Y-%m-%d %H:%M:%S")
         res["customer_uuid"] = request.data["customer"]["id"]
         res["create_time"] = datetime.datetime.now()
+        order_instance = models.OrderEvent.objects.filter(store=store, order_uuid=request.data["id"]).first()
         li = []
         for item in request.data["line_items"]:
             product_id = item["product_id"]
@@ -61,7 +62,12 @@ class EventOrderCreate(APIView):
             quantity = item["quantity"]
             li.append({"product_id": product_id, "title": title, "price": price, "quantity": quantity})
         res["product_info"] = json.dumps(li)
-        models.OrderEvent.objects.create(**res)
+        if order_instance:
+            order_instance.product_info = res["product_info"]
+            order_instance.total_price = res["total_price"]
+            order_instance.save()
+        else:
+            models.OrderEvent.objects.create(**res)
         customer_instance = models.Customer.objects.filter(uuid=request.data["customer"]["id"]).first()
         if not customer_instance:
             customer_res = {}

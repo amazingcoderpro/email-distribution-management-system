@@ -67,7 +67,7 @@ class StoreOperView(generics.UpdateAPIView):
     authentication_classes = (JSONWebTokenAuthentication,)
 
 
-class EmailTemplate(generics.ListCreateAPIView):
+class EmailTemplateView(generics.ListCreateAPIView):
     """邮件模版展示 增加"""
     queryset = models.EmailTemplate.objects.all()
     serializer_class = service.EmailTemplateSerializer
@@ -140,7 +140,7 @@ class UploadPicture(APIView):
         return Response({"base64_str": base64_str})
 
 
-class EmailTrigger(generics.ListCreateAPIView):
+class EmailTriggerView(generics.ListCreateAPIView):
     """邮件 Trigger展示 增加"""
     queryset = models.EmailTrigger.objects.all()
     serializer_class = service.EmailTriggerSerializer

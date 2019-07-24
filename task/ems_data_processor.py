@@ -166,9 +166,14 @@ class EMSDataProcessor:
                 avg_open_rate = round(open_rate/email_count,2) if open_rate and email_count else 0
                 avg_click_rate = round(click_rate/email_count,2) if click_rate and email_count else 0
                 avg_unsubscribe_rate = round(unsubscribe_rate/email_count,2) if unsubscribe_rate and email_count else 0
-
+                # 配置时间
+                now_date = datetime.datetime.now()
+                zero_time = now_date - datetime.timedelta(hours=now_date.hour, minutes=now_date.minute,
+                                                           seconds=now_date.second, microseconds=now_date.microsecond)
+                last_time = zero_time + datetime.timedelta(hours=23, minutes=59, seconds=59)
                 # 获取当前店铺所有的orders
-                cursor.execute("""select total_orders, total_revenue, total_sessions from dashboard where store_id= %s order by -id limit 1""", (store_id,))
+                cursor.execute("""select total_orders, total_revenue, total_sessions from dashboard where store_id= %s and update_time between %s and %s""",
+                               (store_id, zero_time-datetime.timedelta(days=1), last_time-datetime.timedelta(days=1)))
                 orders_info = cursor.fetchone()
                 if orders_info:
                     total_orders, total_revenue, total_sessions = orders_info
@@ -196,16 +201,15 @@ class EMSDataProcessor:
                     total_orders += orders
                     total_sessions += sessions
                     total_revenue += revenue
+                    # 平均转换率  总支付订单数÷总流量
                     avg_conversion_rate = round(total_orders * 100 / total_sessions, 2) if total_sessions else 0
+                    # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
                     avg_repeat_purchase_rate = round(orders_gte2*100/total_cumtomers, 2) if total_cumtomers else 0
                 else:
                     sessions=orders=revenue=total_orders=total_sessions=total_revenue=avg_conversion_rate=avg_repeat_purchase_rate = 0
 
                 # 更新数据入库
-                now_date = datetime.datetime.now()
-                start_time = now_date - datetime.timedelta(hours=now_date.hour, minutes=now_date.minute, seconds=now_date.second,microseconds=now_date.microsecond)
-                end_time = start_time + datetime.timedelta(hours=23, minutes=59, seconds=59)
-                cursor.execute("""select id from dashboard where store_id=%s and update_time between %s and %s""", (store_id, start_time, end_time))
+                cursor.execute("""select id from dashboard where store_id=%s and update_time between %s and %s""", (store_id, zero_time, last_time))
                 dashboard_id = cursor.fetchone()
                 if dashboard_id:
                     # update
@@ -235,7 +239,7 @@ class EMSDataProcessor:
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
-    obj.insert_subscriber_activity()
+    # obj.insert_subscriber_activity()
     # obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
-    # obj.insert_dashboard_data()
+    obj.insert_dashboard_data()

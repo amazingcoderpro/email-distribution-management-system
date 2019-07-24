@@ -25,13 +25,13 @@ v1_urlpatterns = [
     url(r'^customer_group/(?P<pk>[0-9]+)/$', service.CustomerGroupOptView.as_view()),
 
     # 邮件管理
-    url(r'^email_template/$', service.EmailTemplate.as_view()),
+    url(r'^email_template/$', service.EmailTemplateView.as_view()),
     url(r'^email_template/(?P<pk>[0-9]+)/$', service.EmailTemplateOptView.as_view()),
     url(r'^top_product/$', service.TopProductView.as_view()),
     url(r'^upload_picture/$', service.UploadPicture.as_view()),
 
     # 邮件触发器
-    url(r'^email_trigger/$', service.EmailTrigger.as_view()),
+    url(r'^email_trigger/$', service.EmailTriggerView.as_view()),
     url(r'^email_trigger/(?P<pk>[0-9]+)/$', service.EmailTriggerOptView.as_view()),
 
     # 测试发送邮件
