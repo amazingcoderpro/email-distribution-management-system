@@ -71,8 +71,10 @@ if __name__ == '__main__':
     # ShopifyBase = ShopifyBase(shop_uri="ordersea.myshopify.com")
 
     # shopify 授权获取的url
-    ShopifyBase = ShopifyBase(shop_uri="tiptopfree.myshopify.com")
+    ShopifyBase = ShopifyBase(shop_uri="charrcter.myshopify.com")
     # ShopifyBase.get_token(code="d550a36479c1fd7daff5aa217a82dd07")
-    url = ShopifyBase.ask_permission(nonce="tiptopfree")
+    url = ShopifyBase.ask_permission(nonce="charrcter")
 
     print(url)
+
+    "https://partners.shopify.com/admin/oauth/authorize?client_id=14afd1038ae052d9f13604af3e5e3ce3&scope=read_content,write_content,read_themes,write_themes,read_products,write_products,read_product_listings,read_customers,write_customers,read_orders,write_orders,read_shipping,write_draft_orders,read_inventory,write_inventory,read_shopify_payments_payouts,read_draft_orders,read_locations,read_script_tags,write_script_tags,read_fulfillments,write_shipping,read_analytics,read_checkouts,write_resource_feedbacks,write_checkouts,read_reports,write_reports,read_price_rules,write_price_rules,read_marketing_events,write_marketing_events,read_resource_feedbacks,read_shopify_payments_disputes,write_fulfillments&redirect_uri=https%3A//smartsend.seamarketings.com/api/v1/auth/shopify/callback/&state=partners&grant_options[]="
