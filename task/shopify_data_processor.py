@@ -515,7 +515,7 @@ class ShopifyDataProcessor:
                 return False
 
             cursor.execute(
-                """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
+                """select store.id, store.url, store.token, store_create_time from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
             store = cursor.fetchone()
             if not store:
                 logger.info("update_new_shopify is ending... no store need update")
@@ -665,7 +665,7 @@ class ShopifyDataProcessor:
 
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
-    ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     #ShopifyDataProcessor(db_info=db_info).update_top_product()
