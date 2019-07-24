@@ -39,7 +39,7 @@ class ShopifyDataProcessor:
         except Exception as e:
             logger.exception("save_customer_db e={}".format(e))
 
-    def update_shopify_product(self, store=None):
+    def update_shopify_product(self, input_store=None):
         """
          获取所有店铺的所有products, 并保存至数据库
          :return:
@@ -52,24 +52,29 @@ class ShopifyDataProcessor:
                 return False
 
             # 如果store为None，证明任务是周期性任务，否则为 新店铺
-            if not store:
-                # 判断此店铺的update_time最大一条数据，如果此数据小于当前时间23小时，就继续。
-                cursor.execute(
-                    """select * from `product` where store_id = 1 order by update_time desc limit 1""")
-                product_category = cursor.fetchone()
-                if not product_category:
-                    return False
+            if not input_store:
                 cursor.execute(
                         """select store.id, store.url, store.token, store.name from store left join user on store.user_id = user.id where user.is_active = 1""")
                 stores = cursor.fetchall()
             else:
-                stores = store
+                stores = input_store
 
             # 组装store和collection和product数据，之后放入redis中
             store_collections_dict = {}
             store_product_dict = {}
             for store in stores:
                 store_id, store_url, store_token, *_ = store
+
+                if not input_store:
+                    # 判断此店铺的update_time最大一条数据，如果此数据小于当前时间23小时，就继续。
+                    cursor.execute(
+                        """select id,update_time from `product` where store_id = %s order by update_time desc limit 1"""%(store_id))
+                    product = cursor.fetchone()
+                    yesterday_time = (datetime.datetime.now() - datetime.timedelta(hours=24))
+                    if product and product[1] > yesterday_time:
+                        logger.warn("update_shopify_product this store was renewed in 24 hours store_id={} product_id={} product_update_time={}".format(store_id,product_category[0],product_category[1]))
+                        continue
+
                 if not all([store_url, store_token]):
                     logger.warning("[update_shopify_product] store_url or token is invalid, store id={}".format(store_id))
                     continue
@@ -173,7 +178,7 @@ class ShopifyDataProcessor:
         logger.exception("[update_shopify_product] is finished")
         return True
 
-    def update_shopify_collections(self, store=None):
+    def update_shopify_collections(self, input_store=None):
         """
         1. 获取所有店铺的所有类目，并保存至数据库
         """
@@ -185,24 +190,25 @@ class ShopifyDataProcessor:
                 return False
 
             # 如果store为None，证明任务是周期性任务，否则为 新店铺
-            if not store:
-                # 判断此店铺的update_time最大一条数据，如果此数据小于当前时间23小时，就继续。
-                cursor.execute(
-                    """select update_time from `product_category` where store_id = 1 order by update_time desc limit 1""")
-                product_category = cursor.fetchone()
-                if not product_category:
-                    return False
-                yesterday_time = (datetime.datetime.now() - datetime.timedelta(hours=24))
-                if product_category[0] > yesterday_time:
-                    return False
+            if not input_store:
                 cursor.execute(
                         """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
                 stores = cursor.fetchall()
             else:
-                stores = store
+                stores = input_store
 
             for store in stores:
-                store_id, store_url, store_token = store
+                store_id, store_url, store_token, *_ = store
+
+                if not input_store:
+                    # 判断此店铺的update_time最大一条数据，如果此数据小于当前时间23小时，就继续。
+                    cursor.execute(
+                        """select id, update_time from `product_category` where store_id = %s order by update_time desc limit 1"""%(store_id,))
+                    product_category = cursor.fetchone()
+                    yesterday_time = (datetime.datetime.now() - datetime.timedelta(hours=24))
+                    if product_category and product_category[1] > yesterday_time:
+                        logger.warn("update_collection this store was renewed in 24 hours store_id={} product_category_id={} product_category_update_time={}".format(store_id,product_category[0],product_category[1]))
+                        continue
 
                 # 取中已经存在的所有products, 只需更新即可
                 cursor.execute('''select id, category_id from `product_category` where store_id=%s''', (store_id))
@@ -251,9 +257,10 @@ class ShopifyDataProcessor:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
+        logger.info("update_collection update finished")
         return True
 
-    def update_shopify_orders(self, store=None):
+    def update_shopify_orders(self, input_store=None):
         """更新店铺的订单"""
         logger.info("update_shopify_orders is cheking...")
         try:
@@ -262,17 +269,17 @@ class ShopifyDataProcessor:
             if not cursor:
                 return False
             # 如果store为None，证明任务是周期性任务，否则为 新店铺
-            if not store:
+            if not input_store:
                 cursor.execute(
                         """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
                 stores = cursor.fetchall()
                 if not stores:
                     return False
             else:
-                stores = store
+                stores = input_store
 
             for store in stores:
-                store_id, store_url, store_token = store
+                store_id, store_url, store_token, *_ = store
 
                 cursor.execute(
                     """select order_uuid from order_event where store_id={}""".format(store_id))
@@ -657,8 +664,8 @@ class ShopifyDataProcessor:
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
-    #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     #ShopifyDataProcessor(db_info=db_info).update_top_product()
     #ShopifyDataProcessor(db_info=db_info).update_new_shopify()
-    ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
+    # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
