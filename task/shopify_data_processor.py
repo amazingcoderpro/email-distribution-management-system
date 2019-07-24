@@ -9,40 +9,6 @@ from task.db_util import DBUtil
 from config import logger
 
 
-def sync_last_order_info(store_id, cursor=None):
-    if not cursor:
-        conn = DBUtil().get_instance()
-        cursor = conn.cursor() if conn else None
-        if not cursor:
-            return False
-    cursor.execute(
-        """select `status`, `order_update_time`, `order_uuid` from order_event where store_id = %s""", (store_id, ))
-
-    ret = cursor.fetchall()
-    if ret:
-        cursor.executemany(
-            """update customer set `last_order_status`=%s, `last_order_time`=%s where last_order_id = %s""", ret)
-        conn.commit()
-
-
-def save_moth_customer(customer_insert_list, customer_update_list, cursor=None, conn=None):
-    if not cursor:
-        conn = DBUtil().get_instance()
-        cursor = conn.cursor() if conn else None
-        if not cursor:
-            return False
-
-    if customer_insert_list:
-        cursor.executemany('''insert into `customer` (`uuid`, `last_order_id`,`orders_count`,`sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
-                                                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                           customer_insert_list)
-        conn.commit()
-
-    if customer_update_list:
-        cursor.executemany('''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
-                           customer_update_list)
-        conn.commit()
-
 class ShopifyDataProcessor:
     def __init__(self, db_info):
         self.db_host = db_info.get("host", "")
@@ -50,6 +16,28 @@ class ShopifyDataProcessor:
         self.db_name = db_info.get("db", "")
         self.db_user = db_info.get("user", "")
         self.db_password = db_info.get("password", "")
+
+    def save_customer_db(self, customer_insert_list, customer_update_list, cursor=None, conn=None):
+        if not cursor:
+            conn = DBUtil().get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return False
+
+        try:
+            if customer_insert_list:
+                cursor.executemany('''insert into `customer` (`uuid`, `last_order_id`,`orders_count`,`sign_up_time`, `first_name`, `last_name`, `customer_email`, `accept_marketing_status`, `store_id`, `payment_amount`, `create_time`, `update_time`)
+                                                             values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                                   customer_insert_list)
+                conn.commit()
+
+            if customer_update_list:
+                cursor.executemany(
+                    '''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
+                    customer_update_list)
+                conn.commit()
+        except Exception as e:
+            logger.exception("save_customer_db e={}".format(e))
 
     def update_shopify_product(self, store=None):
         """
@@ -267,7 +255,7 @@ class ShopifyDataProcessor:
 
     def update_shopify_orders(self, store=None):
         """更新店铺的订单"""
-        logger.info("update_collection is cheking...")
+        logger.info("update_shopify_orders is cheking...")
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
@@ -275,12 +263,6 @@ class ShopifyDataProcessor:
                 return False
             # 如果store为None，证明任务是周期性任务，否则为 新店铺
             if not store:
-                # 判断此店铺的update_time最大一条数据，如果此数据小于当前时间23小时，就继续。
-                cursor.execute(
-                    """select update_time from `order_event` where store_id = 1 order by update_time desc limit 1""")
-                product_category = cursor.fetchone()
-                if not product_category:
-                    return False
                 cursor.execute(
                         """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
                 stores = cursor.fetchall()
@@ -300,18 +282,20 @@ class ShopifyDataProcessor:
                 papi = ProductsApi(store_token, store_url)
 
                 created_at_max = datetime.datetime.now()
-                created_at_min = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=5000), datetime.time.min)
+                created_at_min = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=121), datetime.time.min)
                 for i in range(0, 1000):
                     res = papi.get_all_orders(created_at_min, created_at_max)
                     if res["code"] != 1:
+                        logger.error("update order info failed, store id={}".format(store_id))
                         break
-                    if res["code"] == 1:
-                        orders = res["data"]["orders"]
+                    else:
+                        orders = res["data"].get("orders", [])
+                        logger.info("get store history order info succeed, orders={}".format(len(orders)))
                         for order in orders:
                             order_uuid = order["id"]
                             if order_uuid in order_list:
                                 continue
-                            if order["financial_status"] != "unpaid":
+                            if order["financial_status"] == "paid":
                                 status = 1
                             else:
                                 status = 0
@@ -339,13 +323,13 @@ class ShopifyDataProcessor:
                             order_list.append(order_uuid)
 
                         # 拉完了
-                        if len(orders) < 100:
+                        if len(orders) < 250:
                             break
                         else:
                             created_at_max = orders[-1].get("created_at", "")
 
         except Exception as e:
-            logger.exception("update_collection e={}".format(e))
+            logger.exception("update_shopify_orders e={}".format(e))
             return False
         finally:
             cursor.close() if cursor else 0
@@ -549,7 +533,7 @@ class ShopifyDataProcessor:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
-    def update_shopify_cuntomers(self):
+    def update_shopify_customers(self, store=None):
         """
         1. 更新所有客戶的信息
         2. 获取所有店铺的所有类目，并保存至数据库
@@ -560,31 +544,36 @@ class ShopifyDataProcessor:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
-            cursor.execute(
-                """select store.id, store.token, store.url from store left join user on store.user_id = user.id where user.is_active = 1""")
-            stores = cursor.fetchall()
+
+            if store:
+                stores = store
+            else:
+                cursor.execute(
+                    """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
+                stores = cursor.fetchall()
 
             for store in stores:
                 customer_insert_list = []
                 customer_update_list = []
                 total_insert_ids = []
 
-                store_id, store_token, store_url = store
-                papi = ProductsApi(store_token, store_url)
+                store_id, store_url, store_token = store
+                if not all([store_url, store_token]):
+                    logger.warning("the store have not url or token, store id={}".format(store_id))
+                    continue
 
+                papi = ProductsApi(store_token, store_url)
                 cursor.execute('''select uuid from `customer` where store_id=%s''', (store_id, ))
                 exist_customer = cursor.fetchall()
                 exist_customer_list = [item[0] for item in exist_customer]
 
-                i = 0
-                create_at_max = datetime.datetime.now()
+                times = 1
+                create_at_max = datetime.datetime.now()#- datetime.timedelta(days=210)
                 create_at_min = create_at_max - datetime.timedelta(days=30)
                 time_format = "%Y-%m-%dT%H:%M:%S"
-
                 store_create_time = datetime.datetime.now()-datetime.timedelta(days=400)    ##临时的
-                while i < 10000:
-                    i += 1
-                    logger.info("the %sth get customers;store:%s" % (i, store_id))
+                need_update_orders = []
+                while times < 10000:
                     create_at_max = create_at_max.strftime(time_format) if isinstance(create_at_max, datetime.datetime) else create_at_max[0:19]
                     create_at_min = create_at_min.strftime(time_format) if isinstance(create_at_min, datetime.datetime) else create_at_min[0:19]
                     # 已经超过店铺的创建时间
@@ -593,12 +582,11 @@ class ShopifyDataProcessor:
 
                     ret = papi.get_all_customers(limit=250, created_at_min=create_at_min, created_at_max=create_at_max)
                     if ret["code"] != 1:
-                        logger.warning("get shop customer failed. ret={}".format(ret))
-                        time.sleep(3)
+                        logger.warning("get shop customer failed. store_id={}, ret={}".format(store_id, ret))
                         continue
 
                     if ret["code"] == 1:
-                        customer_info = ret["data"].get("customers", "")
+                        customer_info = ret["data"].get("customers", [])
                         for customer in customer_info:
                             uuid = str(customer.get("id", ""))
                             customer_email = customer.get("email", "")
@@ -610,6 +598,11 @@ class ShopifyDataProcessor:
                             orders_count = int(customer.get("orders_count", ""))
                             last_order_id = customer.get("last_order_id", None)
                             payment_amount = customer.get("total_spent", "")
+
+                            #将需要同步信息的Order id保存下来，　并不是每个顾客都有last order 的
+                            if last_order_id:
+                                need_update_orders.append((store_id, last_order_id))
+
                             if uuid in exist_customer_list:
                                 customer_tuple = (
                                 last_order_id, orders_count, customer_email, accepts_marketing, datetime.datetime.now(),
@@ -626,20 +619,34 @@ class ShopifyDataProcessor:
 
                     cus_create_ats = [cus["created_at"] for cus in customer_info]
                     cus_create_ats = sorted(cus_create_ats)
+
                     if len(customer_info) >= 250:
                         new_create_at_max = datetime.datetime.strptime(cus_create_ats[0][0:19], time_format) - datetime.timedelta(seconds=1)
                         create_at_max = new_create_at_max.strftime(time_format)
                     else:
-                        # 每拉够一月，保存一次
-                        save_moth_customer(customer_insert_list, customer_update_list, cursor=cursor, conn=conn)
-
                         create_at_max = datetime.datetime.strptime(create_at_min, time_format) - datetime.timedelta(seconds=1)
                         create_at_min = create_at_max - datetime.timedelta(days=30)
-                        customer_insert_list = []
-                        customer_update_list = []
 
-                # 更新customer中的order数据
-                sync_last_order_info(store_id, cursor=cursor)
+                    # 拉一次存一次，以防止长时间后数据链接断开
+                    # 每拉够一月，保存一次
+                    logger.info("save_customer_db, times={}, insert list={}, update list={}, time min={}, time max={}, ".format(times, len(customer_insert_list), len(customer_update_list), create_at_min, create_at_max))
+                    self.save_customer_db(customer_insert_list, customer_update_list, cursor=cursor, conn=conn)
+                    customer_insert_list = []
+                    customer_update_list = []
+                    times += 1
+
+                # 更新customer中的last order数据
+                if need_update_orders:
+                    cursor.executemany(
+                        """select `status`, `order_update_time`, `order_uuid`, `store_id` from `order_event` where store_id=%s and order_uuid=%s""",
+                        need_update_orders)
+
+                    ret = cursor.fetchall()
+                    if ret:
+                        cursor.executemany(
+                            """update customer set `last_order_status`=%s, `last_order_time`=%s where last_order_id = %s and store_id=%s""",
+                            ret)
+                    conn.commit()
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
         finally:
@@ -651,7 +658,7 @@ if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
-    #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
+    # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     #ShopifyDataProcessor(db_info=db_info).update_top_product()
     #ShopifyDataProcessor(db_info=db_info).update_new_shopify()
-    #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
