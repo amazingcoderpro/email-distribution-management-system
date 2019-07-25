@@ -163,4 +163,34 @@ class EventDraftCustomersCreate(APIView):
         print("------------ Customer Create ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
+        costomer_uuid = request.data["id"]
+        user = request.user
+        store_id  = user.store.id
+        customer_email = request.data["email'"]
+        accept_marketing_status = request.data["accepts_marketing"]
+        sign_up_time = request.data["created_at"].replace("T", " ")[:-6]
+        first_name = request.data["first_name"]
+        last_name = request.data["last_name"]
+        orders_count = request.data["orders_count"]
+        last_order_id = request.data["last_order_id"]
+        payment_amount = request.data["payment_amount"]
+        create_time = request.data["created_at"].replace("T", " ")[:-6]
+        update_time = request.data["created_at"].replace("T", " ")[:-6]
+
+        costomer_instance = models.Customer.objects.create(
+                                                           store_id = store_id,
+                                                           uuid=costomer_uuid,
+                                                           customer_email= customer_email,
+                                                           accept_marketing_status= accept_marketing_status,
+                                                           sign_up_time=sign_up_time,
+                                                           first_name=first_name,
+                                                           last_name=last_name,
+                                                           orders_count=orders_count,
+                                                           last_order_id=last_order_id,
+                                                           payment_amount=payment_amount,
+                                                           create_time=create_time,
+                                                           update_time=update_time
+
+        )
+        costomer_instance.save()
         return Response({"code": 200})

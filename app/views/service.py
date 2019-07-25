@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from io import BytesIO
 import base64
-from PIL import Image
+# from PIL import Image
 
 from app import models
 from app.pageNumber.pageNumber import PNPagination
