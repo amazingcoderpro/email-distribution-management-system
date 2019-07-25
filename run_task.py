@@ -197,10 +197,10 @@ def run():
 
     # ems 定时更新任务请放在这下面
     ems = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
-    tp.create_cron_task(ems.insert_subscriber_activity, "*", 0, 1)  # 每天0:1:0拉取昨天一整天的行为记录
-    tp.create_cron_task(ems.update_customer_group_data, "*", 23, 50)  # 每天23:50:0更新到目前时间用户组最新ems数据
-    tp.create_cron_task(ems.update_email_reocrd_data, "*", 23, 50)  # 每天23:50:0更新到目前时间已发送邮件最新ems数据
-    tp.create_cron_task(ems.insert_dashboard_data, "*", 23, 50)  # 每天23:50:0更新dashboard最新数据
+    tp.create_cron_task(ems.insert_subscriber_activity, "*", 0, 30)  # 每天0:1:0拉取昨天一整天的行为记录
+    tp.create_cron_task(ems.update_customer_group_data, "*", 0, 5)  # 每天23:50:0更新到目前时间用户组最新ems数据
+    tp.create_cron_task(ems.update_email_reocrd_data, "*", 0, 5)  # 每天23:50:0更新到目前时间已发送邮件最新ems数据
+    tp.create_cron_task(ems.insert_dashboard_data, "*", 1, 0)  # 每天23:50:0更新dashboard最新数据
 
     while 1:
         time.sleep(1)

@@ -28,3 +28,8 @@ SHOPIFY_CONFIG = {
 SYS_CONFIG = {
     "system_timezone": "UTC/GMT +8 hours"
 }
+
+
+EMS_CONFIG = {
+    "api_key": "0x53WuKGWlbq2MQlLhLk"
+}
