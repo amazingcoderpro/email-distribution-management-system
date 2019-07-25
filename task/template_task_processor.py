@@ -5,7 +5,7 @@
 import pymysql
 import datetime
 import json
-from dateutil.relativedelta import relativedelta
+# from dateutil.relativedelta import relativedelta
 from config import logger
 from task.shopify_data_processor import DBUtil
 from sdk.ems import ems_api

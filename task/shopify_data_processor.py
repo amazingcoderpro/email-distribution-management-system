@@ -36,6 +36,7 @@ class ShopifyDataProcessor:
                     '''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
                     customer_update_list)
                 conn.commit()
+            logger.info("save customer  data is success")
         except Exception as e:
             logger.exception("save_customer_db e={}".format(e))
 

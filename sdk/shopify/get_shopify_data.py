@@ -237,12 +237,12 @@ if __name__ == '__main__':
     shop_uri = "charrcter.myshopify.com"
     products_api = ProductsApi(access_token=access_token, shop_uri=shop_uri)
     # print(products_api.get_all_customers(since_id="1493285240905"))
-    products_api.get_shop_info()
+    # products_api.get_shop_info()
     # since_id="1493285240905"
     # order_num = products_api.get_all_orders()
     # print(order_num["data"])
     # products_api.get_all_orders("2019-05-19T10:02:37+08:00")
-    # products_api.get_customer_count()
+    print(products_api.get_customer_count())
     # products_api.get_orders_id(order_id="503834869833")
     # print(products_api.get_customer_bydate("2019-03-1T00:00:00+08:00","2019-04-30T00:00:00+08:00"))
 
