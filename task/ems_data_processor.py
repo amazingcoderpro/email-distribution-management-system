@@ -95,7 +95,7 @@ class EMSDataProcessor:
                 if datas["code"]==1 and datas["data"]:
                     statistic = datas["data"]["SummaryStatistics"]["SummaryStatistic"]
                     sents, opens, clicks = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"])
-                    open_rate, click_rate = round(opens/sents, 2), round(clicks/sents, 2)
+                    open_rate, click_rate = (opens/sents) if sents else 0, (clicks/sents) if sents else 0
                     update_list.append((sents, opens, clicks, open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
             # 更新数据库
             cursor.executemany(
@@ -131,7 +131,10 @@ class EMSDataProcessor:
                 if datas["code"]==1 and datas["data"]:
                     statistic = datas["data"]
                     sents, opens, clicks, unsubscribes = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"]), int(statistic["Unsubscribes"])
-                    open_rate, click_rate, unsubscribe_rate = round(opens/sents, 2), round(clicks/sents, 2), round(unsubscribes/sents, 2)
+                    if sents:
+                        open_rate, click_rate, unsubscribe_rate = (opens/sents), (clicks/sents), (unsubscribes/sents)
+                    else:
+                        open_rate = click_rate = unsubscribe_rate = 0
                     update_list.append((sents, opens, clicks, unsubscribes, open_rate, click_rate, unsubscribe_rate, datetime.datetime.now(), uuid, store_id))
             # 更新数据库
             cursor.executemany("""update email_record set sents=%s, opens=%s, clicks=%s, unsubscribes=%s, open_rate=%s, click_rate=%s, unsubscribe_rate=%s, update_time=%s where uuid=%s and store_id=%s""",
@@ -163,9 +166,9 @@ class EMSDataProcessor:
                 cursor.execute("""select sum(sents),sum(opens),sum(clicks),sum(unsubscribes),sum(open_rate),sum(click_rate),
                 sum(unsubscribe_rate),count(uuid) from email_record where type in (0,1) and store_id=%s""", (store_id,))
                 sents,opens,clicks,unsubscribes,open_rate,click_rate,unsubscribe_rate,email_count = cursor.fetchone()
-                avg_open_rate = round(open_rate/email_count,2) if open_rate and email_count else 0
-                avg_click_rate = round(click_rate/email_count,2) if click_rate and email_count else 0
-                avg_unsubscribe_rate = round(unsubscribe_rate/email_count,2) if unsubscribe_rate and email_count else 0
+                avg_open_rate = (open_rate/email_count) if open_rate and email_count else 0
+                avg_click_rate = (click_rate/email_count) if click_rate and email_count else 0
+                avg_unsubscribe_rate = (unsubscribe_rate/email_count) if unsubscribe_rate and email_count else 0
                 # 配置时间
                 now_date = datetime.datetime.now()
                 zero_time = now_date - datetime.timedelta(hours=now_date.hour, minutes=now_date.minute,
@@ -201,8 +204,8 @@ class EMSDataProcessor:
                     total_orders += orders
                     total_sessions += sessions
                     total_revenue += revenue
-                    avg_conversion_rate = round(total_orders * 100 / total_sessions, 2) if total_sessions else 0
-                    avg_repeat_purchase_rate = round(orders_gte2*100/total_cumtomers, 2) if total_cumtomers else 0
+                    avg_conversion_rate = (total_orders * 100 / total_sessions) if total_sessions else 0
+                    avg_repeat_purchase_rate = (orders_gte2*100/total_cumtomers) if total_cumtomers else 0
                 else:
                     sessions=orders=revenue=total_orders=total_sessions=total_revenue=avg_conversion_rate=avg_repeat_purchase_rate = 0
 
@@ -238,6 +241,6 @@ if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
     # obj.insert_subscriber_activity()
-    # obj.update_customer_group_data()
+    obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
-    obj.insert_dashboard_data()
+    # obj.insert_dashboard_data()

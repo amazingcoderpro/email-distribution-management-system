@@ -6,12 +6,12 @@ import json
 import re
 
 import xmltodict
-from config import logger
+from config import logger, EMS_CONFIG
 import requests
 
 
 class ExpertSender:
-    def __init__(self, from_name, from_email, api_key="0x53WuKGWlbq2MQlLhLk"):
+    def __init__(self, from_name, from_email, api_key=EMS_CONFIG.get("api_key")):
         self.api_key = api_key
         self.host = "https://api6.esv2.com/v2/"
         self.headers = {"Content-Type": "text/xml"}
@@ -242,7 +242,7 @@ class ExpertSender:
                 {
                     "Mode": "AddAndUpdate",
                     "ListId": list_id,
-                    "Email": email,
+                    "Email": email.encode("utf-8"),
                 }
             )
         try:
@@ -531,10 +531,10 @@ if __name__ == '__main__':
 </body>
 </html>"""
     ems = ExpertSender("Leemon", "leemon.li@orderplus.com")
-    # print(ems.get_message_statistics(328))
+    # print(ems.get_message_statistics(372))
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))
-    print(ems.add_subscriber(29, ["twobercancan@126.com", "leemon.li@orderplus.com"]))
+    print(ems.add_subscriber(43, ["yakimov-1а@list.ru"]))
     # html = open("index.html")
     # print(ems.create_and_send_newsletter([29], "HelloWorld TTT", html=html_b)) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))

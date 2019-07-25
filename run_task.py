@@ -196,7 +196,7 @@ def run():
     tp.create_cron_task(ems.insert_subscriber_activity, "*", 0, 1)  # 每天0:1:0拉取昨天一整天的行为记录
     tp.create_cron_task(ems.update_customer_group_data, "*", 23, 50)  # 每天23:50:0更新到目前时间用户组最新ems数据
     tp.create_cron_task(ems.update_email_reocrd_data, "*", 23, 50)  # 每天23:50:0更新到目前时间已发送邮件最新ems数据
-    tp.create_cron_task(ems.insert_dashboard_data, "*", 23, 50)  # 每天23:50:0更新dashboard最新数据
+    tp.create_cron_task(ems.insert_dashboard_data, "*", 0, 1)  # 每天23:50:0更新dashboard最新数据
 
     while 1:
         time.sleep(1)
