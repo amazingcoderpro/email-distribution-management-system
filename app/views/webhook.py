@@ -121,10 +121,6 @@ class EventOrderPaid(APIView):
         return Response({"code": 200})
 
 
-
-
-
-
 class EventOrderFulfilled(APIView):
 
     def post(self, request, *args, **kwargs):
@@ -157,6 +153,14 @@ class EventDraftOrdersUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
         print("------------ DraftOrders Update ------------:")
+        # print(request.META, type(request.META))
+        print(json.dumps(request.data))
+        return Response({"code": 200})
+
+
+class EventDraftCustomersCreate(APIView):
+    def post(self, request, *args, **kwargs):
+        print("------------ Customer Create ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
         return Response({"code": 200})
