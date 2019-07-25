@@ -5,7 +5,7 @@
 import pymysql
 import datetime
 import json
-from dateutil.relativedelta import relativedelta
+# from dateutil.relativedelta import relativedelta
 from config import logger
 from task.shopify_data_processor import DBUtil
 from sdk.ems import ems_api
@@ -106,13 +106,18 @@ class TemplateProcessor:
             if not cursor:
                 return False
 
+            logger.info("execute_email_task checking..")
             # 先找出当前巡查周期内应该发送的邮件任务
-            dt_min = datetime.datetime.now()-datetime.timedelta(seconds=interval/2+2)
-            dt_max = datetime.datetime.now()+datetime.timedelta(seconds=interval/2+2)
+            dt_min = datetime.datetime.now()-datetime.timedelta(seconds=interval/2+10)
+            dt_max = datetime.datetime.now()+datetime.timedelta(seconds=interval/2+10)
             cursor.execute("""select id, template_id from `email_task` 
             where state=0 and execute_time>=%s and execute_time<=%s""", (dt_min, dt_max))
 
             tasks = cursor.fetchall()
+            if not tasks:
+                logger.info("This time have no task for executing.")
+                return
+
             for task in tasks:
                 # 遍历每一个任务，找到他对应的模板　
                 task_id, template_id = task
@@ -137,7 +142,7 @@ class TemplateProcessor:
 
                     if store and uuids:
                         # 拿到了所对应的邮件组id, 开始发送邮件
-                        exp = ems_api.ExpertSender(fromName=store[0], fromEmail=store[1])
+                        exp = ems_api.ExpertSender(from_name=store[0], from_email=store[1])
 
                         result = exp.create_and_send_newsletter(uuids, subject=subject, html=html)
                         send_result = result["code"]

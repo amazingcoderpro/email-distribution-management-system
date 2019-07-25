@@ -176,20 +176,24 @@ def run():
 
     # 定期更新customer group
     ac = AnalyzeCondition(db_info=db_info)
-    tp.create_periodic_task(ac.update_customer_group_list, seconds=3600)
+    tp.create_periodic_task(ac.update_customer_group_list, seconds=7200)
 
     # 模板解析定时任务
     tmp = TemplateProcessor(db_info=db_info)
-    tp.create_periodic_task(tmp.analyze_templates,  seconds=900)
+    tp.create_periodic_task(tmp.analyze_templates,  seconds=300)
 
     # 模板邮件定时发送任务
-    tp.create_periodic_task(tmp.execute_email_task, seconds=120, interval=120)
+    tp.create_periodic_task(tmp.execute_email_task, seconds=120, max_instances=50, interval=120)
 
-
-    #shopify 定时更新任务, 请放在这下面
+    # shopify 定时更新任务, 请放在这下面
     sdp = ShopifyDataProcessor(db_info=db_info)
     tp.create_periodic_task(sdp.update_new_shopify, seconds=120, max_instances=50)   # 新店铺拉 产品类目 产品 订单 top_product
+    tp.create_cron_task(sdp.update_shopify_collections, "*", 12, 00)
+    tp.create_cron_task(sdp.update_shopify_product, "*", 12, 00)
+    tp.create_cron_task(sdp.update_top_product, "*", 12, 00)
 
+    #　定时更新店铺的顾客信息
+    tp.create_periodic_task(sdp.update_shopify_customers, seconds=259200)
 
     # ems 定时更新任务请放在这下面
     ems = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)

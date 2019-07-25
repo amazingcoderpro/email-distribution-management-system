@@ -629,8 +629,8 @@ class AnalyzeCondition:
                         logger.error("This condition have no processor!! condition name={}".format(condition_name))
                         continue
     
-                logger.info("adapt group condition, name={}, relation={}, children={}, customers={}".format(
-                    gc.get("group_name", "unknown"), gc.get("relation", "unknown"), gc.get("children", []), children_final_customers))
+                # logger.info("adapt group condition, name={}, relation={}, children={}, customers={}".format(
+                #     gc.get("group_name", "unknown"), gc.get("relation", "unknown"), gc.get("children", []), children_final_customers))
                 group_customers.append(children_final_customers)
     
             gp_relations = condition.get("relation", "").split(",")
@@ -757,7 +757,7 @@ class AnalyzeCondition:
                     logger.warning("store is not found, store id={}".format(store_id))
                     continue
 
-                exp = ems_api.ExpertSender(fromName=store["sender"], fromEmail=store["sender_address"])
+                exp = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
 
                 # 判断这个group是不是已经被解析过且创建了邮件组id
                 if old_uuid:

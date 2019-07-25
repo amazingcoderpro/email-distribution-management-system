@@ -36,6 +36,7 @@ class ShopifyDataProcessor:
                     '''update `customer` set last_order_id=%s, orders_count=%s, customer_email=%s, accept_marketing_status=%s, update_time=%s, first_name=%s, last_name=%s where uuid=%s''',
                     customer_update_list)
                 conn.commit()
+            logger.info("save customer  data is success")
         except Exception as e:
             logger.exception("save_customer_db e={}".format(e))
 
@@ -72,7 +73,7 @@ class ShopifyDataProcessor:
                     product = cursor.fetchone()
                     yesterday_time = (datetime.datetime.now() - datetime.timedelta(hours=24))
                     if product and product[1] > yesterday_time:
-                        logger.warn("update_shopify_product this store was renewed in 24 hours store_id={} product_id={} product_update_time={}".format(store_id,product_category[0],product_category[1]))
+                        logger.warning("update_shopify_product this store was renewed in 24 hours store_id={} product_id={} product_update_time={}".format(store_id, product[0], product[1]))
                         continue
 
                 if not all([store_url, store_token]):
@@ -175,7 +176,7 @@ class ShopifyDataProcessor:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        logger.exception("[update_shopify_product] is finished")
+        logger.info("update shopify product is finished")
         return True
 
     def update_shopify_collections(self, input_store=None):
@@ -226,6 +227,7 @@ class ShopifyDataProcessor:
                     continue
 
                 papi = ProductsApi(store_token, store_url)
+
                 # 更新产品类目信息
                 res = papi.get_all_collections()
                 if res["code"] == 1:
@@ -277,7 +279,6 @@ class ShopifyDataProcessor:
                     return False
             else:
                 stores = input_store
-
             for store in stores:
                 store_id, store_url, store_token, *_ = store
 
@@ -341,6 +342,7 @@ class ShopifyDataProcessor:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
+        logger.info("update_shopify_orders id finished")
         return True
 
     def update_top_product(self,store=None):
@@ -496,12 +498,13 @@ class ShopifyDataProcessor:
                         '''update `top_product` set top_thirty=%s,update_time=%s where store_id=%s''', (json.dumps(top_thirty_list),current_time, store_id))
                     conn.commit()
         except Exception as e:
-            logger.exception("update_collection e={}".format(e))
+            logger.exception("update_top_product e={}".format(e))
             return False
         finally:
             cursor.close() if cursor else 0
             cursor_dict.close() if cursor_dict else 0
             conn.close() if conn else 0
+        logger.info("update_top_product is finished...")
         return True
 
     def update_new_shopify(self):
@@ -513,7 +516,7 @@ class ShopifyDataProcessor:
                 return False
 
             cursor.execute(
-                """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
+                """select store.id, store.url, store.token, store_create_time from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
             store = cursor.fetchone()
             if not store:
                 logger.info("update_new_shopify is ending... no store need update")
@@ -529,8 +532,9 @@ class ShopifyDataProcessor:
             self.update_shopify_collections(store)
             self.update_shopify_orders(store)
             self.update_shopify_product(store)
-            # TODD 拉客户
+            # TODO 新店铺拉客户
             self.update_top_product(store)
+            # TODO 新店铺创建模版
             logger.info("update_new_shopify end init data store_id={}".format(store[0]))
 
         except Exception as e:
@@ -575,10 +579,17 @@ class ShopifyDataProcessor:
                 exist_customer_list = [item[0] for item in exist_customer]
 
                 times = 1
-                create_at_max = datetime.datetime.now()#- datetime.timedelta(days=210)
+                create_at_max = datetime.datetime.now() #- datetime.timedelta(days=262)
                 create_at_min = create_at_max - datetime.timedelta(days=30)
                 time_format = "%Y-%m-%dT%H:%M:%S"
-                store_create_time = datetime.datetime.now()-datetime.timedelta(days=400)    ##临时的
+                # store_create_time = datetime.datetime.now()-datetime.timedelta(days=400)    ##临时的
+                cursor.execute("select `store_create_time` from `store` where 'id'=%s", (store_id, ))
+                ret = cursor.fetchone()
+                if ret and ret[0]:
+                    store_create_time = ret[0]
+                else:
+                    store_create_time = datetime.datetime.now() - datetime.timedelta(days=1000)
+
                 need_update_orders = []
                 while times < 10000:
                     create_at_max = create_at_max.strftime(time_format) if isinstance(create_at_max, datetime.datetime) else create_at_max[0:19]
@@ -587,12 +598,11 @@ class ShopifyDataProcessor:
                     if create_at_max < store_create_time.strftime(time_format):
                         break
 
-                    ret = papi.get_all_customers(limit=250, created_at_min=create_at_min, created_at_max=create_at_max)
+                    ret = papi.get_all_customers(limit=250, created_at_min=create_at_min+"+08:00", created_at_max=create_at_max+"+08:00")
                     if ret["code"] != 1:
                         logger.warning("get shop customer failed. store_id={}, ret={}".format(store_id, ret))
                         continue
-
-                    if ret["code"] == 1:
+                    else:
                         customer_info = ret["data"].get("customers", [])
                         for customer in customer_info:
                             uuid = str(customer.get("id", ""))
@@ -628,16 +638,25 @@ class ShopifyDataProcessor:
                     cus_create_ats = sorted(cus_create_ats)
 
                     if len(customer_info) >= 250:
+                        old_create_at_max = create_at_max
                         new_create_at_max = datetime.datetime.strptime(cus_create_ats[0][0:19], time_format) - datetime.timedelta(seconds=1)
                         create_at_max = new_create_at_max.strftime(time_format)
+                        if old_create_at_max <= create_at_max:
+                            new_create_at_max = datetime.datetime.strptime(old_create_at_max,
+                                                                           time_format) - datetime.timedelta(hours=1)
+                            create_at_max = new_create_at_max.strftime(time_format)
+                        if create_at_max <= create_at_min:
+                            create_at_min = datetime.datetime.strptime(create_at_max, time_format) - datetime.timedelta(days=30)
                     else:
                         create_at_max = datetime.datetime.strptime(create_at_min, time_format) - datetime.timedelta(seconds=1)
                         create_at_min = create_at_max - datetime.timedelta(days=30)
 
                     # 拉一次存一次，以防止长时间后数据链接断开
                     # 每拉够一月，保存一次
-                    logger.info("save_customer_db, times={}, insert list={}, update list={}, time min={}, time max={}, ".format(times, len(customer_insert_list), len(customer_update_list), create_at_min, create_at_max))
                     self.save_customer_db(customer_insert_list, customer_update_list, cursor=cursor, conn=conn)
+                    logger.info(
+                        "save_customer_db, times={}, insert list={}, update list={}, time min={}, time max={}, ".format(
+                            times, len(customer_insert_list), len(customer_update_list), create_at_min, create_at_max))
                     customer_insert_list = []
                     customer_update_list = []
                     times += 1
@@ -655,7 +674,7 @@ class ShopifyDataProcessor:
                             ret)
                     conn.commit()
         except Exception as e:
-            logger.exception("update_collection e={}".format(e))
+            logger.exception("update_shopify_customers e={}".format(e))
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
@@ -664,8 +683,9 @@ class ShopifyDataProcessor:
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
-    ShopifyDataProcessor(db_info=db_info).update_shopify_product()
-    # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     #ShopifyDataProcessor(db_info=db_info).update_top_product()
     #ShopifyDataProcessor(db_info=db_info).update_new_shopify()
-    # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
+

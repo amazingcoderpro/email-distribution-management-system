@@ -16,7 +16,7 @@ SHOPIFY_CONFIG = {
     "redirect_uri": "https://smartsend.seamarketings.com/api/v1/auth/shopify/callback/",
     "scopes": ["read_content", "write_content", "read_themes", "write_themes", "read_products",
                "write_products", "read_product_listings", "read_customers", "write_customers",
-               "read_orders", "write_orders", "read_shipping", "write_draft_orders", "read_inventory",
+               "read_all_orders", "read_orders", "write_orders", "read_shipping", "write_draft_orders", "read_inventory",
                "write_inventory", "read_shopify_payments_payouts", "read_draft_orders", "read_locations",
                "read_script_tags", "write_script_tags", "read_fulfillments", "write_shipping", "read_analytics",
                "read_checkouts", "write_resource_feedbacks", "write_checkouts", "read_reports", "write_reports",
