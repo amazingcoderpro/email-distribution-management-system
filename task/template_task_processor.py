@@ -146,10 +146,11 @@ class TemplateProcessor:
 
                         result = exp.create_and_send_newsletter(uuids, subject=subject, html=html)
                         send_result = result["code"]
-                        send_msg = result["msg"]
                         email_id = result["data"]
+                        send_msg = email_id     # 发送成功后把email id存在remark中
                         if send_result != 1:
                             send_result = 3     # 发送失败
+                            send_msg += result["msg"]
                             logger.error(
                                 "send template email failed, task={}, template={}, uuids={}, error={}".format(task_id, template_id, uuids, send_msg))
                         else:

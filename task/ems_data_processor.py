@@ -205,9 +205,9 @@ class EMSDataProcessor:
                     total_sessions += sessions
                     total_revenue += revenue
                     # 平均转换率  总支付订单数÷总流量
-                    avg_conversion_rate = (total_orders * 100 / total_sessions) if total_sessions else 0
+                    avg_conversion_rate = (total_orders/ total_sessions) if total_sessions else 0
                     # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
-                    avg_repeat_purchase_rate = (orders_gte2*100/total_cumtomers) if total_cumtomers else 0
+                    avg_repeat_purchase_rate = (orders_gte2/total_cumtomers) if total_cumtomers else 0
                 else:
                     sessions=orders=revenue=total_orders=total_sessions=total_revenue=avg_conversion_rate=avg_repeat_purchase_rate = 0
 
@@ -243,6 +243,6 @@ if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
     # obj.insert_subscriber_activity()
-    obj.update_customer_group_data()
+    # obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
-    # obj.insert_dashboard_data()
+    obj.insert_dashboard_data()
