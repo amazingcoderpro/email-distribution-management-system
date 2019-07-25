@@ -176,9 +176,9 @@ class EventDraftCustomersCreate(APIView):
         last_name = request.data["last_name"]
         orders_count = request.data["orders_count"]
         last_order_id = request.data["last_order_id"]
-        payment_amount = request.data["payment_amount"]
+        payment_amount = request.data["total_spent"]
         create_time = request.data["created_at"].replace("T", " ")[:-6]
-        update_time = request.data["created_at"].replace("T", " ")[:-6]
+        update_time = request.data["updated_at"].replace("T", " ")[:-6]
 
         costomer_instance = models.Customer.objects.create(
                                                            store_id = store_id,
