@@ -535,6 +535,9 @@ class ShopifyDataProcessor:
             # TODO 新店铺拉客户
             self.update_top_product(store)
             # TODO 新店铺创建模版
+            # TODO 新的店铺创建webhook
+
+
             logger.info("update_new_shopify end init data store_id={}".format(store[0]))
 
         except Exception as e:
