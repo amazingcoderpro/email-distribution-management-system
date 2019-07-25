@@ -176,14 +176,14 @@ def run():
 
     # 定期更新customer group
     ac = AnalyzeCondition(db_info=db_info)
-    tp.create_periodic_task(ac.update_customer_group_list, seconds=3600)
+    tp.create_periodic_task(ac.update_customer_group_list, seconds=7200)
 
     # 模板解析定时任务
     tmp = TemplateProcessor(db_info=db_info)
-    tp.create_periodic_task(tmp.analyze_templates,  seconds=900)
+    tp.create_periodic_task(tmp.analyze_templates,  seconds=300)
 
     # 模板邮件定时发送任务
-    tp.create_periodic_task(tmp.execute_email_task, seconds=120, interval=120)
+    tp.create_periodic_task(tmp.execute_email_task, seconds=120, max_instances=50, interval=120)
 
     # shopify 定时更新任务, 请放在这下面
     sdp = ShopifyDataProcessor(db_info=db_info)
