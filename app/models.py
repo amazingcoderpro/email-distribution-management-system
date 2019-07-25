@@ -147,27 +147,36 @@ class EmailRecord(models.Model):
     type_choice = ((0, 'Newsletter'), (1, 'Transactional'), (2, 'Test'))
     type = models.SmallIntegerField(blank=True, null=True, verbose_name="邮件类型")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(verbose_name="店铺id")
-    email_template_id = models.IntegerField(blank=True, null=True,  verbose_name="模版id")
+    # store_id = models.IntegerField(verbose_name="店铺id")
+    email_template_id = models.IntegerField(blank=True, null=True,  verbose_name="模版id")  # type=0
+    email_trigger_id = models.IntegerField(blank=True, null=True,  verbose_name="邮件触发器id")  # type=1
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        # managed = False
         db_table = 'email_record'
 
 
 class EmailTrigger(models.Model):
     """邮件触发器"""
     title = models.CharField(db_index=True, max_length=255, verbose_name="标题")
-    description = models.TextField(blank=True, null=False, verbose_name="描述")
+    description = models.TextField(blank=True, null=True, verbose_name="描述")
     open_rate = models.DecimalField(default=0.00,  max_digits=3, decimal_places=2, verbose_name="邮件打开率")
     click_rate = models.DecimalField(default=0.00,  max_digits=3, decimal_places=2, verbose_name="邮件单击率")
-    members = models.IntegerField(blank=True, null=True,  verbose_name="数量")
-    trigger_info = models.TextField(verbose_name="trigger关系")
-    email_delay = models.TextField(verbose_name="发送邮件顺序")
+    revenue = models.DecimalField(default=0.00,  max_digits=3, decimal_places=2, verbose_name="对应的销售额")
+    # members = models.IntegerField(blank=True, null=True,  verbose_name="数量")
+    relation_info = models.TextField(blank=True, null=True, verbose_name="筛选条件")
+    email_delay = models.TextField(blank=True, null=True, verbose_name="发送邮件顺序")
+    customer_list = models.TextField(blank=True, null=True, verbose_name="对应客户列表")
+    note_choice = ((0, 'Do not send if the customer if your customer makes a purchase. && Do not send if the customer received an email from this campaign in the last 7 days.'),
+                   (1, 'Do not send if the customer if your customer makes a purchase.'),
+                   (2, 'Do not send if the customer received an email from this campaign in the last 7 days.'))
+    note = models.SmallIntegerField(blank=True, null=True, verbose_name="对应Note")
+    type_choice = ((0, 'execute'), (1, 'pause'), (2, 'delete'))
+    type = models.SmallIntegerField(default=0, verbose_name="邮件类型")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(verbose_name="店铺id")
+    # store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -290,7 +299,7 @@ class Product(models.Model):
     product_category = models.ForeignKey(ProductCategory, on_delete=models.DO_NOTHING,blank=True, null=True)
     state = models.SmallIntegerField(default=0, verbose_name="前端判断是否勾选状态")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(verbose_name="店铺id")
+    # store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
