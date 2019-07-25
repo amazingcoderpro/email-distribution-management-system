@@ -771,7 +771,11 @@ class AnalyzeCondition:
                         new_add_customers_email_list = [em for em in new_add_customers_email_list if em] #只要不为空的邮箱
                         if new_add_customers_email_list:
                             diff_add_result = exp.add_subscriber(old_uuid, new_add_customers_email_list)
-                            if diff_add_result["code"] != 1:
+                            if diff_add_result["code"] == 1:
+                                logger.info("add_subscriber succeed, uuid={}".find(old_uuid))
+                            elif diff_add_result["code"] == 3:
+                                logger.info("add_subscriber partly succeed, uuid={}, invalid email={}".find(old_uuid, diff_add_result.get("invalid_email", [])))
+                            else:
                                 logger.error("update_customer_group_list add_subscriber failed, diff_add_result={}, "
                                              "group id={}, uuid={}, add emails={}".format(diff_add_result, group_id, uuid, new_add_customers_email_list))
 
@@ -781,10 +785,11 @@ class AnalyzeCondition:
                         delete_customers_email_list = [em["customer_email"] for em in emails]
                         delete_customers_email_list = [em for em in delete_customers_email_list if em]  # 只要不为空的邮箱
                         if delete_customers_email_list:
-                            diff_delete_result = exp.delete_subscriber(delete_customers_email_list, old_uuid)
-                            if diff_delete_result["code"] != 1:
-                                logger.error("update_customer_group_list delete_subscriber failed, diff_delete_result={}"
-                                             ", group id={}, uuid={}, delete emails={}".format(diff_delete_result, group_id, old_uuid, delete_customers_email_list))
+                            for email in delete_customers_email_list:
+                                diff_delete_result = exp.delete_subscriber(email, old_uuid)
+                                if diff_delete_result["code"] != 1:
+                                    logger.error("update_customer_group_list delete_subscriber failed, diff_delete_result={}"
+                                                ", group id={}, uuid={}, delete email={}".format(diff_delete_result, group_id, old_uuid, email))
 
                     cursor.execute(
                         "update `customer_group` set customer_list=%s, update_time=%s, state=1 where id=%s",
