@@ -157,6 +157,28 @@ class ProductsApi:
             logger.error("get shopify all customers info is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
+    def get_customer_orders(self, customer_id, limit=250):
+        """
+       获取customer的orders
+       # 接口  /admin/api/201-07/{customer_id} / orders.json
+       # 连接地址 https://help.shopify.com/en/api/reference/orders/order#index-2019-07
+       :return:
+        """
+        order_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}{customer_id}/orders.json" \
+            f"?limit={limit}"
+
+        try:
+            result = requests.get(order_url)
+            if result.status_code == 200:
+                logger.info("get customer orders is success")
+                return {"code": 1, "msg": "", "data": json.loads(result.text)}
+            else:
+                logger.info("get customer orders is failed")
+                return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
+        except Exception as e:
+            logger.error("get customer orders is failed info={}".format(str(e)))
+            return {"code": -1, "msg": str(e), "data": ""}
+
     def get_all_orders(self, created_at_min, created_at_max, financial_status="any", limit=250):
         """
        获取collections_id的product
