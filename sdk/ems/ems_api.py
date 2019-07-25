@@ -230,24 +230,53 @@ class ExpertSender:
         添加收件人http://sms.expertsender.cn/api/v2/methods/subscribers/add-subscriber/
         :param list_id: 收件人列表ID
         :param email_list: 需要添加的email列表
-        :return:
+        :return: invalid_email为未添加成功的邮箱地址列表
         """
         url = f"{self.host}Api/Subscribers"
         data = {"ApiRequest": {
             "ApiKey": self.api_key,
             "ReturnData": "true",
+            "VerboseErrors": "true",
              "MultiData": {"Subscriber": []}}}
+        invalid_email = []
         for email in email_list:
+            try:
+                email.encode('latin-1')
+            except Exception as e:
+                invalid_email.append(email)
+                logger.warning("add this email exception: %s" % str(e))
+                continue
             data["ApiRequest"]["MultiData"]["Subscriber"].append(
                 {
                     "Mode": "AddAndUpdate",
                     "ListId": list_id,
-                    "Email": email.encode("utf-8"),
+                    "Email": email,
                 }
             )
         try:
             result = requests.post(url, self.jsontoxml(data), headers=self.headers)
-            return self.retrun_result("add subscriber", result)
+            # 解析结果
+            if str(result.status_code).startswith('2'):
+                logger.info("add subscriber success!")
+                return {"code": 1, "msg": "", "data": self.xmltojson(result.text, "Data"), "invalid_email": invalid_email}
+            else:
+
+                msg = self.xmltojson(result.text, "ErrorMessage")
+                try:
+                    error_msg_list = msg["Messages"].get("Message")
+                except:
+                    error_msg_list = msg.get("Message")
+                if "@for" not in str(error_msg_list):
+                    logger.info("add subscriber failed! The reason is %s" % msg)
+                    return {"code": 2, "msg": msg, "data": "", "invalid_email": invalid_email}
+                else:
+                    if isinstance(error_msg_list, list):
+                        for error_email in error_msg_list:
+                            invalid_email.append(error_email.get("@for"))
+                    elif isinstance(error_msg_list, dict):
+                        invalid_email.append(error_msg_list.get("@for"))
+                    logger.info("add subscriber partial success! The reason is %s" % msg)
+                    return {"code": 3, "msg": msg, "data": "", "invalid_email": invalid_email}
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
@@ -534,7 +563,7 @@ if __name__ == '__main__':
     # print(ems.get_message_statistics(372))
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))
-    print(ems.add_subscriber(43, ["yakimov-1а@list.ru"]))
+    print(ems.add_subscriber(38, ["fatty091@gmail.com"]))
     # html = open("index.html")
     # print(ems.create_and_send_newsletter([29], "HelloWorld TTT", html=html_b)) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))
