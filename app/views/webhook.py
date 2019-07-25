@@ -163,9 +163,12 @@ class EventDraftCustomersCreate(APIView):
         print("------------ Customer Create ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
+        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"])
+        if store.exists():
+            store_id= store.first().id
         costomer_uuid = request.data["id"]
-        user = request.user
-        store_id  = user.store.id
+        # user = request.user
+        # store_id  = user.store.id
         customer_email = request.data["email"]
         accept_marketing_status = request.data["accepts_marketing"]
         sign_up_time = request.data["created_at"].replace("T", " ")[:-6]
