@@ -166,7 +166,7 @@ class EventDraftCustomersCreate(APIView):
         costomer_uuid = request.data["id"]
         user = request.user
         store_id  = user.store.id
-        customer_email = request.data["email'"]
+        customer_email = request.data["email"]
         accept_marketing_status = request.data["accepts_marketing"]
         sign_up_time = request.data["created_at"].replace("T", " ")[:-6]
         first_name = request.data["first_name"]

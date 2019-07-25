@@ -7,6 +7,7 @@ from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, SHOPIFY_CONFIG
 from task.db_util import DBUtil
 from config import logger
+from sdk.shopify import shopify_webhook
 
 
 class ShopifyDataProcessor:
@@ -507,6 +508,21 @@ class ShopifyDataProcessor:
         logger.info("update_top_product is finished...")
         return True
 
+    def update_store_webhook(self, store=None):
+        webhooks = [
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/update/', 'topic': 'orders/updated'},
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/paid/', 'topic': 'orders/paid'},
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/create/', 'topic': 'orders/create'},
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/fulfilled/','topic': 'orders/fulfilled', },
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/partially_fulfilled/','topic': 'orders/partially_fulfilled'},
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/draft_orders/create/','topic': 'draft_orders/create'},
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/draft_orders/update/','topic': 'draft_orders/update'},
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/customers/create/','topic': 'customers/create'}
+        ]
+        webhook_info = shopify_webhook.products_api(shop_uri=store[0][1], access_token=store[0][2])
+        for webhook in webhooks:
+            webhook_info.create_webhook(topic=webhook.get("topic", ""), address=webhook.get("address", ""))
+
     def update_new_shopify(self):
         logger.info("update_new_shopify is cheking...")
         try:
@@ -535,8 +551,9 @@ class ShopifyDataProcessor:
             # TODO 新店铺拉客户
             self.update_top_product(store)
             # TODO 新店铺创建模版
-            # TODO 新的店铺创建webhook
 
+            # TODO 新的店铺创建webhook
+            self.update_store_webhook(store)
 
             logger.info("update_new_shopify end init data store_id={}".format(store[0]))
 
@@ -683,12 +700,14 @@ class ShopifyDataProcessor:
             conn.close() if conn else 0
         return True
 
+
+
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     #ShopifyDataProcessor(db_info=db_info).update_top_product()
-    #ShopifyDataProcessor(db_info=db_info).update_new_shopify()
-    ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
+    ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
 
