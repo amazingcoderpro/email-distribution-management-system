@@ -224,7 +224,6 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-
     def add_subscriber(self, list_id, email_list):
         """
         添加收件人http://sms.expertsender.cn/api/v2/methods/subscribers/add-subscriber/
