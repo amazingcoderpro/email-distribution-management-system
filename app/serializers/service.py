@@ -78,8 +78,8 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
         for item in product_list:
             dic = {"email_category": "newsletter", "template_name": instance.title, "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
             uri_structure = "&utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
-            new_iamge_url = item["image_url"] + uri_structure
-            html = html.replace(item["image_url"], new_iamge_url)
+            new_iamge_url = item["url"] + uri_structure
+            html = html.replace(item["url"], new_iamge_url)
         instance.html = html
         instance.save()
         return instance
