@@ -550,7 +550,9 @@ class ShopifyDataProcessor:
             self.update_shopify_orders(store)
             self.update_shopify_product(store)
             self.update_top_product(store)
-            # TODO 新店铺拉客户
+
+            # 新店铺拉客户, 初始拉取一次，以后由webhook推送新顾客的创建事件
+            self.update_shopify_customers(store=store)
 
             # TODO 新店铺创建模版
 
