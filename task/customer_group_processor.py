@@ -852,10 +852,40 @@ class AnalyzeCondition:
         :param end_time:  截止到目前为止，发邮件前的时间
         :return: 满足条件的用户id列表
         """
+        logger.info("customers by makes a purchase, store_id={}".format(store_id))
         adapt_customers = self.order_filter(store_id=store_id, status=1, relation="more than",
                                             value=0, min_time=start_time, max_time=end_time)
         return adapt_customers
 
+    def filter_received_customer(self, store_id, email_id):
+        """
+        7天之内收到过此邮件的用户
+        :param store_id: 用户所属的店铺
+        :return: 满足条件的用户email列表
+        """
+        logger.info(" the customer received an email from this campaign in the last 7 days, store_id={}".format(store_id))
+        result = []
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return result
+
+            cursor.execute(
+                """select `email` from `subscriber_activity` where store_id=%s and message_uuid=%s and type=2 and opt_time > %s""",
+                (store_id, email_id, datetime.datetime.now()-datetime.timedelta(days=7)))
+            res = cursor.fetchall()
+            if res:
+                for ret in res:
+                    result.append(ret.get('email'))
+        except Exception as e:
+            logger.exception("adapt_last_order_created_time e={}".format(e))
+            return result
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return result
 
 
 if __name__ == '__main__':
@@ -877,5 +907,6 @@ if __name__ == '__main__':
     # for cond in conditions:
     #     cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
     #     print(cus)
-    print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
+    # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
+    print(ac.filter_received_customer(1, 372))

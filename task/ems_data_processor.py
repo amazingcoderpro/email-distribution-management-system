@@ -197,10 +197,10 @@ class EMSDataProcessor:
                 store_view_id = cursor.fetchone()[0]
                 if store_view_id:
                     papi = GoogleApi(view_id=store_view_id, json_path=os.path.join(ROOT_PATH, r"sdk\googleanalytics\client_secrets.json"))
-                    shopify_google_data = papi.get_report()
-                    sessions = shopify_google_data.get("sessions", 0)
-                    orders = shopify_google_data.get("transactions", 0)
-                    revenue = shopify_google_data.get("revenue", 0.0)
+                    shopify_google_data = papi.get_report(key_word="", start_time="1daysAgo", end_time="today")
+                    sessions = shopify_google_data.get("total_results", "").get("sessions", 0)
+                    orders = shopify_google_data.get("total_results", "").get("transactions", 0)
+                    revenue = shopify_google_data.get("total_results", "").get("revenue", 0.0)
                     total_orders += orders
                     total_sessions += sessions
                     total_revenue += revenue
@@ -242,7 +242,7 @@ class EMSDataProcessor:
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
-    # obj.insert_subscriber_activity()
-    obj.update_customer_group_data()
+    obj.insert_subscriber_activity()
+    # obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
-    # obj.insert_dashboard_data()
+    obj.insert_dashboard_data()

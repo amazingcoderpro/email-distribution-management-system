@@ -124,10 +124,12 @@ class UploadPicture(APIView):
 
     def post(self, request, *args, **kwargs):
         picture_path = "/data/nginx/edm/dist/media/"
+        web_path = "https://smartsend.seamarketings.com/media/"
         #picture_path = "/Users/shaowei/"
         file = request.FILES["file"]
         store_id = models.Store.objects.filter(user=request.user).first().id
         store_path = "{}{}/".format(picture_path,store_id)
+        store_web_path = "{}{}/".format(web_path,store_id)
 
         if not os.path.exists(store_path):
             os.makedirs(store_path)
@@ -137,7 +139,7 @@ class UploadPicture(APIView):
         with open(file_path, "wb") as f:
             f.write(file.read())
 
-        return Response({"base64_str": file_path})
+        return Response({"base64_str": store_web_path + file_name})
 
     # def post(self, request, *args, **kwargs):
     #

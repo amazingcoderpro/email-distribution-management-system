@@ -65,6 +65,7 @@ webhook_urlpatterns = [
     url(r'draft_orders/update/$', webhook.EventDraftOrdersUpdate.as_view()),
 
     url(r'customers/create/$', webhook.EventDraftCustomersCreate.as_view()),
+    url(r'customers/update/$', webhook.EventDraftCustomersUpdate.as_view()),
 ]
 
 

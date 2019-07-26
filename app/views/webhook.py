@@ -197,3 +197,11 @@ class EventDraftCustomersCreate(APIView):
         )
         costomer_instance.save()
         return Response({"code": 200})
+
+
+class EventDraftCustomersUpdate(APIView):
+    def post(self, request, *args, **kwargs):
+        print("------------ Customer Update ------------:")
+        # print(request.META, type(request.META))
+        print(json.dumps(request.data))
+        return Response({"code": 200})

@@ -191,6 +191,7 @@ def run():
     tp.create_cron_task(sdp.update_shopify_collections, "*", 12, 00)
     tp.create_cron_task(sdp.update_shopify_product, "*", 12, 00)
     tp.create_cron_task(sdp.update_top_product, "*", 12, 00)
+    tp.create_cron_task(sdp.updata_shopify_ga, "*", 0, 30)
 
     # ems 定时更新任务请放在这下面
     ems = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
