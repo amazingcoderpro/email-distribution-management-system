@@ -409,6 +409,7 @@ class ShopifyDataProcessor:
                 exit_top_three_list = []
                 for item in top_three_product:
                     if item["uuid"] not in exit_top_three_list:
+                        item["image_url"] = item["image_url"] + ""
                         exit_top_three_list.append(item["uuid"])
                         top_three_list.append(item)
                 cursor.execute(
@@ -548,8 +549,9 @@ class ShopifyDataProcessor:
             self.update_shopify_collections(store)
             self.update_shopify_orders(store)
             self.update_shopify_product(store)
-            # TODO 新店铺拉客户
             self.update_top_product(store)
+            # TODO 新店铺拉客户
+
             # TODO 新店铺创建模版
 
             # TODO 新的店铺创建webhook
@@ -707,7 +709,7 @@ if __name__ == '__main__':
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    #ShopifyDataProcessor(db_info=db_info).update_top_product()
-    ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    ShopifyDataProcessor(db_info=db_info).update_top_product()
+    #ShopifyDataProcessor(db_info=db_info).update_new_shopify()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
 
