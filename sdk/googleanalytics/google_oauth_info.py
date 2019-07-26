@@ -20,7 +20,7 @@ class GoogleApi():
         self.VIEW_ID = view_id
         self.ga_source = ga_source
 
-    def get_report(self):
+    def get_report(self, key_word, start_time, end_time):
         """
          Queries the Analytics Reporting API V4.
         Args:
@@ -34,37 +34,70 @@ class GoogleApi():
             analytics = discovery.build('analyticsreporting', 'v4', credentials=credentials)
             analytics_info = analytics.reports().batchGet(
                 body={
-                    'reportRequests': [
-                        {
-                            'viewId': self.VIEW_ID,
-                            'dateRanges': [{'startDate': '1daysAgo', 'endDate': 'today'}],
-                            'metrics': [
-                                {"expression": "ga:sessions"},
-                                {"expression": "ga:transactions"},  # 交易数量
-                                {"expression": "ga:transactionRevenue"},  # 销售总金额
-                            ],
-                            "dimensions": [
-                                                {"name": "ga:source"},
-                                                {"name": "ga:keyword"},
-                                            ],
-                        }]
-                }
-            ).execute()
+                    "reportRequests":
+                        [
+                            {
+                                "viewId": self.VIEW_ID,
+                                "dateRanges": [
+                                    {'startDate': start_time, 'endDate': end_time},
+                                ],
+                                "metrics": [
+                                    {"expression": "ga:sessions"},  # pageviews
+                                    {"expression": "ga:transactions"},  # 交易数量
+                                    {"expression": "ga:transactionRevenue"},  # 销售总金额
+
+                                ],
+                                "dimensions": [
+                                    {"name": "ga:source"},
+                                    {"name": "ga:keyword"},
+                                ],
+                                "dimensionFilterClauses": [
+                                    {
+                                        "filters": [
+                                            {
+                                                "dimensionName": "ga:source",
+                                                "operator": "EXACT",
+                                                "expressions": [self.ga_source]
+                                            }]
+                                        }]
+                                 }]
+                                }).execute()
+            results = {}
+            total_results = {"sessions":0, "transactions": 0, "revenue": 0}
+
             for report in analytics_info.get('reports', []):
-                dateRangeValues = report.get('data', {}).get('totals', [])
-                results = {
-                           "sessions":  int(dateRangeValues[0].get("values", "")[0]),
-                           "transactions": int(dateRangeValues[0].get("values", "")[1]),
-                            "revenue": float(dateRangeValues[0].get("values", "")[2])}
-                return results
+                for row in report.get('data', {}).get('rows', []):
+                    dimensions = row.get('dimensions', [])
+                    dateRangeValues = row.get('metrics', [])
+
+                    if dimensions[1] == key_word or not key_word:
+                        temp_key_word = dimensions[1]
+                        values = dateRangeValues[0].get('values', [])
+                        if values:
+                            if temp_key_word not in results:
+                                results[temp_key_word] = {"sessions": int(values[0]), "transactions": int(values[1]),
+                                                          "revenue": float(values[2])}
+                            else:
+                                results[temp_key_word]["sessions"] += int(values[0])
+                                results[temp_key_word]["transactions"] += int(values[1])
+                                results[temp_key_word]["revenue"] += float(values[2])
+
+                for res in results.values():
+                    total_results["sessions"] += res["sessions"]
+                    total_results["transactions"] += res["transactions"]
+                    total_results["revenue"] += res["revenue"]
+                # print({"code": 1, "data": {"results": results, "total_results":total_results}, "msg": ""})
+                return {"code": 1, "data": {"results": results, "total_results":total_results}, "msg": ""}
         except Exception as e:
             logger.error("get google analytics info is failed, msg={}".format(str(e)))
             return {"code": 2, "data": "", "msg": str(e)}
 
 
 if __name__ == '__main__':
-    google_data = GoogleApi(view_id="198387424")
-    print(google_data.get_report())
+
+    google_data = GoogleApi(view_id="195406097")
+    print(google_data.get_report(key_word="", start_time="10daysAgo", end_time="today"))
+    # print(google_data.get_report(key_word="", start_time="7daysAgo", end_time="today"))
     print(1)
 
 
