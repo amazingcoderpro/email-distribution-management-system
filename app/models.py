@@ -51,6 +51,7 @@ class Store(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
+        managed = False
         db_table = 'store'
 
 
@@ -95,6 +96,9 @@ class EmailTemplate(models.Model):
     description = models.TextField(blank=True, null=True, verbose_name="描述")
     subject = models.TextField(verbose_name="邮件标题")
     heading_text = models.TextField(verbose_name="邮件")
+    revenue = models.DecimalField(default=0.00, max_digits=3, decimal_places=2, verbose_name="对应的销售额")
+    sessions = models.IntegerField(default=0, verbose_name="流量数")
+    transcations = models.IntegerField(default=0, verbose_name="交易次数")
     logo = models.TextField(verbose_name="邮件logo")
     banner = models.TextField(verbose_name="邮件banner")
     headline = models.TextField(verbose_name="邮件headline")
@@ -110,7 +114,7 @@ class EmailTemplate(models.Model):
     send_type = models.SmallIntegerField(db_index=True, choices=send_type_choices, default=0, verbose_name="邮件模板发送类型")
     html = models.TextField(blank=True, null=True, verbose_name="描述")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    # store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -118,20 +122,6 @@ class EmailTemplate(models.Model):
         managed = False
         db_table = 'email_template'
         ordering = ["update_time"]
-
-
-class EmailTask(models.Model):
-    template = models.ForeignKey(EmailTemplate, on_delete=models.DO_NOTHING)
-    state_choices = ((0, '待发送'), (1, '已发送(成功)'), (2, "模板已删除"), (3, '已发送但发送失败'))
-    state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件发送状态")
-    remark = models.TextField(blank=True, null=True, verbose_name="备注")
-    execute_time = models.DateTimeField(db_index=True, verbose_name="执行时间")
-    finished_time = models.DateTimeField(blank=True, null=True, verbose_name="完成时间")
-    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-
-    class Meta:
-        db_table = 'email_task'
 
 
 class EmailRecord(models.Model):
@@ -154,7 +144,7 @@ class EmailRecord(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        # managed = False
+        managed = False
         db_table = 'email_record'
 
 
@@ -184,6 +174,24 @@ class EmailTrigger(models.Model):
         managed = False
         db_table = 'email_trigger'
         ordering = ["-id"]
+
+
+class EmailTask(models.Model):
+    template = models.ForeignKey(EmailTemplate, blank=True, null=True, on_delete=models.DO_NOTHING)
+    state_choices = ((0, '待发送'), (1, '已发送(成功)'), (2, "模板已删除"), (3, '已发送但发送失败'))
+    state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件发送状态")
+    remark = models.TextField(blank=True, null=True, verbose_name="备注")
+    execute_time = models.DateTimeField(db_index=True, verbose_name="执行时间")
+    finished_time = models.DateTimeField(blank=True, null=True, verbose_name="完成时间")
+    customer_list = models.TextField(blank=True, null=True, verbose_name="符合触发条件的用户列表")
+    email_trigger = models.ForeignKey(EmailTrigger, blank=True, null=True, on_delete=models.DO_NOTHING)
+    type_choices = ((0, 'Timed mail'), (1, 'Trigger mail'))
+    type = models.SmallIntegerField(db_index=True, choices=type_choices, default=0, verbose_name="邮件类型")
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    class Meta:
+        db_table = 'email_task'
 
 
 class CustomerGroup(models.Model):

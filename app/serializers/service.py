@@ -2,6 +2,8 @@ from rest_framework import serializers
 from app import models
 from sdk.ems import ems_api
 
+import json
+
 
 class CustomerGroupSerializer(serializers.ModelSerializer):
     """客户组列表增加"""
@@ -67,8 +69,19 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
-        validated_data["store"] = models.Store.objects.filter(user=self.context["request"].user).first()
+        store = models.Store.objects.filter(user=self.context["request"].user).first()
+        validated_data["store"] = store
         instance = super(EmailTemplateSerializer, self).create(validated_data)
+        html = validated_data["html"]
+
+        product_list = json.loads(validated_data["product_list"])
+        for item in product_list:
+            dic = {"email_category": "newsletter", "template_name": instance.title, "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
+            uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
+            new_iamge_url = item["url"] + uri_structure
+            html = html.replace(item["url"], new_iamge_url)
+        instance.html = html
+        instance.save()
         return instance
 
 
@@ -81,8 +94,7 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
                   "open_rate",
                   "click_rate",
                   "click_rate",
-                  "members",
-                  "trigger_info",
+                  "relation_info",
                   "email_delay",
                   "create_time",
                   "update_time"

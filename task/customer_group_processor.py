@@ -51,26 +51,28 @@ class AnalyzeCondition:
                 return customers
             # 判断需要查询的状态
             if status == 2:
-                status = "0,1"
+                status = (0, 1)
+            else:
+                status = (status, )
             # between date
             if min_time and max_time:
                 cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in (%s) 
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
                     and `order_update_time`>=%s and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, min_time, max_time))
             # after, in the past
             elif min_time:
                 cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in (%s) 
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
                     and `order_update_time`>=%s group by `customer_uuid`""", (store_id, status, min_time))
             # before
             elif max_time:
                 cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in (%s) 
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
                     and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, max_time))
             # over all time
             else:
                 cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in (%s)
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
                     group by `customer_uuid`""", (store_id, status))
     
             res = cursor.fetchall()
@@ -79,7 +81,7 @@ class AnalyzeCondition:
             for uuid, count in res:
                 just_str = "{} {} {}".format(count, relation_dict.get(relation), value)
                 if eval(just_str):
-                    customers.append(uuid[0])
+                    customers.append(uuid)
         except Exception as e:
             logger.exception("order_filter e={}".format(e))
             return customers
@@ -791,7 +793,7 @@ class AnalyzeCondition:
                             if diff_add_result["code"] == 1:
                                 logger.info("add_subscriber succeed, uuid={}".find(old_uuid))
                             elif diff_add_result["code"] == 3:
-                                logger.info("add_subscriber partly succeed, uuid={}, invalid email={}".find(old_uuid, diff_add_result.get("invalid_email", [])))
+                                logger.warning("add_subscriber partly succeed, uuid={}, invalid email={}".find(old_uuid, diff_add_result.get("invalid_email", [])))
                             else:
                                 logger.error("update_customer_group_list add_subscriber failed, diff_add_result={}, "
                                              "group id={}, uuid={}, add emails={}".format(diff_add_result, group_id, uuid, new_add_customers_email_list))
@@ -842,7 +844,48 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return True
 
+    def filter_purchase_customer(self, store_id, start_time, end_time=datetime.datetime.now()):
+        """
+        搜索在flow过程中完成了一次购买的用户(发第一封邮件时不需要筛选，以后每次发邮件前都需要)
+        :param store_id: 用户所属的店铺
+        :param start_time:  flow的创建时间
+        :param end_time:  截止到目前为止，发邮件前的时间
+        :return: 满足条件的用户id列表
+        """
+        logger.info("customers by makes a purchase, store_id={}".format(store_id))
+        adapt_customers = self.order_filter(store_id=store_id, status=1, relation="more than",
+                                            value=0, min_time=start_time, max_time=end_time)
+        return adapt_customers
 
+    def filter_received_customer(self, store_id, email_id):
+        """
+        7天之内收到过此邮件的用户
+        :param store_id: 用户所属的店铺
+        :return: 满足条件的用户email列表
+        """
+        logger.info(" the customer received an email from this campaign in the last 7 days, store_id={}".format(store_id))
+        result = []
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return result
+
+            cursor.execute(
+                """select `email` from `subscriber_activity` where store_id=%s and message_uuid=%s and type=2 and opt_time > %s""",
+                (store_id, email_id, datetime.datetime.now()-datetime.timedelta(days=7)))
+            res = cursor.fetchall()
+            if res:
+                for ret in res:
+                    result.append(ret.get('email'))
+        except Exception as e:
+            logger.exception("adapt_last_order_created_time e={}".format(e))
+            return result
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return result
 
 
 if __name__ == '__main__':
@@ -859,8 +902,11 @@ if __name__ == '__main__':
     #              }
 
     ac = AnalyzeCondition(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
-    ac.update_customer_group_list()
+    # ac.update_customer_group_list()
     # conditions = ac.get_conditions()
     # for cond in conditions:
     #     cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
     #     print(cus)
+    # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
+    # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
+    print(ac.filter_received_customer(1, 372))

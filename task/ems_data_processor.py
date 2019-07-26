@@ -242,7 +242,7 @@ class EMSDataProcessor:
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
-    # obj.insert_subscriber_activity()
+    obj.insert_subscriber_activity()
     # obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
     obj.insert_dashboard_data()
