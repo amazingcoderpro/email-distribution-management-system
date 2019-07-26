@@ -81,8 +81,7 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
                   "open_rate",
                   "click_rate",
                   "click_rate",
-                  "members",
-                  "trigger_info",
+                  "relation_info",
                   "email_delay",
                   "create_time",
                   "update_time"

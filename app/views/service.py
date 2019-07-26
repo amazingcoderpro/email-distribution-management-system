@@ -3,9 +3,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from io import BytesIO
-import base64
+# from io import BytesIO
+# import base64
 # from PIL import Image
+import random, string, os
 
 from app import models
 from app.pageNumber.pageNumber import PNPagination
@@ -13,6 +14,7 @@ from app.serializers import service
 from app.filters import service as service_filter
 from app.permission.permission import CustomerGroupOptPermission, StorePermission
 from sdk.ems import ems_api
+
 
 
 class CustomerGroupView(generics.ListCreateAPIView):
@@ -121,23 +123,40 @@ class UploadPicture(APIView):
     authentication_classes = (JSONWebTokenAuthentication,)
 
     def post(self, request, *args, **kwargs):
-
+        picture_path = "/data/nginx/edm/dist/media/"
+        #picture_path = "/Users/shaowei/"
         file = request.FILES["file"]
-        image = Image.open(BytesIO(file.read()))
+        store_id = models.Store.objects.filter(user=request.user).first().id
+        store_path = "{}{}/".format(picture_path,store_id)
 
-        output_buffer = BytesIO()
-        if "jp" in file._name[-4:]:
-            format = "JPEG"
-        if "png" in file._name[-4:]:
-            format = "PNG"
-        if "gif" in file._name[-4:]:
-            format = "GIF"
-        image.save(output_buffer, format=format)
-        byte_data = output_buffer.getvalue()
-        base64_str = base64.b64encode(byte_data)
-        base64_str = base64_str.decode("utf-8")
+        if not os.path.exists(store_path):
+            os.makedirs(store_path)
+        file_suffix = file._name[-3:]
+        file_name = "{}.{}".format("".join(random.sample(string.ascii_lowercase + string.digits, 15)),file_suffix)
+        file_path = "{}{}".format(store_path, file_name, )
+        with open(file_path, "wb") as f:
+            f.write(file.read())
 
-        return Response({"base64_str": base64_str})
+        return Response({"base64_str": file_path})
+
+    # def post(self, request, *args, **kwargs):
+    #
+    #     file = request.FILES["file"]
+    #     image = Image.open(BytesIO(file.read()))
+    #
+    #     output_buffer = BytesIO()
+    #     if "jp" in file._name[-4:]:
+    #         format = "JPEG"
+    #     if "png" in file._name[-4:]:
+    #         format = "PNG"
+    #     if "gif" in file._name[-4:]:
+    #         format = "GIF"
+    #     image.save(output_buffer, format=format)
+    #     byte_data = output_buffer.getvalue()
+    #     base64_str = base64.b64encode(byte_data)
+    #     base64_str = base64_str.decode("utf-8")
+    #
+    #     return Response({"base64_str": base64_str})
 
 
 class EmailTriggerView(generics.ListCreateAPIView):
