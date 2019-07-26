@@ -138,22 +138,6 @@ class UploadPicture(APIView):
             f.write(file.read())
 
         return Response({"base64_str": file_path})
-        # image = Image.open(BytesIO(file.read()))
-        #
-        # output_buffer = BytesIO()
-        # if "jp" in file._name[-4:]:
-        #     format = "JPEG"
-        # if "png" in file._name[-4:]:
-        #     format = "PNG"
-        # if "gif" in file._name[-4:]:
-        #     format = "GIF"
-        # image.save(output_buffer, format=format)
-        # byte_data = output_buffer.getvalue()
-        # base64_str = base64.b64encode(byte_data)
-        # base64_str = base64_str.decode("utf-8")
-        #
-        # return Response({"base64_str": base64_str})
-
 
     # def post(self, request, *args, **kwargs):
     #
