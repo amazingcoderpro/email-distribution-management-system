@@ -51,26 +51,28 @@ class AnalyzeCondition:
                 return customers
             # 判断需要查询的状态
             if status == 2:
-                status = "0,1"
+                status = (0, 1)
+            else:
+                status = (status, )
             # between date
             if min_time and max_time:
                 cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in (%s) 
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
                     and `order_update_time`>=%s and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, min_time, max_time))
             # after, in the past
             elif min_time:
                 cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in (%s) 
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
                     and `order_update_time`>=%s group by `customer_uuid`""", (store_id, status, min_time))
             # before
             elif max_time:
                 cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in (%s) 
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
                     and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, max_time))
             # over all time
             else:
                 cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in (%s)
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
                     group by `customer_uuid`""", (store_id, status))
     
             res = cursor.fetchall()
@@ -79,7 +81,7 @@ class AnalyzeCondition:
             for uuid, count in res:
                 just_str = "{} {} {}".format(count, relation_dict.get(relation), value)
                 if eval(just_str):
-                    customers.append(uuid[0])
+                    customers.append(uuid)
         except Exception as e:
             logger.exception("order_filter e={}".format(e))
             return customers
@@ -842,14 +844,18 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return True
 
-    def filter_purchase_customer(self, store_id, email, start_time, end_time=datetime.datetime.now()):
+    def filter_purchase_customer(self, store_id, start_time, end_time=datetime.datetime.now()):
         """
         搜索在flow过程中完成了一次购买的用户(发第一封邮件时不需要筛选，以后每次发邮件前都需要)
         :param store_id: 用户所属的店铺
-        :param email:  查询的用户邮件地址
-        :return: True or False
+        :param start_time:  flow的创建时间
+        :param end_time:  截止到目前为止，发邮件前的时间
+        :return: 满足条件的用户id列表
         """
-        pass
+        adapt_customers = self.order_filter(store_id=store_id, status=1, relation="more than",
+                                            value=0, min_time=start_time, max_time=end_time)
+        return adapt_customers
+
 
 
 if __name__ == '__main__':
@@ -866,8 +872,10 @@ if __name__ == '__main__':
     #              }
 
     ac = AnalyzeCondition(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
-    ac.update_customer_group_list()
+    # ac.update_customer_group_list()
     # conditions = ac.get_conditions()
     # for cond in conditions:
     #     cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
     #     print(cus)
+    print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
+    # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
