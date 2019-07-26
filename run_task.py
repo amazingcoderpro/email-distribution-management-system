@@ -192,9 +192,6 @@ def run():
     tp.create_cron_task(sdp.update_shopify_product, "*", 12, 00)
     tp.create_cron_task(sdp.update_top_product, "*", 12, 00)
 
-    #　定时更新店铺的顾客信息
-    tp.create_periodic_task(sdp.update_shopify_customers, seconds=259200)   #一周一次
-
     # ems 定时更新任务请放在这下面
     ems = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
     tp.create_cron_task(ems.insert_subscriber_activity, "*", 0, 30)  # 每天0:1:0拉取昨天一整天的行为记录
