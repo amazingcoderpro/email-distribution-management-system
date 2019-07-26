@@ -791,7 +791,7 @@ class AnalyzeCondition:
                             if diff_add_result["code"] == 1:
                                 logger.info("add_subscriber succeed, uuid={}".find(old_uuid))
                             elif diff_add_result["code"] == 3:
-                                logger.info("add_subscriber partly succeed, uuid={}, invalid email={}".find(old_uuid, diff_add_result.get("invalid_email", [])))
+                                logger.warning("add_subscriber partly succeed, uuid={}, invalid email={}".find(old_uuid, diff_add_result.get("invalid_email", [])))
                             else:
                                 logger.error("update_customer_group_list add_subscriber failed, diff_add_result={}, "
                                              "group id={}, uuid={}, add emails={}".format(diff_add_result, group_id, uuid, new_add_customers_email_list))
@@ -842,7 +842,14 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return True
 
-
+    def filter_purchase_customer(self, store_id, email, start_time, end_time=datetime.datetime.now()):
+        """
+        搜索在flow过程中完成了一次购买的用户(发第一封邮件时不需要筛选，以后每次发邮件前都需要)
+        :param store_id: 用户所属的店铺
+        :param email:  查询的用户邮件地址
+        :return: True or False
+        """
+        pass
 
 
 if __name__ == '__main__':

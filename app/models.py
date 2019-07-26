@@ -51,6 +51,7 @@ class Store(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
+        managed = False
         db_table = 'store'
 
 
@@ -95,6 +96,9 @@ class EmailTemplate(models.Model):
     description = models.TextField(blank=True, null=True, verbose_name="描述")
     subject = models.TextField(verbose_name="邮件标题")
     heading_text = models.TextField(verbose_name="邮件")
+    revenue = models.DecimalField(default=0.00, max_digits=3, decimal_places=2, verbose_name="对应的销售额")
+    sessions = models.IntegerField(default=0, verbose_name="流量数")
+    transcations = models.IntegerField(default=0, verbose_name="交易次数")
     logo = models.TextField(verbose_name="邮件logo")
     banner = models.TextField(verbose_name="邮件banner")
     headline = models.TextField(verbose_name="邮件headline")
@@ -110,7 +114,7 @@ class EmailTemplate(models.Model):
     send_type = models.SmallIntegerField(db_index=True, choices=send_type_choices, default=0, verbose_name="邮件模板发送类型")
     html = models.TextField(blank=True, null=True, verbose_name="描述")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    # store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
