@@ -23,6 +23,7 @@ class AnalyzeCondition:
                               "Customer last click email time": self.adapt_last_click_email_time,
                               "Customer placed order": self.adapt_placed_order,
                               "Customer paid order": self.adapt_paid_order,
+                              "Customer order number is": self.adapt_all_order,
                               "Customer opened email": self.adapt_opened_email,
                               "Customer clicked email": self.adapt_clicked_email,
                               "Customer last order status": self.adapt_last_order_status,
@@ -35,7 +36,7 @@ class AnalyzeCondition:
         """
         筛选满足订单条件的客户id
         :param store_id: 店铺id
-        :param status: 订单状态0－未支付，　１－支付　
+        :param status: 订单状态0－未支付，　１－支付　, 2 - all
         :param relation: 订单条件关系，　大于，小于，等于
         :param value: 订单条件值
         :param min_time: 时间筛选范围起点
@@ -48,26 +49,28 @@ class AnalyzeCondition:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return customers
-    
+            # 判断需要查询的状态
+            if status == 2:
+                status = "0,1"
             # between date
             if min_time and max_time:
                 cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status=%s 
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in (%s) 
                     and `order_update_time`>=%s and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, min_time, max_time))
             # after, in the past
             elif min_time:
                 cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status=%s 
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in (%s) 
                     and `order_update_time`>=%s group by `customer_uuid`""", (store_id, status, min_time))
             # before
             elif max_time:
                 cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status=%s 
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in (%s) 
                     and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, max_time))
             # over all time
             else:
                 cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status=%s 
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in (%s)
                     group by `customer_uuid`""", (store_id, status))
     
             res = cursor.fetchall()
@@ -324,7 +327,21 @@ class AnalyzeCondition:
         adapt_customers = self.order_filter(store_id=store_id, status=1, relation=relations[0]["relation"],
                                        value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
         return adapt_customers
-    
+
+    def adapt_all_order(self, store_id, relations):
+        """
+        适配出所有的订单符合条件的客户id
+        :param store_id: 店铺id
+        :param relations: 筛选条件
+        :return: 客户id列表
+        """
+        # relations 两个, 第一个是数量，第二个是时间范围
+        min_time, max_time = self.date_relation_convert(relations[1]["relation"], relations[1]["values"],
+                                                        relations[1].get("unit", "days"))
+        adapt_customers = self.order_filter(store_id=store_id, status=2, relation=relations[0]["relation"],
+                                            value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
+        return adapt_customers
+        
     def email_opt_filter(self, store_id, opt_type, relation, value, min_time, max_time):
         """
         筛选满足邮件操作条件的客户的id
