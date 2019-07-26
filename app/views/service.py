@@ -123,9 +123,8 @@ class UploadPicture(APIView):
     authentication_classes = (JSONWebTokenAuthentication,)
 
     def post(self, request, *args, **kwargs):
-        # picture_path = "/data/nginx/edm/dist/media/"
-        picture_path = "/Users/shaowei/"
-
+        picture_path = "/data/nginx/edm/dist/media/"
+        #picture_path = "/Users/shaowei/"
         file = request.FILES["file"]
         store_id = models.Store.objects.filter(user=request.user).first().id
         store_path = "{}{}/".format(picture_path,store_id)
@@ -133,12 +132,12 @@ class UploadPicture(APIView):
         if not os.path.exists(store_path):
             os.makedirs(store_path)
         file_suffix = file._name[-3:]
-        file_name = "{}.{}".format("".join(random.sample(string.ascii_lowercase + string.digits, 8)),file_suffix)
-        file_path = "{}{}.{}".format(store_path, file_name, )
+        file_name = "{}.{}".format("".join(random.sample(string.ascii_lowercase + string.digits, 15)),file_suffix)
+        file_path = "{}{}".format(store_path, file_name, )
         with open(file_path, "wb") as f:
             f.write(file.read())
 
-        return Response({"base64_str": "111"})
+        return Response({"base64_str": file_path})
         # image = Image.open(BytesIO(file.read()))
         #
         # output_buffer = BytesIO()
