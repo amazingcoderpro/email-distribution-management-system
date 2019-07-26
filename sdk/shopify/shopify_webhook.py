@@ -97,8 +97,8 @@ if __name__ == '__main__':
     access_token = "d1063808be79897450ee5030e1c163ef"
     id = "3583116148816"
     shop_uri = "charrcter.myshopify.com"
-    address = "https://smartsend.seamarketings.com/api/v1/webhook/customers/create/"
-    topic = "customers/create"
+    address = "https://smartsend.seamarketings.com/api/v1/webhook/customers/update/"
+    topic = "customers/update"
     products_api = ProductsApi(shop_uri=shop_uri, access_token=access_token)
     # 創建webhook
     products_api.create_webhook(topic=topic, address=address)

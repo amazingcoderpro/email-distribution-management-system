@@ -5,8 +5,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 from config import logger
 
 
-class GoogleApi():
-    def __init__(self, view_id, ga_source="pinbooster", json_path=""):
+class GoogleApi:
+    def __init__(self, view_id, ga_source="smartsend", json_path=""):
         """
         获取店铺的GA数据
         :param view_id: 视图的id

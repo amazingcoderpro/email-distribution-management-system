@@ -1,13 +1,17 @@
 import datetime
 import json
+import os
 import time
 import pymysql
 from collections import Counter
+
+from sdk.googleanalytics.google_oauth_info import GoogleApi
 from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, SHOPIFY_CONFIG
 from task.db_util import DBUtil
 from config import logger
 from sdk.shopify import shopify_webhook
+from task.ems_data_processor import ROOT_PATH
 
 
 class ShopifyDataProcessor:
@@ -509,6 +513,43 @@ class ShopifyDataProcessor:
         logger.info("update_top_product is finished...")
         return True
 
+    def updata_shopify_ga(self):
+        logger.info("update_shopify GA is cheking...")
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return False
+            cursor.execute(
+                    """SELECT email_template.id as template_id, store.store_view_id FROM email_template join store on email_template.store_id = edm.store.id;""")
+            stores = cursor.fetchall()
+            if stores:
+                results_list = []
+                for template_id, store_view_id in stores:
+                    if not store_view_id:
+                        continue
+                    google_api = GoogleApi(view_id=store_view_id, json_path=os.path.join(ROOT_PATH, r"sdk\googleanalytics\client_secrets.json"))
+                    google_info = google_api.get_report(key_word="", start_time="1000daysAgo", end_time="today")
+                    if google_info["code"] ==1:
+                        data_list = google_info.get("results", {})
+                        for key, data in data_list:
+                            res = (data["sessions"],data["transactions"],data["revenue"],datetime.datetime.now(), key)
+                            results_list.append(res)
+                cursor.executemany("""update email_template set sessions=%s,transactions=%s,revenue=%s ,update_time=%s where id =%s""", results_list)
+                conn.commit()
+            else:
+                logger.info("no search any templates")
+        except Exception as e:
+            logger.exception("update shopify GA e={}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        logger.info("update shopify GA is finished...")
+        return True
+
+
     def update_store_webhook(self, store=None):
         webhooks = [
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/update/', 'topic': 'orders/updated'},
@@ -518,7 +559,8 @@ class ShopifyDataProcessor:
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/partially_fulfilled/','topic': 'orders/partially_fulfilled'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/draft_orders/create/','topic': 'draft_orders/create'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/draft_orders/update/','topic': 'draft_orders/update'},
-            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/customers/create/','topic': 'customers/create'}
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/customers/create/','topic': 'customers/create'},
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/customers/update/','topic': 'customers/update'}
         ]
         webhook_info = shopify_webhook.products_api(shop_uri=store[0][1], access_token=store[0][2])
         for webhook in webhooks:
@@ -711,7 +753,7 @@ if __name__ == '__main__':
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    ShopifyDataProcessor(db_info=db_info).update_top_product()
-    #ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    # ShopifyDataProcessor(db_info=db_info).update_top_product()
+    ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
 
