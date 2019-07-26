@@ -80,7 +80,7 @@ class TemplateProcessor:
                 time_now = datetime.datetime.now()
                 for exet in execute_times:
                     cursor.execute("insert into `email_task` (`state`, `execute_time`, `create_time`, `update_time`, "
-                                   "`template_id`) values (%s, %s, %s, %s, %s)", (0, exet, time_now, time_now, template_id))
+                                   "`template_id`, `type`) values (%s, %s, %s, %s, %s, %s)", (0, exet, time_now, time_now, template_id, 0))
                 conn.commit()
 
                 cursor.execute("""update `email_template` set `state`=1 where id=%s""", (template_id, ))
