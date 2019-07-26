@@ -51,6 +51,7 @@ class Store(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
+        managed = False
         db_table = 'store'
 
 
@@ -146,10 +147,11 @@ class EmailRecord(models.Model):
     unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=3, decimal_places=2, verbose_name="邮件退订率")
     type_choice = ((0, 'Newsletter'), (1, 'Transactional'), (2, 'Test'))
     type = models.SmallIntegerField(blank=True, null=True, verbose_name="邮件类型")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    # store_id = models.IntegerField(verbose_name="店铺id")
+    # store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    store_id = models.IntegerField(verbose_name="店铺id")
     email_template_id = models.IntegerField(blank=True, null=True,  verbose_name="模版id")  # type=0
     email_trigger_id = models.IntegerField(blank=True, null=True,  verbose_name="邮件触发器id")  # type=1
+    revenue = models.DecimalField(default=0.00, max_digits=3, decimal_places=2, verbose_name="对应的销售额")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
