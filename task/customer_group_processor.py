@@ -842,7 +842,14 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return True
 
-
+    def filter_purchase_customer(self, store_id, email, start_time, end_time=datetime.datetime.now()):
+        """
+        搜索在flow过程中完成了一次购买的用户(发第一封邮件时不需要筛选，以后每次发邮件前都需要)
+        :param store_id: 用户所属的店铺
+        :param email:  查询的用户邮件地址
+        :return: True or False
+        """
+        pass
 
 
 if __name__ == '__main__':
