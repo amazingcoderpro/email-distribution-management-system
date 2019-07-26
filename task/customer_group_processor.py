@@ -774,7 +774,7 @@ class AnalyzeCondition:
                             if diff_add_result["code"] == 1:
                                 logger.info("add_subscriber succeed, uuid={}".find(old_uuid))
                             elif diff_add_result["code"] == 3:
-                                logger.info("add_subscriber partly succeed, uuid={}, invalid email={}".find(old_uuid, diff_add_result.get("invalid_email", [])))
+                                logger.warning("add_subscriber partly succeed, uuid={}, invalid email={}".find(old_uuid, diff_add_result.get("invalid_email", [])))
                             else:
                                 logger.error("update_customer_group_list add_subscriber failed, diff_add_result={}, "
                                              "group id={}, uuid={}, add emails={}".format(diff_add_result, group_id, uuid, new_add_customers_email_list))
