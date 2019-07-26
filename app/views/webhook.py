@@ -204,7 +204,7 @@ class EventDraftCustomersUpdate(APIView):
         print("------------ Customer Update ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
-        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
+        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"])
         if store.exists():
             store_id= store.first().id
         costomer_uuid = request.data["id"]
