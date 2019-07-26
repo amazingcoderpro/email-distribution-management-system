@@ -129,7 +129,7 @@ class UploadPicture(APIView):
         file = request.FILES["file"]
         store_id = models.Store.objects.filter(user=request.user).first().id
         store_path = "{}{}/".format(picture_path,store_id)
-        store_web_path = "{}{}/".format(picture_path,store_id)
+        store_web_path = "{}{}/".format(web_path,store_id)
 
         if not os.path.exists(store_path):
             os.makedirs(store_path)
