@@ -204,4 +204,22 @@ class EventDraftCustomersUpdate(APIView):
         print("------------ Customer Update ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
+        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
+        if store.exists():
+            store_id= store.first().id
+        costomer_uuid = request.data["id"]
+        # user = request.user
+        # store_id  = user.store.id
+        costomer_instance = models.Customer.objects.get(store_id=store_id, uuid=costomer_uuid)
+        costomer_instance.customer_email = request.data["email"]
+        costomer_instance.accept_marketing_status = request.data["accepts_marketing"]
+        costomer_instance.sign_up_time = request.data["created_at"].replace("T", " ")[:-6]
+        costomer_instance.first_name = request.data["first_name"]
+        costomer_instance.last_name = request.data["last_name"]
+        costomer_instance.orders_count = request.data["orders_count"]
+        costomer_instance.last_order_id = request.data["last_order_id"]
+        costomer_instance.payment_amount = request.data["total_spent"]
+        costomer_instance.create_time = request.data["created_at"].replace("T", " ")[:-6]
+        costomer_instance.update_time = request.data["updated_at"].replace("T", " ")[:-6]
+        costomer_instance.save()
         return Response({"code": 200})
