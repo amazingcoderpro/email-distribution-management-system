@@ -22,6 +22,8 @@ SHOPIFY_CONFIG = {
                "read_checkouts", "write_resource_feedbacks", "write_checkouts", "read_reports", "write_reports",
                "read_price_rules", "write_price_rules", "read_marketing_events", "write_marketing_events",
                "read_resource_feedbacks", "read_shopify_payments_disputes", "write_fulfillments"],
+    "utm_format": "/?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name_id}&utm_term={product_uuid}",
+    "utm_source": "smartsend"
 }
 
 
@@ -33,3 +35,4 @@ SYS_CONFIG = {
 EMS_CONFIG = {
     "api_key": "0x53WuKGWlbq2MQlLhLk"
 }
+
