@@ -530,13 +530,14 @@ class ShopifyDataProcessor:
                     if not store_view_id:
                         continue
                     google_api = GoogleApi(view_id=store_view_id, json_path=os.path.join(ROOT_PATH, r"sdk\googleanalytics\client_secrets.json"))
-                    google_info = google_api.get_report(key_word="", start_time="1000daysAgo", end_time="today")
+                    google_info = google_api.get_report(key_word="", start_time="1daysAgo", end_time="today")
                     if google_info["code"] ==1:
-                        data_list = google_info.get("results", {})
-                        for key, data in data_list:
-                            res = (data["sessions"],data["transactions"],data["revenue"],datetime.datetime.now(), key)
-                            results_list.append(res)
-                cursor.executemany("""update email_template set sessions=%s,transactions=%s,revenue=%s ,update_time=%s where id =%s""", results_list)
+                        data_list = google_info.get("data", {}).get("results", {})
+                        values = data_list.get(str(template_id), "")
+                        # for key, values in data_list.items():
+                        res = (values.get("sessions", ""), values.get("transactions", ""), values.get("revenue", ""), datetime.datetime.now(), template_id)
+                        results_list.append(res)
+                cursor.executemany("""update email_template set sessions=%s, transcations=%s, revenue=%s ,update_time=%s where id =%s""", results_list)
                 conn.commit()
             else:
                 logger.info("no search any templates")

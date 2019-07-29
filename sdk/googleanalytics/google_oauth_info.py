@@ -5,7 +5,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from config import logger
 
 
-class GoogleApi:
+class GoogleApi():
     def __init__(self, view_id, ga_source="smartsend", json_path=""):
         """
         获取店铺的GA数据
@@ -43,9 +43,12 @@ class GoogleApi:
                                 ],
                                 "metrics": [
                                     {"expression": "ga:sessions"},  # pageviews
+                                    # {"expression": "ga:Users"},      # uv
+                                    # {"expression": "ga:newUsers"},
                                     {"expression": "ga:transactions"},  # 交易数量
                                     {"expression": "ga:transactionRevenue"},  # 销售总金额
-
+                                    # {"expression": "ga:hits"},  # 点击量
+                                    # {"expression": "ga:itemRevenue"}
                                 ],
                                 "dimensions": [
                                     {"name": "ga:source"},
@@ -62,6 +65,7 @@ class GoogleApi:
                                         }]
                                  }]
                                 }).execute()
+
             results = {}
             total_results = {"sessions":0, "transactions": 0, "revenue": 0}
 
@@ -71,7 +75,7 @@ class GoogleApi:
                     dateRangeValues = row.get('metrics', [])
 
                     if dimensions[1] == key_word or not key_word:
-                        temp_key_word = dimensions[1]
+                        temp_key_word = dimensions[1].split('_')[1]
                         values = dateRangeValues[0].get('values', [])
                         if values:
                             if temp_key_word not in results:
@@ -96,9 +100,9 @@ class GoogleApi:
 if __name__ == '__main__':
 
     google_data = GoogleApi(view_id="195406097")
-    print(google_data.get_report(key_word="", start_time="10daysAgo", end_time="today"))
-    # print(google_data.get_report(key_word="", start_time="7daysAgo", end_time="today"))
+    print(google_data.get_report(key_word="", start_time="1daysAgo", end_time="today"))
     print(1)
+#
 
 
 
