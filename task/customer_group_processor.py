@@ -960,4 +960,5 @@ if __name__ == '__main__':
     for cond in trigger_conditions:
         cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
         print(cus)
-        # 此处应该将customer反填回数据库，并且拆解成任务
+        # 1、此处应该将customer反填回数据库，
+        # 2、拆解成任务

@@ -242,9 +242,9 @@ class Customer(models.Model):
     accept_marketing_status = models.SmallIntegerField(db_index=True, choices=accept_marketing_choices, blank=True,
                                                 null=True, verbose_name="")
 
-    unsubscribe_choices = ((0, 'is false'), (1, 'is true'))
+    unsubscribe_choices = ((0, 'is false'), (1, 'is true'), (2, 'is sleep'))
     unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅")
-    unsubscribe_date = models.CharField(blank=True, null=True, max_length=255, verbose_name="取消订阅时间")
+    unsubscribe_date = models.CharField(blank=True, null=True, max_length=255, verbose_name="取消订阅时间/休眠截止时间")
 
     payment_amount = models.CharField(blank=True, null=True, max_length=255, verbose_name="客户付款金额")
 
