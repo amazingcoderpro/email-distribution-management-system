@@ -206,10 +206,10 @@ class EventDraftCustomersUpdate(APIView):
         store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"])
         if store.exists():
             store_id= store.first().id
-        costomer_uuid = request.data["id"]
+        event_uuid = request.data["id"]
         # user = request.user
         # store_id  = user.store.id
-        costomer_instance = models.Customer.objects.get(store_id=store_id, uuid=costomer_uuid)
+        costomer_instance = models.Customer.objects.get(store_id=store_id, uuid=event_uuid)
         costomer_instance.customer_email = request.data["email"]
         costomer_instance.accept_marketing_status = request.data["accepts_marketing"]
         costomer_instance.sign_up_time = request.data["created_at"].replace("T", " ")[:-6]
@@ -232,6 +232,40 @@ class CheckoutsCreate(APIView):
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
         return Response({"code": 200})
+        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"])
+        if store.exists():
+            store_id = store.first().id
+        id = request.data["id"]
+        costomer_uuid = request.data["costomer"]["id"]
+        email = request.data["email"]
+        first_name = request.data["customer"]["first_name"]
+        last_name = request.data["customer"]["last_name"]
+        total_spent = request.data["customer"]["total_spent"]
+        last_order_id = request.data["customers"]["last_order_id"]
+        # 商品信息未解析
+        buyer_accepts_marketing = request.data["buyer_accepts_marketing"]
+        create_time = request.data["created_at"].replace("T", " ")[:-6]
+        update_time = request.data["updated_at"].replace("T", " ")[:-6]
+        cart_instance = models.Customer.objects.create(
+                        store_id=store_id,
+                        event_id = id,
+                        uuid=costomer_uuid,
+                        customer_email=email,
+                        buyer_accepts_marketing=buyer_accepts_marketing,
+                        sign_up_time=sign_up_time,
+                        first_name=first_name,
+                        last_name=last_name,
+                        orders_count=orders_count,
+                        last_order_id=last_order_id,
+                        payment_amount=total_spent,
+                        create_time=create_time,
+                        update_time=update_time
+
+        )
+        cart_instance.save()
+        return Response({"code": 200})
+
+
 
 class CheckoutsUpdate(APIView):
 
@@ -240,6 +274,25 @@ class CheckoutsUpdate(APIView):
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
         return Response({"code": 200})
+        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"])
+        if store.exists():
+            store_id = store.first().id
+        costomer_uuid = request.data["costomer"]["id"]
+        cart_instance = models.CartEvent.objects.get(store_id=store_id, uuid=costomer_uuid)
+        cart_instance.id = request.data["id"]
+        cart_instance.email = request.data["email"]
+        cart_instance.first_name = request.data["customer"]["first_name"]
+        cart_instance.last_name = request.data["customer"]["last_name"]
+        cart_instance.total_spent = request.data["customer"]["total_spent"]
+        cart_instance.last_order_id = request.data["customers"]["last_order_id"]
+        # 商品信息未解析
+        cart_instance.buyer_accepts_marketing = request.data["buyer_accepts_marketing"]
+        cart_instance.create_time = request.data["created_at"].replace("T", " ")[:-6]
+        cart_instance.update_time = request.data["updated_at"].replace("T", " ")[:-6]
+        cart_instance.save()
+        return Response({"code": 200})
+
+
 
 
 class CheckoutsFulfilled(APIView):
