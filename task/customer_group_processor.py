@@ -887,6 +887,52 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return result
 
+    def get_trigger_conditions(self, store_id=None, condition_id=None):
+        """
+        批量获取email trigger中的condition
+        :param store_id: 可选，店铺ID
+        :param condition_id: 可选，email_trigger_id
+        :return:
+        """
+        result = []
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return result
+
+            # between date
+            if store_id and condition_id:
+                cursor.execute(
+                    """select `store_id`, `id`, `title`, `relation_info` from `email_trigger` where store_id=%s and id=%s""",
+                    (store_id, condition_id))
+            elif store_id:
+                # 未删除的才取出来
+                cursor.execute(
+                    """select `store_id`, `id`, `title`, `relation_info` from `email_trigger` where store_id=%s and type!=2""",
+                    (store_id,))
+            elif condition_id:
+                cursor.execute(
+                    """select `store_id`, `id`, `title`, `relation_info` from `email_trigger` where id=%s""",
+                    (condition_id,))
+            else:
+                # 未删除的才取出来
+                cursor.execute(
+                    """select `store_id`, `id`, `title`, `relation_info` from `email_trigger` where id>=0 and type!=2""")
+
+            res = cursor.fetchall()
+            if res:
+                for ret in res:
+                    result.append(ret)
+        except Exception as e:
+            logger.exception("adapt_last_order_created_time e={}".format(e))
+            return result
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return result
+
 
 if __name__ == '__main__':
     # condition = {"relation": "&&,||", "group_condition":
@@ -909,4 +955,10 @@ if __name__ == '__main__':
     #     print(cus)
     # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
-    print(ac.filter_received_customer(1, 372))
+    # print(ac.filter_received_customer(1, 372))
+    trigger_conditions = ac.get_trigger_conditions()
+    for cond in trigger_conditions:
+        cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
+        print(cus)
+        # 1、此处应该将customer反填回数据库，
+        # 2、拆解成任务

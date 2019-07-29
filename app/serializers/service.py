@@ -34,6 +34,7 @@ class StoreSerializer(serializers.ModelSerializer):
                   "url",
                   "email",
                   "sender",
+                  "domain",
                   "customer_shop",
                   "sender_address",
                   "timezone",
@@ -132,7 +133,7 @@ class SendMailSerializer(serializers.ModelSerializer):
         store_instance = models.Store.objects.filter(user=self.context["request"].user).first()
         validated_data["store"] = store_instance
         validated_data["send_type"] = 3
-        validated_data["state"] = 1
+        validated_data["state"] = 0
         instance = super(SendMailSerializer, self).create(validated_data)
 
         ems_instance = ems_api.ExpertSender(store_instance.name, store_instance.email)

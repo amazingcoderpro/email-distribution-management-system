@@ -464,6 +464,51 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
+    def get_opt_out_link_subscribers(self, list_ids=None, start_date=None, end_date=None, remove_types="OptOutLink"):
+        """
+        获取点击过邮件中的退订链接的收件人, 退订的用户已经从当前的收件人列表中删除
+        http://sms.expertsender.cn/api/v2/methods/subscribers/get-removed-subscribers/
+        :param list_ids: 列表标识ID. 选填.可以指定多个列表ID, 用逗号隔开, 如: 12,34,56,789
+        :param start_date: 起始日期. 选填. 格式YYYY-MM-DD.
+        :param end_date: 结束日期. 选填. 格式YYYY-MM-DD.
+        :param remove_types:
+        :return:{'RemovedSubscriber': {'Id': '217149', 'Email': 'leemon.li@orderplus.com', 'ListId': '25', 'UnsubscribedOn': '2019-07-29T17:07:44.263'}}
+        """
+        url = f"{self.host}Api/RemovedSubscribers?apiKey={self.api_key}&removeTypes={remove_types}"
+        if list_ids:
+            url += f"&listIds={list_ids}"
+        if start_date:
+            url += f"&startDate={start_date}"
+        if end_date:
+            url += f"&endDate={end_date}"
+        try:
+            result = requests.get(url)
+            return self.retrun_result("get OptOutLink subscribers", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
+    def get_snoozed_subscribers(self, list_ids=None, start_date=None, end_date=None):
+        """
+        获取点击过邮件中的退订链接【休眠中】的收件人
+        http://sms.expertsender.cn/api/v2/methods/subscribers/get-snoozed-subscribers/
+        :param list_ids: 列表标识ID. 选填.可以指定多个列表ID, 用逗号隔开, 如: 12,34,56,789
+        :param start_date: 起始日期. 选填. 格式YYYY-MM-DD.
+        :param end_date: 结束日期. 选填. 格式YYYY-MM-DD.
+        :return:{'SnoozedSubscribers': {'SnoozedSubscriber': {'Email': 'twobercancan@126.com', 'ListId': '25', 'SnoozedUntil': '2019-08-05T17:22:35.407'}}}
+        """
+        url = f"{self.host}Api/SnoozedSubscribers?apiKey={self.api_key}"
+        if list_ids:
+            url += f"&listIds={list_ids}"
+        if start_date:
+            url += f"&startDate={start_date}"
+        if end_date:
+            url += f"&endDate={end_date}"
+        try:
+            result = requests.get(url)
+            return self.retrun_result("get OptOutLink subscribers", result)
+        except Exception as e:
+            return {"code": -1, "msg": str(e), "data": ""}
+
 
 if __name__ == '__main__':
     html_b = """<!DOCTYPE html>
@@ -562,9 +607,9 @@ if __name__ == '__main__':
     # print(ems.get_message_statistics(372))
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))
-    print(ems.add_subscriber(38, ["fatty091@gmail.com"]))
+    # print(ems.add_subscriber(38, ["fatty091@gmail.com"]))
     # html = open("index.html")
-    # print(ems.create_and_send_newsletter([29], "HelloWorld TTT", html=html_b)) # ,"2019-07-09 21:09:00"
+    # print(ems.create_and_send_newsletter([25], "get-removed-subscribers TTT", html="<a href='*[link_unsubscribe]*'>Unsubscribe</a>")) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
@@ -588,4 +633,6 @@ if __name__ == '__main__':
     # print(ems.send_transactional_messages(350, "leemon.li@orderplus.com"))  # 350
     # print(ems.update_transactional_message(350, "Aliase", "limengqiAliase@163.com", "transactional message test 11", html=html_b))  # 350
     # print(ems.delete_message(349))
+    # print(ems.get_opt_out_link_subscribers(25))
+    print(ems.get_snoozed_subscribers(25))
 

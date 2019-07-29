@@ -242,6 +242,10 @@ class Customer(models.Model):
     accept_marketing_status = models.SmallIntegerField(db_index=True, choices=accept_marketing_choices, blank=True,
                                                 null=True, verbose_name="")
 
+    unsubscribe_choices = ((0, 'is false'), (1, 'is true'), (2, 'is sleep'))
+    unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅")
+    unsubscribe_date = models.CharField(blank=True, null=True, max_length=255, verbose_name="取消订阅时间/休眠截止时间")
+
     payment_amount = models.CharField(blank=True, null=True, max_length=255, verbose_name="客户付款金额")
 
     # last_opened_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后打开邮箱时间")
@@ -252,12 +256,12 @@ class Customer(models.Model):
     orders_count = models.IntegerField(blank=True, null=True, verbose_name="订单数量")
     last_order_id = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_order_id")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(verbose_name="店铺id")
+    # store_id = models.IntegerField(verbose_name="店铺id")
     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        # managed = False
         unique_together = ("store", "uuid")
         db_table = 'customer'
 
