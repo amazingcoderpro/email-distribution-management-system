@@ -549,7 +549,6 @@ class ShopifyDataProcessor:
         logger.info("update shopify GA is finished...")
         return True
 
-
     def update_store_webhook(self, store=None):
         webhooks = [
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/update/', 'topic': 'orders/updated'},
@@ -595,6 +594,8 @@ class ShopifyDataProcessor:
 
             # 新店铺拉客户, 初始拉取一次，以后由webhook推送新顾客的创建事件
             self.update_shopify_customers(store=store)
+            # TODO 同步shopify customer 和 order的数据同步
+            self.update_shopify_order_customer()
 
             # TODO 新店铺创建模版
 
@@ -746,6 +747,31 @@ class ShopifyDataProcessor:
             conn.close() if conn else 0
         return True
 
+    def update_shopify_order_customer(self):
+        """
+        # 用户的订单表 和  用户的信息表 同步
+        :return:
+        """
+        logger.info("update shopify order is cheking...")
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return False
+            cursor.execute("""select `status`, `order_update_time`, `order_uuid`, `store_id` from `order_event` """,)
+            ret = cursor.fetchall()
+            if ret:
+                cursor.executemany(
+                    """update customer set `last_order_status`=%s, `last_order_time`=%s where last_order_id = %s and store_id=%s""",
+                    ret)
+            conn.commit()
+        except Exception as e:
+            logger.exception("update_shopify_customers e={}".format(e))
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
 
 
 if __name__ == '__main__':
@@ -754,6 +780,9 @@ if __name__ == '__main__':
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_product()
+    # 拉取shopify GA 数据
     ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
+    # 订单表 和  用户表 之间的数据同步
+    ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
 

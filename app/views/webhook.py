@@ -5,7 +5,6 @@ from rest_framework.views import APIView
 from app import models
 
 
-
 class EventCartUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
