@@ -222,3 +222,39 @@ class EventDraftCustomersUpdate(APIView):
         costomer_instance.update_time = request.data["updated_at"].replace("T", " ")[:-6]
         costomer_instance.save()
         return Response({"code": 200})
+
+
+
+class CheckoutsCreate(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------ Checkouts Create ------------:")
+        # print(request.META, type(request.META))
+        print(json.dumps(request.data))
+        return Response({"code": 200})
+
+class CheckoutsUpdate(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------ Checkouts Update ------------:")
+        # print(request.META, type(request.META))
+        print(json.dumps(request.data))
+        return Response({"code": 200})
+
+
+class CheckoutsFulfilled(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------ Checkouts Fulfilled ------------:")
+        # print(request.META, type(request.META))
+        print(json.dumps(request.data))
+        return Response({"code": 200})
+
+
+class CheckoutDelete(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------ Checkout Delete ------------:")
+        # print(request.META, type(request.META))
+        print(json.dumps(request.data))
+        return Response({"code": 200})
