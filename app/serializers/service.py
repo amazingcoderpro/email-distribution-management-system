@@ -34,6 +34,7 @@ class StoreSerializer(serializers.ModelSerializer):
                   "url",
                   "email",
                   "sender",
+                  "domain",
                   "customer_shop",
                   "sender_address",
                   "timezone",
