@@ -138,7 +138,6 @@ class EventOrderPartiallyFulfilled(APIView):
         return Response({"code": 200})
 
 
-
 class EventDraftOrdersCreate(APIView):
 
     def post(self, request, *args, **kwargs):
@@ -224,7 +223,6 @@ class EventDraftCustomersUpdate(APIView):
         return Response({"code": 200})
 
 
-
 class CheckoutsCreate(APIView):
 
     def post(self, request, *args, **kwargs):
@@ -266,7 +264,6 @@ class CheckoutsCreate(APIView):
         return Response({"code": 200})
 
 
-
 class CheckoutsUpdate(APIView):
 
     def post(self, request, *args, **kwargs):
@@ -291,8 +288,6 @@ class CheckoutsUpdate(APIView):
         cart_instance.update_time = request.data["updated_at"].replace("T", " ")[:-6]
         cart_instance.save()
         return Response({"code": 200})
-
-
 
 
 class CheckoutsFulfilled(APIView):
