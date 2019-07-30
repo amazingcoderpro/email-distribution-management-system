@@ -240,3 +240,11 @@ class CheckoutsUpdate(APIView):
             checkout_instance.save()
         return Response({"code": 200})
 
+
+class CheckoutsDelete(APIView):
+
+    def post(self, request, *args, **kwargs):
+        print("------------ Checkouts Delete ------------:")
+        # print(request.META, type(request.META))
+        print(json.dumps(request.data))
+        return Response({"code": 200})
