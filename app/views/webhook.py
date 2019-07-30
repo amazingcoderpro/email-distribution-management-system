@@ -185,6 +185,7 @@ class CheckoutsCreate(APIView):
                         customer_uuid=customer_uuid,
                         checkout_id = checkout_id,
                         total_price= total_price,
+                        status=0,
                         product_info = json.dumps(product_info),
                         abandoned_checkout_url= abandoned_checkout_url,
                         checkout_create_time= checkout_create_time,
@@ -222,6 +223,7 @@ class CheckoutsUpdate(APIView):
         if not checkout_instance:
             models.CheckoutEvent.objects.create(
                 store_id=store_id,
+                status=0,
                 customer_uuid=customer_uuid,
                 checkout_id=checkout_id,
                 total_price=total_price,
