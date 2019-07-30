@@ -26,7 +26,7 @@ class TemplateProcessor:
 
     def analyze_templates(self, template_id=None):
         """
-        模板规则解析，将周期性模板解析成一个个的task
+        模板规则解析，将周期性模板解析成一个个的task(只解析template型邮件)
         :param template_id:
         :return:
         """
@@ -41,9 +41,13 @@ class TemplateProcessor:
             if template_id:
                 cursor.execute("""select id, send_rule from `email_template` where state=0 and id=%s""", (template_id, ))
             else:
-                cursor.execute("""select id, send_rule from `email_template` where state=0""")
+                cursor.execute("""select id, send_rule from `email_template` where state=0 and send_type=0""")
 
             data = cursor.fetchall()
+            if not data:
+                logger.info("there have no template for analyzing")
+                return True
+
             for value in data:
                 template_id, send_rule = value
                 logger.info("analyze template, template id={}".format(template_id))
@@ -95,7 +99,7 @@ class TemplateProcessor:
 
     def execute_email_task(self, interval=120):
         """
-        执行邮件发送任务
+        执行邮件发送任务(只执行template型邮件的任务)
         :param interval:　间隔周期
         :return:
         """
@@ -111,7 +115,7 @@ class TemplateProcessor:
             dt_min = datetime.datetime.now()-datetime.timedelta(seconds=interval/2+10)
             dt_max = datetime.datetime.now()+datetime.timedelta(seconds=interval/2+10)
             cursor.execute("""select id, template_id from `email_task` 
-            where state=0 and execute_time>=%s and execute_time<=%s""", (dt_min, dt_max))
+            where state=0 and type=0 and execute_time>=%s and execute_time<=%s""", (dt_min, dt_max))
 
             tasks = cursor.fetchall()
             if not tasks:
