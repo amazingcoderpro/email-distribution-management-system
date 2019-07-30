@@ -176,24 +176,24 @@ class EmailTrigger(models.Model):
         ordering = ["-id"]
 
 
-class EmailTask(models.Model):
-    template = models.ForeignKey(EmailTemplate, blank=True, null=True, on_delete=models.DO_NOTHING)
-    state_choices = ((0, '待发送'), (1, '已发送(成功)'), (2, "模板已删除"), (3, '已发送但发送失败'))
-    state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件发送状态")
-    remark = models.TextField(blank=True, null=True, verbose_name="备注")
-    execute_time = models.DateTimeField(db_index=True, verbose_name="执行时间")
-    finished_time = models.DateTimeField(blank=True, null=True, verbose_name="完成时间")
-    customer_list = models.TextField(blank=True, null=True, verbose_name="符合触发条件的用户列表")
-    # email_trigger = models.ForeignKey(EmailTrigger, blank=True, null=True, on_delete=models.DO_NOTHING)
-    email_trigger_id = models.IntegerField(db_index=True,verbose_name="email_trigger_id")
-    type_choices = ((0, 'Timed mail'), (1, 'Trigger mail'))
-    type = models.SmallIntegerField(db_index=True, choices=type_choices, default=0, verbose_name="邮件类型")
-    create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
-    update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
-
-    class Meta:
-        managed = False
-        db_table = 'email_task'
+# class EmailTask(models.Model):
+#     template = models.ForeignKey(EmailTemplate, blank=True, null=True, on_delete=models.DO_NOTHING)
+#     state_choices = ((0, '待发送'), (1, '已发送(成功)'), (2, "模板已删除"), (3, '已发送但发送失败'))
+#     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件发送状态")
+#     remark = models.TextField(blank=True, null=True, verbose_name="备注")
+#     execute_time = models.DateTimeField(db_index=True, verbose_name="执行时间")
+#     finished_time = models.DateTimeField(blank=True, null=True, verbose_name="完成时间")
+#     customer_list = models.TextField(blank=True, null=True, verbose_name="符合触发条件的用户列表")
+#     # email_trigger = models.ForeignKey(EmailTrigger, blank=True, null=True, on_delete=models.DO_NOTHING)
+#     email_trigger_id = models.IntegerField(db_index=True,verbose_name="email_trigger_id")
+#     type_choices = ((0, 'Timed mail'), (1, 'Trigger mail'))
+#     type = models.SmallIntegerField(db_index=True, choices=type_choices, default=0, verbose_name="邮件类型")
+#     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
+#     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
+#
+#     class Meta:
+#         #managed = False
+#         db_table = 'email_task'
 
 
 class CustomerGroup(models.Model):
@@ -338,16 +338,16 @@ class OrderEvent(models.Model):
     # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
     product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
     total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
-    #store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     order_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
     order_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
     create_time = models.DateTimeField(db_index=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        #managed = False
-        unique_together = ("store_id", "order_uuid")
+        managed = False
+        unique_together = ("store", "order_uuid")
         db_table = 'order_event'
 
 
