@@ -360,7 +360,7 @@ class CheckoutEvent(models.Model):
     customer_uuid = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
     #product_list = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
     abandoned_checkout_url = models.TextField(blank=True, null=True, verbose_name="checkout_url")
-
+    status = models.IntegerField(db_index=True, default=0, verbose_name="checkouts事件类型, 0-创建(未支付)，1-支付, 2-删除")
     product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
     total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
     checkout_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
