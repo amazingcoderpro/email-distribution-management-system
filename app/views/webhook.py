@@ -214,7 +214,7 @@ class CheckoutsUpdate(APIView):
         checkout_create_time = request.data["created_at"].replace("T", " ")[:-6]
         checkout_update_time = request.data["updated_at"].replace("T", " ")[:-6]
         abandoned_checkout_url = request.data["abandoned_checkout_url"]
-        checkout_id = request.data["checkout_id"]
+        checkout_id = request.data["id"]
         customer_info = request.data.get("customer", "")
         customer_uuid = customer_info.get("id")
         total_price = customer_info.get("total_spent", 0.0)
