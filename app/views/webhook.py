@@ -230,12 +230,12 @@ class CheckoutsCreate(APIView):
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
 
-        if not request.data.get("costomer"):
+        if not request.data.get("customer", ""):
             return Response({"code": 200})
         store_id = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first().id
 
         checkout_id = request.data.get("id")
-        customer_info = request.data.get("costomer", "")
+        customer_info = request.data.get("customer", "")
         product_info = []
         for product in request.data["line_items"]:
             product_dict = {"product": product.get("product_id", ""), "sales": product.get("quantity", ""),
@@ -270,10 +270,10 @@ class CheckoutsUpdate(APIView):
         print("------------ Checkouts Update ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
-        if not request.data.get("costomer"):
+        if not request.data.get("customer"):
             return Response({"code": 200})
         store_id = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first().id
-        customer_info = request.data.get("costomer", "")
+        customer_info = request.data.get("customer", "")
         costomer_uuid = customer_info.get("id", "")
         checkout_instance = models.CheckoutEvent.objects.get(store_id=store_id, uuid=costomer_uuid)
         product_info = []
