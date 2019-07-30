@@ -371,7 +371,7 @@ class CheckoutEvent(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        #managed = False
+        managed = False
         db_table = 'checkout_event'
 
 
