@@ -908,21 +908,21 @@ class AnalyzeCondition:
             # between date
             if store_id and condition_id:
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note` from `email_trigger` where store_id=%s and id=%s""",
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list` from `email_trigger` where store_id=%s and id=%s""",
                     (store_id, condition_id))
             elif store_id:
                 # 未删除的才取出来
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note` from `email_trigger` where store_id=%s and type!=2""",
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list` from `email_trigger` where store_id=%s and type!=2""",
                     (store_id,))
             elif condition_id:
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note` from `email_trigger` where id=%s""",
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list` from `email_trigger` where id=%s""",
                     (condition_id,))
             else:
                 # 未删除的才取出来
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note` from `email_trigger` where id>=0 and type!=2""")
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list` from `email_trigger` where id>=0 and type!=2""")
 
             res = cursor.fetchall()
             if res:
@@ -936,31 +936,50 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return result
 
-    def parse_trigger_tasks(self, t_id, note, customer_list, email_delay):
+    def parse_trigger_tasks(self):
         """
-        解析触发邮件任务
-        :param t_id: email_trigger_id
-        :param note:  发邮件前的筛选条件
-        :param customer_list: 需要发送邮件的用户列表ID
-        :param email_delay: 流程列表
-        :return:
+        解析触发邮件任务, 定时获取符合触发信息的新用户，并且创建定时任务
+        :return: True or False
         """
         # 获取所有trigger条件
         trigger_conditions = self.get_trigger_conditions()
         update_list = []
+        insert_list = []
         for cond in trigger_conditions:
-            store_id, t_id, title, relation_info, email_delay, note = cond.values()
+            store_id, t_id, title, relation_info, email_delay, note, old_customer_list = cond.values()
             customer_list = self.get_customers_by_condition(condition=json.loads(cond["relation_info"]),
                                                           store_id=cond["store_id"])
-            print(customer_list)
+            # 计算新增用户，创建新的任务，第一次应全是新增用户
+            if eval(str(old_customer_list)):
+                old_customer_list = []
+            else:
+                old_customer_list = eval(old_customer_list)
+            new_customer_list = list(set(customer_list)-set(old_customer_list))
+            customer_list.extend(new_customer_list)
             update_list.append((str(customer_list), datetime.datetime.now(), t_id))
 
-            # 1、拆解成任务
+            # ToDo parse email_delay
+            excute_time = datetime.datetime.now() # flow从此刻开始
+            for item in eval(email_delay):
+                if item["type"] == 1:  # 代表是邮件任务
+                    email_uuid, unit = item["values"], item["unit"]
+                    insert_list.append((email_uuid, 0, unit, excute_time, str(new_customer_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now()))
+                elif item["type"] == 0:  # 代表是delay
+                    num, unit = item["values"], item["unit"]
+                    if unit in ["days", "hours"]:
+                        excute_time += datetime.timedelta(**{unit:num})
+                    else:
+                        logger.error("delay unit is error, please amend it to days or hours.")
+                        return False
+                else:
+                    logger.error("type=%s is invalid."% item["type"])
+                    return False
 
-
-        # 2、将customer_list反填回数据库
-        return self.update_customer_list_from_trigger(update_list)
-
+        # 1、将customer_list反填回数据库
+        if not self.update_customer_list_from_trigger(update_list):
+            return False
+        # 2、拆解的任务入库email_task
+        return self.insert_email_task_from_trigger(insert_list)
 
     def update_customer_list_from_trigger(self, customer_lists):
         """
@@ -991,6 +1010,35 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return True
 
+    def insert_email_task_from_trigger(self, datas):
+        """
+        插入 email_task 表
+        :param datas:
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+            if datas:
+                cursor.executemany(
+                    """insert into email_task (template_id,state,remark,execute_time,customer_list,email_trigger_id,type,create_time,update_time) 
+                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (datas))
+                conn.commit()
+                logger.info("insert email task from trigger success.")
+            else:
+                logger.warning("datas is empty.")
+                return False
+        except Exception as e:
+            logger.exception("insert email task from trigger exception: {}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
+
 
 if __name__ == '__main__':
     # condition = {"relation": "&&,||", "group_condition":
@@ -1014,13 +1062,4 @@ if __name__ == '__main__':
     # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
     # print(ac.filter_received_customer(1, 372))
-    trigger_conditions = ac.get_trigger_conditions()
-    update_list = []
-    for cond in trigger_conditions:
-        store_id, t_id, title, relation_info, email_delay, note = cond.values()
-        customer_list = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
-        print(customer_list)
-        # 1、此处应该将customer反填回数据库，
-        update_list.append((str(customer_list), datetime.datetime.now(), t_id))
-        # 2、拆解成任务
-        ac.parse_trigger_tasks(t_id, note, customer_list, email_delay)
+    ac.parse_trigger_tasks()
