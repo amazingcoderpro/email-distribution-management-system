@@ -159,10 +159,10 @@ class EmailTrigger(models.Model):
     relation_info = models.TextField(blank=True, null=True, verbose_name="筛选条件")
     email_delay = models.TextField(blank=True, null=True, verbose_name="发送邮件顺序")
     customer_list = models.TextField(blank=True, null=True, verbose_name="对应客户列表")
-    note_choice = ((0, 'Do not send if the customer if your customer makes a purchase. && Do not send if the customer received an email from this campaign in the last 7 days.'),
-                   (1, 'Do not send if the customer if your customer makes a purchase.'),
-                   (2, 'Do not send if the customer received an email from this campaign in the last 7 days.'))
-    note = models.SmallIntegerField(blank=True, null=True, verbose_name="对应Note")
+    # note_choice = ((0, 'Do not send if the customer if your customer makes a purchase. && Do not send if the customer received an email from this campaign in the last 7 days.'),
+    #                (1, 'Do not send if the customer if your customer makes a purchase.'),
+    #                (2, 'Do not send if the customer received an email from this campaign in the last 7 days.'))
+    note = models.TextField(default="[]", verbose_name="对应Note列表")
     type_choice = ((0, 'execute'), (1, 'pause'), (2, 'delete'))
     type = models.SmallIntegerField(default=0, verbose_name="邮件类型")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
@@ -185,12 +185,14 @@ class EmailTask(models.Model):
     finished_time = models.DateTimeField(blank=True, null=True, verbose_name="完成时间")
     customer_list = models.TextField(blank=True, null=True, verbose_name="符合触发条件的用户列表")
     email_trigger = models.ForeignKey(EmailTrigger, blank=True, null=True, on_delete=models.DO_NOTHING)
+    #email_trigger_id = models.IntegerField(db_index=True,verbose_name="email_trigger_id")
     type_choices = ((0, 'Timed mail'), (1, 'Trigger mail'))
     type = models.SmallIntegerField(db_index=True, choices=type_choices, default=0, verbose_name="邮件类型")
-    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
+        managed = False
         db_table = 'email_task'
 
 
@@ -261,7 +263,7 @@ class Customer(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        # managed = False
+        managed = False
         unique_together = ("store", "uuid")
         db_table = 'customer'
 
@@ -327,17 +329,17 @@ class OrderEvent(models.Model):
     """
     event_uuid = models.CharField(max_length=255, blank=True, null=True, verbose_name="事件的唯一标识符")
     order_uuid = models.CharField(max_length=255, verbose_name="订单的唯一标识符")
+    checkout_id = models.CharField(db_index=True, max_length=255, verbose_name="checkout的唯一标识符")
     status = models.IntegerField(db_index=True, default=0, verbose_name="订单事件类型, 0-创建(未支付)，1-支付")
     status_tag = models.CharField(max_length=255, blank=True, null=True, verbose_name="订单类型tag")
     status_url = models.CharField(max_length=255, blank=True, null=True, verbose_name="订单类型url")
     # store_url = models.CharField(db_index=True, max_length=255, verbose_name="订单对应的店铺的url")
     customer_uuid = models.CharField(db_index=True,max_length=255, verbose_name="订单对应客户id")
-
     # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
     product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
     total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(verbose_name="店铺id")
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     order_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
     order_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
     create_time = models.DateTimeField(db_index=True, verbose_name="创建时间")
@@ -355,19 +357,21 @@ class CheckoutEvent(models.Model):
     """
     event_uuid = models.CharField(max_length=255, verbose_name="checkout事件的唯一标识符")
     checkout_id = models.CharField(max_length=255, verbose_name="checkout的唯一标识符")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     customer_uuid = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
-    product_list = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
-    create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="创建时间")
+    #product_list = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
+    abandoned_checkout_url = models.TextField(blank=True, null=True, verbose_name="checkout_url")
+
     product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
     total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
     checkout_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
     checkout_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
-    create_time = models.DateTimeField(db_index=True, verbose_name="创建时间")
+    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        #managed = False
         db_table = 'checkout_event'
 
 
@@ -383,5 +387,5 @@ class TopProduct(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        #managed = False
+        managed = False
         db_table = 'top_product'

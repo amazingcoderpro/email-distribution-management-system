@@ -267,7 +267,7 @@ class CheckoutsUpdate(APIView):
         if store.exists():
             store_id = store.first().id
         costomer_uuid = request.data["costomer"]["id"]
-        cart_instance = models.CartEvent.objects.get(store_id=store_id, uuid=costomer_uuid)
+        cart_instance = models.CheckoutEvent.objects.get(store_id=store_id, uuid=costomer_uuid)
         cart_instance.id = request.data["id"]
         cart_instance.email = request.data["email"]
         cart_instance.first_name = request.data["customer"]["first_name"]
