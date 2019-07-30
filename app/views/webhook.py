@@ -252,7 +252,7 @@ class CheckoutsCreate(APIView):
                             costomer_uuid=costomer_uuid,
                             checkout_id = checkout_id,
                             total_price= total_price,
-                            product_info = product_info,
+                            product_info = str(product_info),
                             abandoned_checkout_url= abandoned_checkout_url,
                             checkout_create_time= checkout_create_time,
                             checkout_update_time= checkout_update_time,
@@ -281,6 +281,7 @@ class CheckoutsUpdate(APIView):
                                 "amount": product.get("variant_price", "")}
                 product_info.append(product_dict)
             cart_instance.costomer_uuid = request.data["costomer"]["id"]
+            cart_instance.update_time = str(product_info)
             cart_instance.total_price = request.data["customer"]["total_spent"]
             cart_instance.checkout_create_time = request.data["created_at"].replace("T", " ")[:-6]
             cart_instance.checkout_update_time = request.data["created_at"].replace("T", " ")[:-6]
