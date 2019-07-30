@@ -949,21 +949,33 @@ class AnalyzeCondition:
             store_id, t_id, title, relation_info, email_delay, note, old_customer_list = cond.values()
             customer_list = self.get_customers_by_condition(condition=json.loads(cond["relation_info"]),
                                                           store_id=cond["store_id"])
+            if not customer_list:
+                # 无符合触发条件的用户
+                logger.warning("Not found customers matching the search relation_info: %s"% json.loads(cond["relation_info"]))
+                continue
             # 计算新增用户，创建新的任务，第一次应全是新增用户
-            if eval(str(old_customer_list)):
+            if not eval(str(old_customer_list)):
                 old_customer_list = []
             else:
                 old_customer_list = eval(old_customer_list)
             new_customer_list = list(set(customer_list)-set(old_customer_list))
-            customer_list.extend(new_customer_list)
-            update_list.append((str(customer_list), datetime.datetime.now(), t_id))
+            if not new_customer_list:
+                # 无新增符合触发条件的用户
+                logger.warning("No new customers.")
+                continue
+            old_customer_list.extend(new_customer_list)
+            update_list.append((str(old_customer_list), datetime.datetime.now(), t_id))
 
             # ToDo parse email_delay
             excute_time = datetime.datetime.now() # flow从此刻开始
             for item in eval(email_delay):
                 if item["type"] == 1:  # 代表是邮件任务
-                    email_uuid, unit = item["values"], item["unit"]
-                    insert_list.append((email_uuid, 0, unit, excute_time, str(new_customer_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now()))
+                    template_id, unit = item["values"], item["unit"]
+                    # 通过template_id去创建一个事务性邮件，并返回email_uuid
+                    subject, html = self.get_template_info_by_id(template_id)
+                    email_uuid = self.create_trigger_email_by_template(store_id, template_id, subject, html, t_id)[0]
+                    # 将触发邮件任务参数增加到待入库数据列表中
+                    insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(new_customer_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now()))
                 elif item["type"] == 0:  # 代表是delay
                     num, unit = item["values"], item["unit"]
                     if unit in ["days", "hours"]:
@@ -1001,7 +1013,6 @@ class AnalyzeCondition:
                 logger.info("update customer list from email_trigger success.")
             else:
                 logger.warning("customer_lists is empty.")
-                return False
         except Exception as e:
             logger.exception("update customer list from email_trigger exception: {}".format(e))
             return False
@@ -1024,13 +1035,12 @@ class AnalyzeCondition:
                 return False
             if datas:
                 cursor.executemany(
-                    """insert into email_task (template_id,state,remark,execute_time,customer_list,email_trigger_id,type,create_time,update_time) 
-                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (datas))
+                    """insert into email_task (uuid, template_id,state,remark,execute_time,customer_list,email_trigger_id,type,create_time,update_time) 
+                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (datas))
                 conn.commit()
                 logger.info("insert email task from trigger success.")
             else:
                 logger.warning("datas is empty.")
-                return False
         except Exception as e:
             logger.exception("insert email task from trigger exception: {}".format(e))
             return False
@@ -1038,6 +1048,75 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
         return True
+
+    def create_trigger_email_by_template(self, store_id, template_id, subject, html, email_trigger_id):
+        """
+        若无对应模板的事务性邮件，则创建
+        :param store_id: 所属店铺
+        :param template_id:
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+            # 通过template_id查询记录
+            cursor.execute("select `id` from `email_record` where store_id=%s and email_template_id=%s and type=1", (store_id, template_id))
+            if not cursor.fetchall():
+                # 暂无数据，需要创建，先获取email_uuid
+                # 获取当前店铺name,email
+                cursor.execute("select `name`, `sender`, `sender_address` from `store` where id=%s", (store_id,))
+                store = cursor.fetchone()
+                if not store:
+                    raise Exception("store is not found, store id={}".format(store_id))
+                ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
+                res = ems.create_transactional_message(subject, html)
+                if res["code"] != 1:
+                    raise Exception(res["msg"])
+                email_uuid = res["data"]
+                # 创建email_record数据
+                cursor.execute(
+                    """insert into email_record (uuid,sents,opens,clicks,unsubscribes,open_rate,click_rate,unsubscribe_rate,store_id,email_template_id,type,email_trigger_id,create_time,update_time) 
+                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (email_uuid,0,0,0,0,0.0,0.0,0.0,store_id,template_id,1,email_trigger_id,datetime.datetime.now(),datetime.datetime.now()))
+                conn.commit()
+                logger.info("insert trigger email from email_record success.")
+            else:
+                logger.info("email_record data was exists.")
+            # 查询此模板ID对应的email_uuid
+            cursor.execute("select `uuid`, `email_template_id` from `email_record` where email_template_id=%s and email_trigger_id=%s", (template_id,email_trigger_id))
+            result = cursor.fetchone()
+        except Exception as e:
+            logger.exception("insert email task from trigger exception: {}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return result
+
+    def get_template_info_by_id(self, template_id):
+        """
+        获取模板内容信息
+        :param template_id:
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+            cursor.execute("select subject, html from email_template where id=%s", (template_id))
+            result = cursor.fetchone()
+            logger.info("get template info by id success.")
+        except Exception as e:
+            logger.exception("get template info by id exception: {}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return result
 
 
 if __name__ == '__main__':
@@ -1062,4 +1141,4 @@ if __name__ == '__main__':
     # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
     # print(ac.filter_received_customer(1, 372))
-    # ac.parse_trigger_tasks()
+    print(ac.parse_trigger_tasks())

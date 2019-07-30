@@ -53,25 +53,16 @@ v1_urlpatterns = [
 
 
 webhook_urlpatterns = [
-    # url(r'cart/update/$', webhook.EventCartUpdate.as_view()),
-    # url(r'cart/create/$', webhook.EventCartCreate.as_view()),
 
     # url(r'order/update/$', webhook.EventOrderUpdate.as_view()),
     # url(r'order/create/$', webhook.EventOrderCreate.as_view()),
     url(r'order/paid/$', webhook.EventOrderPaid.as_view()),
-
-    # url(r'order/fulfilled/$', webhook.EventOrderFulfilled.as_view()),
-    # url(r'order/partially_fulfilled/$', webhook.EventOrderPartiallyFulfilled.as_view()),
-    # url(r'draft_orders/create/$', webhook.EventDraftOrdersCreate.as_view()),
-    # url(r'draft_orders/update/$', webhook.EventDraftOrdersUpdate.as_view()),
 
     url(r'customers/create/$', webhook.EventDraftCustomersCreate.as_view()),
     url(r'customers/update/$', webhook.EventDraftCustomersUpdate.as_view()),
 
     url(r'checkouts/create/$', webhook.CheckoutsCreate.as_view()),
     url(r'checkouts/update/$', webhook.CheckoutsUpdate.as_view()),
-    url(r'checkouts/paid/$', webhook.CheckoutsFulfilled.as_view()),
-    url(r'checkouts/delete/$', webhook.CheckoutDelete.as_view()),
 ]
 
 
