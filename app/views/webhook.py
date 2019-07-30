@@ -171,7 +171,7 @@ class CheckoutsCreate(APIView):
         product_info = []
         for product in result["line_items"]:
             product_dict = {"product": product.get("product_id", ""), "sales": product.get("quantity", ""),
-                            "amount": product.get("variant_price", "")}
+                            "price": product.get("variant_price", "")}
             product_info.append(product_dict)
         customer_uuid = customer_info.get("id")
         total_price = customer_info.get("total_spent", 0.0)
@@ -204,23 +204,39 @@ class CheckoutsUpdate(APIView):
         print(json.dumps(request.data))
         if not request.data.get("customer"):
             return Response({"code": 200})
-        store_id = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first().id
-        customer_info = request.data.get("customer", "")
-        customer_uuid = customer_info.get("id", "")
-        checkout_instance = models.CheckoutEvent.objects.get(store_id=store_id, uuid=customer_uuid)
+        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
+        store_id = store.id
         product_info = []
         for product in request.data["line_items"]:
             product_dict = {"product": product.get("product_id", ""), "sales": product.get("quantity", ""),
-                            "amount": product.get("variant_price", "")}
+                            "price": product.get("variant_price", "")}
             product_info.append(product_dict)
-        checkout_instance.checkout_id = request.data.get("id")
-        checkout_instance.update_time = str(product_info)
-        checkout_instance.total_price = customer_info.get("total_spent", 0.0)
-        checkout_instance.checkout_create_time = request.data["created_at"].replace("T", " ")[:-6]
-        checkout_instance.checkout_update_time = request.data["updated_at"].replace("T", " ")[:-6]
-        checkout_instance.abandoned_checkout_url = request.data["abandoned_checkout_url"]
-        checkout_instance.create_time = datetime.datetime.now()
-        checkout_instance.update_time = datetime.datetime.now()
-        checkout_instance.save()
+        checkout_create_time = request.data["created_at"].replace("T", " ")[:-6]
+        checkout_update_time = request.data["updated_at"].replace("T", " ")[:-6]
+        abandoned_checkout_url = request.data["abandoned_checkout_url"]
+        checkout_id = request.data["checkout_id"]
+        customer_info = request.data.get("customer", "")
+        customer_uuid = customer_info.get("id")
+        total_price = customer_info.get("total_spent", 0.0)
+        checkout_instance = models.CheckoutEvent.objects.get(store=store, checkout_id=request.data.get("id"))
+        if not checkout_instance:
+            models.CheckoutEvent.objects.create(
+                store_id=store_id,
+                customer_uuid=customer_uuid,
+                checkout_id=checkout_id,
+                total_price=total_price,
+                product_info=json.dumps(product_info),
+                abandoned_checkout_url=abandoned_checkout_url,
+                checkout_create_time=checkout_create_time,
+                checkout_update_time=checkout_update_time
+            )
+        else:
+            checkout_instance.product_info = product_info
+            checkout_instance.total_price = total_price
+            checkout_instance.checkout_create_time = checkout_create_time
+            checkout_instance.checkout_update_time = checkout_update_time
+            checkout_instance.abandoned_checkout_url = abandoned_checkout_url
+            checkout_instance.update_time = datetime.datetime.now()
+            checkout_instance.save()
         return Response({"code": 200})
 
