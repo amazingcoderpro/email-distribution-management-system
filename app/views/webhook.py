@@ -229,36 +229,28 @@ class CheckoutsCreate(APIView):
         print("------------ Checkouts Create ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
-        return Response({"code": 200})
+
         store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"])
         if store.exists():
             store_id = store.first().id
-        id = request.data["id"]
+        checkout_id = request.data["id"]
+        # product_list = request.data
         costomer_uuid = request.data["costomer"]["id"]
-        email = request.data["email"]
-        first_name = request.data["customer"]["first_name"]
-        last_name = request.data["customer"]["last_name"]
-        total_spent = request.data["customer"]["total_spent"]
-        last_order_id = request.data["customers"]["last_order_id"]
-        # 商品信息未解析
-        buyer_accepts_marketing = request.data["buyer_accepts_marketing"]
+        total_price = request.data["customer"]["total_spent"]
+        checkout_create_time = request.data["created_at"].replace("T", " ")[:-6]
+        checkout_update_time = request.data["created_at"].replace("T", " ")[:-6]
         create_time = request.data["created_at"].replace("T", " ")[:-6]
         update_time = request.data["updated_at"].replace("T", " ")[:-6]
+
         cart_instance = models.Customer.objects.create(
                         store_id=store_id,
-                        event_id = id,
-                        uuid=costomer_uuid,
-                        customer_email=email,
-                        buyer_accepts_marketing=buyer_accepts_marketing,
-                        sign_up_time=sign_up_time,
-                        first_name=first_name,
-                        last_name=last_name,
-                        orders_count=orders_count,
-                        last_order_id=last_order_id,
-                        payment_amount=total_spent,
+                        costomer_uuid=costomer_uuid,
+                        checkout_id = checkout_id,
+                        total_price= total_price,
+                        checkout_create_time= checkout_create_time,
+                        checkout_update_time= checkout_update_time,
                         create_time=create_time,
                         update_time=update_time
-
         )
         cart_instance.save()
         return Response({"code": 200})
