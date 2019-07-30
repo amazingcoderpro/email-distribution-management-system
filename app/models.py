@@ -178,6 +178,7 @@ class EmailTrigger(models.Model):
 
 class EmailTask(models.Model):
     template = models.ForeignKey(EmailTemplate, blank=True, null=True, on_delete=models.DO_NOTHING)
+    uuid = models.CharField(db_index=True, max_length=255, blank=True, null=True, verbose_name="事务邮件ID")
     state_choices = ((0, '待发送'), (1, '已发送(成功)'), (2, "模板已删除"), (3, '已发送但发送失败'))
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件发送状态")
     remark = models.TextField(blank=True, null=True, verbose_name="备注")
@@ -185,7 +186,7 @@ class EmailTask(models.Model):
     finished_time = models.DateTimeField(blank=True, null=True, verbose_name="完成时间")
     customer_list = models.TextField(blank=True, null=True, verbose_name="符合触发条件的用户列表")
     email_trigger = models.ForeignKey(EmailTrigger, blank=True, null=True, on_delete=models.DO_NOTHING)
-    #email_trigger_id = models.IntegerField(db_index=True,verbose_name="email_trigger_id")
+    # email_trigger_id = models.IntegerField(db_index=True, default=None, verbose_name="email_trigger_id")
     type_choices = ((0, 'Timed mail'), (1, 'Trigger mail'))
     type = models.SmallIntegerField(db_index=True, choices=type_choices, default=0, verbose_name="邮件类型")
     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
