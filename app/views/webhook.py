@@ -218,7 +218,7 @@ class CheckoutsUpdate(APIView):
         customer_info = request.data.get("customer", "")
         customer_uuid = customer_info.get("id")
         total_price = customer_info.get("total_spent", 0.0)
-        checkout_instance = models.CheckoutEvent.objects.get(store=store, checkout_id=request.data.get("id"))
+        checkout_instance = models.CheckoutEvent.objects.filter(store=store, checkout_id=request.data["id"]).first()
         if not checkout_instance:
             models.CheckoutEvent.objects.create(
                 store_id=store_id,
