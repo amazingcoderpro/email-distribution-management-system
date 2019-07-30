@@ -343,28 +343,32 @@ class OrderEvent(models.Model):
     create_time = models.DateTimeField(db_index=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
-
     class Meta:
         managed = False
         unique_together = ("store", "order_uuid")
         db_table = 'order_event'
 
 
-class CartEvent(models.Model):
+class CheckoutEvent(models.Model):
     """
-    购物车事件信息
+    checkout事件信息
     """
-    event_uuid = models.CharField(max_length=255, verbose_name="购物车事件的唯一标识符")
-    # store_url = models.CharField(max_length=255, verbose_name="事件对应的店铺的url")
+    event_uuid = models.CharField(max_length=255, verbose_name="checkout事件的唯一标识符")
+    checkout_id = models.CharField(max_length=255, verbose_name="checkout的唯一标识符")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(verbose_name="店铺id")
     customer_uuid = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
     product_list = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
     create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="创建时间")
+    product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
+    total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
+    checkout_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
+    checkout_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
+    create_time = models.DateTimeField(db_index=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
         managed = False
-        db_table = 'cart_event'
+        db_table = 'checkout_event'
 
 
 class TopProduct(models.Model):
