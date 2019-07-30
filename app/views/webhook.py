@@ -230,38 +230,38 @@ class CheckoutsCreate(APIView):
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
 
-        if request.data.get("costomer"):
-            store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"])
-            if store.exists():
-                store_id = store.first().id
-            checkout_id = request.data.get("id")
-            customer_info = request.data.get("costomer", "")
-            product_info = []
-            for product in request.data["line_items"]:
-                product_dict = {"product": product.get("product_id", ""), "sales": product.get("quantity", ""),
-                                "amount": product.get("variant_price", "")}
-                product_info.append(product_dict)
-            costomer_uuid = customer_info.get("id")
-            total_price = customer_info.get("total_spent", 0.0)
-            checkout_create_time = request.data["created_at"].replace("T", " ")[:-6]
-            checkout_update_time = request.data["updated_at"].replace("T", " ")[:-6]
-            abandoned_checkout_url = request.data["abandoned_checkout_url"]
-            create_time = datetime.datetime.now()
-            update_time = datetime.datetime.now()
-            cart_instance = models.CheckoutEvent.objects.create(
-                            store_id=store_id,
-                            costomer_uuid=costomer_uuid,
-                            checkout_id = checkout_id,
-                            total_price= total_price,
-                            product_info = str(product_info),
-                            abandoned_checkout_url= abandoned_checkout_url,
-                            checkout_create_time= checkout_create_time,
-                            checkout_update_time= checkout_update_time,
-                            create_time=create_time,
-                            update_time=update_time
-            )
-            cart_instance.save()
+        if not request.data.get("costomer"):
             return Response({"code": 200})
+        store_id = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first().id
+
+        checkout_id = request.data.get("id")
+        customer_info = request.data.get("costomer", "")
+        product_info = []
+        for product in request.data["line_items"]:
+            product_dict = {"product": product.get("product_id", ""), "sales": product.get("quantity", ""),
+                            "amount": product.get("variant_price", "")}
+            product_info.append(product_dict)
+        costomer_uuid = customer_info.get("id")
+        total_price = customer_info.get("total_spent", 0.0)
+        checkout_create_time = request.data["created_at"].replace("T", " ")[:-6]
+        checkout_update_time = request.data["updated_at"].replace("T", " ")[:-6]
+        abandoned_checkout_url = request.data["abandoned_checkout_url"]
+        create_time = datetime.datetime.now()
+        update_time = datetime.datetime.now()
+        cart_instance = models.CheckoutEvent.objects.create(
+                        store_id=store_id,
+                        costomer_uuid=costomer_uuid,
+                        checkout_id = checkout_id,
+                        total_price= total_price,
+                        product_info = str(product_info),
+                        abandoned_checkout_url= abandoned_checkout_url,
+                        checkout_create_time= checkout_create_time,
+                        checkout_update_time= checkout_update_time,
+                        create_time=create_time,
+                        update_time=update_time
+        )
+        cart_instance.save()
+        return Response({"code": 200})
 
 
 class CheckoutsUpdate(APIView):
