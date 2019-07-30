@@ -79,6 +79,16 @@ class EmailTemplateView(generics.ListCreateAPIView):
     authentication_classes = (JSONWebTokenAuthentication,)
 
 
+class TriggerEmailTemplateView(generics.CreateAPIView):
+    """触发邮件模版 增加"""
+    queryset = models.EmailTemplate.objects.all()
+    serializer_class = service.TriggerEmailTemplateSerializer
+    pagination_class = PNPagination
+    filter_backends = (service_filter.EmailTempFilter,)
+    permission_classes = (IsAuthenticated, StorePermission)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+
 class EmailTemplateOptView(generics.DestroyAPIView):
     """邮件模版 删除"""
     queryset = models.EmailTemplate.objects.all()

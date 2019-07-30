@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from app import models
 from sdk.ems import ems_api
-
 import json
 
 
@@ -83,6 +82,52 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
             html = html.replace(item["url"], new_iamge_url)
         instance.html = html
         instance.save()
+        return instance
+
+
+class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmailTemplate
+        fields = ("id",
+                  "title",
+                  "description",
+                  "subject",
+                  "heading_text",
+                  "logo",
+                  "banner",
+                  "headline",
+                  "body_text",
+                  "product_list",
+                  "send_rule",
+                  "customer_group_list",
+                  "state",
+                  "html",
+                  # "send_type",
+                  "create_time",
+                  "update_time"
+        )
+
+    def create(self, validated_data):
+        store = models.Store.objects.filter(user=self.context["request"].user).first()
+        validated_data["store"] = store
+        validated_data["state"] = 1
+        validated_data["send_type"] = 1
+        instance = super(TriggerEmailTemplateSerializer, self).create(validated_data)
+        html = validated_data["html"]
+
+        product_list = json.loads(validated_data["product_list"])
+        for item in product_list:
+            dic = {"email_category": "newsletter", "template_name": instance.title, "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
+            uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
+            new_iamge_url = item["url"] + uri_structure
+            html = html.replace(item["url"], new_iamge_url)
+        instance.html = html
+        instance.save()
+        # ems_instance = ems_api.ExpertSender(store.name, store.email)
+        # result = ems_instance.create_transactional_message(instance.subject, html=instance.html,)
+        # if result["code"] != 1:
+        #     raise serializers.ValidationError(result["msg"])
+        # models.EmailRecord.objects.create(uuid=result["data"],email_template_id=instance.id,type=1,email_trigger_id)
         return instance
 
 
