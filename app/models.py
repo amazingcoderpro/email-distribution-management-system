@@ -358,7 +358,7 @@ class CheckoutEvent(models.Model):
     event_uuid = models.CharField(max_length=255, verbose_name="checkout事件的唯一标识符")
     checkout_id = models.CharField(max_length=255, verbose_name="checkout的唯一标识符")
     customer_uuid = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
-    product_list = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
+    #product_list = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
     abandoned_checkout_url = models.TextField(blank=True, null=True, verbose_name="checkout_url")
 
     product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
@@ -371,7 +371,7 @@ class CheckoutEvent(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        #managed = False
         db_table = 'checkout_event'
 
 
