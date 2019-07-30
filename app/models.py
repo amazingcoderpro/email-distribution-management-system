@@ -159,10 +159,10 @@ class EmailTrigger(models.Model):
     relation_info = models.TextField(blank=True, null=True, verbose_name="筛选条件")
     email_delay = models.TextField(blank=True, null=True, verbose_name="发送邮件顺序")
     customer_list = models.TextField(blank=True, null=True, verbose_name="对应客户列表")
-    note_choice = ((0, 'Do not send if the customer if your customer makes a purchase. && Do not send if the customer received an email from this campaign in the last 7 days.'),
-                   (1, 'Do not send if the customer if your customer makes a purchase.'),
-                   (2, 'Do not send if the customer received an email from this campaign in the last 7 days.'))
-    note = models.SmallIntegerField(blank=True, null=True, verbose_name="对应Note")
+    # note_choice = ((0, 'Do not send if the customer if your customer makes a purchase. && Do not send if the customer received an email from this campaign in the last 7 days.'),
+    #                (1, 'Do not send if the customer if your customer makes a purchase.'),
+    #                (2, 'Do not send if the customer received an email from this campaign in the last 7 days.'))
+    note = models.TextField(default="[]", verbose_name="对应Note列表")
     type_choice = ((0, 'execute'), (1, 'pause'), (2, 'delete'))
     type = models.SmallIntegerField(default=0, verbose_name="邮件类型")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
@@ -261,7 +261,7 @@ class Customer(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        # managed = False
+        managed = False
         unique_together = ("store", "uuid")
         db_table = 'customer'
 
