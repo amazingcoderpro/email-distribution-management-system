@@ -181,5 +181,5 @@ class TemplateProcessor:
 if __name__ == '__main__':
     at = TemplateProcessor(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
     at.analyze_templates()
-    at.execute_email_task(interval=666600)
+    # at.execute_email_task(interval=666600)
 
