@@ -555,7 +555,7 @@ class ShopifyDataProcessor:
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/update/', 'topic': 'orders/updated'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/paid/', 'topic': 'orders/paid'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/create/', 'topic': 'orders/create'},
-            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/fulfilled/','topic': 'orders/fulfilled', },
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/fulfilled/','topic': 'orders/fulfilled'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/partially_fulfilled/','topic': 'orders/partially_fulfilled'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/draft_orders/create/','topic': 'draft_orders/create'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/draft_orders/update/','topic': 'draft_orders/update'},
