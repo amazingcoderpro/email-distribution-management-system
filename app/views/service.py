@@ -71,7 +71,7 @@ class StoreOperView(generics.UpdateAPIView):
 
 class EmailTemplateView(generics.ListCreateAPIView):
     """邮件模版展示 增加"""
-    queryset = models.EmailTemplate.objects.all()
+    queryset = models.EmailTemplate.objects.filter(send_type=0).all()
     serializer_class = service.EmailTemplateSerializer
     pagination_class = PNPagination
     filter_backends = (service_filter.EmailTempFilter,)
@@ -81,7 +81,7 @@ class EmailTemplateView(generics.ListCreateAPIView):
 
 class TriggerEmailTemplateView(generics.CreateAPIView):
     """触发邮件模版 增加"""
-    queryset = models.EmailTemplate.objects.all()
+    queryset = models.EmailTemplate.objects.filter(send_type=1).all()
     serializer_class = service.TriggerEmailTemplateSerializer
     pagination_class = PNPagination
     filter_backends = (service_filter.EmailTempFilter,)
@@ -213,7 +213,7 @@ class SendMailView(generics.CreateAPIView):
         subscribers_res = ems_instance.create_subscribers_list(store_instance.name)
         if subscribers_res["code"] != 1:
             return Response({"detail": subscribers_res["msg"]}, status=status.HTTP_400_BAD_REQUEST)
-        subscriber_flag =  ems_instance.add_subscriber(subscribers_res["data"], [email_address])
+        subscriber_flag = ems_instance.add_subscriber(subscribers_res["data"], [email_address])
         if subscriber_flag["code"] != 1:
             return Response({"detail": subscriber_flag["msg"]}, status=status.HTTP_400_BAD_REQUEST)
         result = ems_instance.create_and_send_newsletter([subscribers_res["data"]], store_instance.name, html=html)

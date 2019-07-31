@@ -59,13 +59,14 @@ class TemplateProcessor:
                 end_time = datetime.datetime.strptime(send_rule["end_time"], time_format)
                 datetime_now = datetime.datetime.now()
                 while begin_time <= end_time:
-                    # 小于当前时间的计划任务不需要创建出来
-                    if begin_time < datetime_now:
-                        begin_time += datetime.timedelta(days=1)
-                        continue
-
                     cron_type = send_rule.get("cron_type", "")
                     cron_time = datetime.datetime.strptime(send_rule.get("cron_time", ""), "%H:%M:%S").time()
+
+                    # # 小于当前时间的计划任务不需要创建出来
+                    # if begin_time < datetime_now:
+                    #     begin_time += datetime.timedelta(days=1)
+                    #     continue
+
                     if cron_type in self.days:
                         # 每月１号
                         if cron_type == self.days[0]:
@@ -93,7 +94,8 @@ class TemplateProcessor:
                                    "`template_id`, `type`) values (%s, %s, %s, %s, %s, %s)", (0, exet, time_now, time_now, template_id, 0))
                 conn.commit()
 
-                cursor.execute("""update `email_template` set `state`=1 where id=%s""", (template_id, ))
+                time_now = datetime.datetime.now()
+                cursor.execute("""update `email_template` set `state`=1, `update_time`=%s where id=%s""", (time_now, template_id))
                 conn.commit()
 
         except Exception as e:
