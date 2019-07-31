@@ -226,7 +226,7 @@ class CheckoutsUpdate(APIView):
         checkout_id = request.data["id"]
         customer_info = request.data.get("customer", "")
         customer_uuid = customer_info.get("id")
-        total_price = customer_info.get("total_spent", 0.0)
+        total_price = request.data["total_price"]
         checkout_instance = models.CheckoutEvent.objects.filter(store=store, checkout_id=request.data["id"]).first()
         if not checkout_instance:
             models.CheckoutEvent.objects.create(
@@ -257,4 +257,9 @@ class CheckoutsDelete(APIView):
         print("------------ Checkouts Delete ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
+        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
+        store_id = store.id
+        models.CheckoutEvent.objects.filter(store=store, checkout_id=request.data["id"]).update(status=2)
+
+
         return Response({"code": 200})
