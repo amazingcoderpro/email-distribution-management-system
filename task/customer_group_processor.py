@@ -773,12 +773,13 @@ class AnalyzeCondition:
                     old_uuid = customer_group["uuid"]
                     if customer_group["customer_list"]:
                         old_customer_list = eval(customer_group["customer_list"])
-                        cursor.execute("select `uuid`, `unsubscribe_status`, `unsubscribe_date` from `customer` where uuid in %s", (old_customer_list, ))
-                        old_cus = cursor.fetchall()
-                        # 从现有的收件人中排除那些取消订阅的或者处于休眠期的客户
-                        old_customer_list = [oc["uuid"] for oc in old_cus if oc["unsubscribe_status"] == 0 or
-                                  (oc["unsubscribe_status"] == 2 and oc["unsubscribe_date"] and oc[
-                                      "unsubscribe_date"] < dt_now)]
+                        if old_customer_list:
+                            cursor.execute("select `uuid`, `unsubscribe_status`, `unsubscribe_date` from `customer` where uuid in %s", (old_customer_list, ))
+                            old_cus = cursor.fetchall()
+                            # 从现有的收件人中排除那些取消订阅的或者处于休眠期的客户
+                            old_customer_list = [oc["uuid"] for oc in old_cus if oc["unsubscribe_status"] == 0 or
+                                      (oc["unsubscribe_status"] == 2 and oc["unsubscribe_date"] and oc[
+                                          "unsubscribe_date"] < dt_now)]
                     else:
                         old_customer_list = []
                 else:
@@ -1145,7 +1146,7 @@ if __name__ == '__main__':
     #              }
 
     ac = AnalyzeCondition(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
-    # ac.update_customer_group_list()
+    ac.update_customer_group_list()
     # conditions = ac.get_conditions()
     # for cond in conditions:
     #     cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
@@ -1153,4 +1154,4 @@ if __name__ == '__main__':
     # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
     # print(ac.filter_received_customer(1, 372))
-    print(ac.parse_trigger_tasks())
+    # print(ac.parse_trigger_tasks())
