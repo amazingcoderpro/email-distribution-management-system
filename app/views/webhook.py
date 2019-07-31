@@ -67,24 +67,32 @@ class EventOrderPaid(APIView):
         print(json.dumps(request.data))
         res = {}
         store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
-        order_uuid = request.data["id"]
-
-        order_instance = models.OrderEvent.objects.filter(store=store,order_uuid=order_uuid).first()
-        if not order_instance:
-            return Response({"code": 404})
-        order_instance.status = 1
-        order_instance.total_price = request.data["total_price"]
+        res["store"] = store
+        res["order_uuid"] = request.data["id"]
+        res["status"] = 1
+        res["total_price"] = request.data["total_price"]
+        res["checkout_id"] = request.data["checkout_id"]
+        create_time = request.data["created_at"].replace("T", " ")[:-6]
+        res["order_create_time"] = datetime.datetime.strptime(create_time, "%Y-%m-%d %H:%M:%S")
+        res["customer_uuid"] = request.data["customer"]["id"]
+        res["create_time"] = datetime.datetime.now()
+        order_instance = models.OrderEvent.objects.filter(store=store, order_uuid=request.data["id"]).first()
         li = []
         for item in request.data["line_items"]:
             product_id = item["product_id"]
             title = item["title"]
             price = item["price"]
             quantity = item["quantity"]
-            li.append({"product_id":product_id, "title":title, "price":price, "quantity":quantity})
-        order_instance.product_info = li
-        updated_at = request.data["customer"]["updated_at"].replace("T", " ")[:-6]
-        order_instance.order_update_time = datetime.datetime.strptime(updated_at, "%Y-%m-%d %H:%M:%S")
-        order_instance.save()
+            li.append({"product_id": product_id, "title": title, "price": price, "quantity": quantity})
+        res["product_info"] = json.dumps(li)
+        if order_instance:
+            order_instance.product_info = res["product_info"]
+            order_instance.total_price = res["total_price"]
+            order_instance.checkout_id = res["checkout_id"]
+            order_instance.save()
+        else:
+            models.OrderEvent.objects.create(**res)
+        models.CheckoutEvent.objects.filter(store=store, checkout_id=request.data["checkout_id"]).update(status=1)
         return Response({"code": 200})
 
 
