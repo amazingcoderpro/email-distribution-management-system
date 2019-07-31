@@ -246,8 +246,8 @@ class Customer(models.Model):
                                                 null=True, verbose_name="")
 
     unsubscribe_choices = ((0, 'is false'), (1, 'is true'), (2, 'is sleep'))
-    unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅")
-    unsubscribe_date = models.DateTimeField(blank=True, null=True, verbose_name="为真时代表休眠的截止日期")
+    unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅或者休眠")
+    unsubscribe_date = models.DateTimeField(blank=True, null=True, verbose_name="取消订阅时间/休眠的截止时间")  # unsubscribe_status=1时为取消订阅时间，unsubscribe_status=2时为休眠的截止时间
 
     payment_amount = models.CharField(blank=True, null=True, max_length=255, verbose_name="客户付款金额")
 
