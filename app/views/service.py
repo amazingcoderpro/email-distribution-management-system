@@ -71,7 +71,7 @@ class StoreOperView(generics.UpdateAPIView):
 
 class EmailTemplateView(generics.ListCreateAPIView):
     """邮件模版展示 增加"""
-    queryset = models.EmailTemplate.objects.all()
+    queryset = models.EmailTemplate.objects.all(send_type=0)
     serializer_class = service.EmailTemplateSerializer
     pagination_class = PNPagination
     filter_backends = (service_filter.EmailTempFilter,)
@@ -81,7 +81,7 @@ class EmailTemplateView(generics.ListCreateAPIView):
 
 class TriggerEmailTemplateView(generics.CreateAPIView):
     """触发邮件模版 增加"""
-    queryset = models.EmailTemplate.objects.all()
+    queryset = models.EmailTemplate.objects.all(send_type=1)
     serializer_class = service.TriggerEmailTemplateSerializer
     pagination_class = PNPagination
     filter_backends = (service_filter.EmailTempFilter,)
