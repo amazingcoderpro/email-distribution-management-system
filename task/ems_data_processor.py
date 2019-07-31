@@ -147,6 +147,7 @@ class EMSDataProcessor:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
+        return True
 
     def insert_dashboard_data(self):
         """
@@ -198,9 +199,10 @@ class EMSDataProcessor:
                 if store_view_id:
                     papi = GoogleApi(view_id=store_view_id, json_path=os.path.join(ROOT_PATH, r"sdk\googleanalytics\client_secrets.json"))
                     shopify_google_data = papi.get_report(key_word="", start_time="1daysAgo", end_time="today")
-                    sessions = shopify_google_data.get("total_results", "").get("sessions", 0)
-                    orders = shopify_google_data.get("total_results", "").get("transactions", 0)
-                    revenue = shopify_google_data.get("total_results", "").get("revenue", 0.0)
+                    shopify_dict = shopify_google_data.get("total_results", {})
+                    sessions = shopify_dict.get("sessions", 0)
+                    orders = shopify_dict.get("transactions", 0)
+                    revenue = shopify_dict.get("revenue", 0.0)
                     total_orders += orders
                     total_sessions += sessions
                     total_revenue += revenue
@@ -237,12 +239,68 @@ class EMSDataProcessor:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
+        return True
+
+    def update_unsubscriber_and_snoozed_customers(self):
+        """
+        定时更新取消订阅和休眠的收件人，时间间隔为半小时
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return False
+            update_list = []
+            # 获取取消订阅的收件人
+            unsubscriber_result = self.ems.get_opt_out_link_subscribers()
+            # 获取休眠的收件人
+            snoozed_result = self.ems.get_snoozed_subscribers()
+            # 查询出目前系统中所有可用的listID对应的store_id
+            cursor.execute("select uuid, store_id from customer_group")
+            store_result = cursor.fetchall()
+            if not store_result:
+                logger.warning("No customer groups are available.")
+                return True
+            store_dict = {store[0]:store[1] for store in store_result if store[0]}
+            if unsubscriber_result["code"] != 1 and snoozed_result["code"] != 1:
+                logger.error("get unsubscriber and snoozed customers failed.")
+                return False
+            if unsubscriber_result["code"] == 1:
+                logger.info("sttart update unsubscriber customers.")
+                unsubscriber_customers_list = unsubscriber_result["data"]["RemovedSubscribers"]["RemovedSubscriber"]
+                for cus in unsubscriber_customers_list:
+                    # 通过ListId获取store_id
+                    store_id = store_dict.get(cus["ListId"])
+                    if store_id:
+                        update_list.append((datetime.datetime.strptime(cus["UnsubscribedOn"], "%Y-%m-%dT%H:%M:%S.%f"), 1, datetime.datetime.now(), cus["Email"], store_id))
+            if snoozed_result["code"] == 1:
+                logger.info("sttart update snoozed customers.")
+                snoozed_customers_list = snoozed_result["data"]["SnoozedSubscribers"]["SnoozedSubscriber"]
+                for cust in snoozed_customers_list:
+                    # 通过ListId获取store_id
+                    store_id = store_dict.get(cust["ListId"])
+                    if store_id:
+                        update_list.append((datetime.datetime.strptime(cust["SnoozedUntil"], "%Y-%m-%dT%H:%M:%S.%f"), 2, datetime.datetime.now(), cust["Email"], store_id))
+            # 更新数据库
+            cursor.executemany("""update customer set unsubscribe_date=%s, unsubscribe_status=%s, update_time=%s where customer_email=%s and store_id=%s""",
+                           update_list)
+            logger.info("update unsubscriber and snoozed customers success.")
+            conn.commit()
+        except Exception as e:
+            logger.exception("update unsubscriber and snoozed customers exception e={}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
 
 
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
-    obj.insert_subscriber_activity()
+    # obj.insert_subscriber_activity()
     # obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
-    obj.insert_dashboard_data()
+    # obj.insert_dashboard_data()
+    obj.update_unsubscriber_and_snoozed_customers()

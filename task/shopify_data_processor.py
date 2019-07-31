@@ -541,7 +541,7 @@ class ShopifyDataProcessor:
                 cursor.executemany("""update email_template set sessions=%s, transcations=%s, revenue=%s ,update_time=%s where id =%s""", results_list)
                 conn.commit()
             else:
-                logger.info("no search any templates")
+                logger.info("update shopify GA，no search any templates")
         except Exception as e:
             logger.exception("update shopify GA e={}".format(e))
             return False
@@ -749,10 +749,10 @@ class ShopifyDataProcessor:
 
     def update_shopify_order_customer(self):
         """
-        # 用户的订单表 和  用户的信息表 同步
+        # 用户的订单表 和  用户的信息表同步
         :return:
         """
-        logger.info("update shopify order is cheking...")
+        logger.info("Synchronize customer and order data is cheking...")
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
                           password=self.db_password).get_instance()
@@ -767,7 +767,7 @@ class ShopifyDataProcessor:
                     ret)
             conn.commit()
         except Exception as e:
-            logger.exception("update_shopify_customers e={}".format(e))
+            logger.exception("Synchronize customer and order data e={}".format(e))
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
@@ -778,11 +778,11 @@ if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
-    ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
+    # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_product()
     # 拉取shopify GA 数据
     #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
-    #ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
 
