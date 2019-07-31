@@ -754,14 +754,14 @@ class AnalyzeCondition:
                 dt_now = datetime.datetime.now()
                 if new_customer_list:
                     cursor.execute("""select `customer_email`, `unsubscribe_status`, `unsubscribe_date` from `customer` where `uuid` in %s""", (new_customer_list, ))
-                    emails = cursor.fetchall()
+                    new_cus = cursor.fetchall()
 
                     # 从需要新增的客户中，排除那些取消订阅的或者处于休眠期的客户
-                    emails = [em for em in emails
+                    new_cus = [em for em in new_cus
                               if em["unsubscribe_status"] == 0 or
-                              (em["unsubscribe_status"] == 1 and em["unsubscribe_date"] and em["unsubscribe_date"] < dt_now)]
+                              (em["unsubscribe_status"] == 2 and em["unsubscribe_date"] and em["unsubscribe_date"] < dt_now)]
 
-                    new_customer_email_list = [em["customer_email"] for em in emails]
+                    new_customer_email_list = [em["customer_email"] for em in new_cus]
                     new_customer_email_list = [em for em in new_customer_email_list if em]
                 else:
                     new_customer_email_list = []
@@ -777,7 +777,7 @@ class AnalyzeCondition:
                         old_cus = cursor.fetchall()
                         # 从现有的收件人中排除那些取消订阅的或者处于休眠期的客户
                         old_customer_list = [oc["uuid"] for oc in old_cus if oc["unsubscribe_status"] == 0 or
-                                  (oc["unsubscribe_status"] == 1 and oc["unsubscribe_date"] and oc[
+                                  (oc["unsubscribe_status"] == 2 and oc["unsubscribe_date"] and oc[
                                       "unsubscribe_date"] < dt_now)]
                     else:
                         old_customer_list = []
@@ -800,8 +800,8 @@ class AnalyzeCondition:
                     delete_customers = list(set(old_customer_list) - set(new_customer_list))     #需要删除的客户id
                     if new_add_customers:
                         cursor.execute("""select `customer_email` from `customer` where `uuid` in %s""", (new_add_customers,))
-                        emails = cursor.fetchall()
-                        new_add_customers_email_list = [em["customer_email"] for em in emails]
+                        new_cus = cursor.fetchall()
+                        new_add_customers_email_list = [em["customer_email"] for em in new_cus]
                         new_add_customers_email_list = [em for em in new_add_customers_email_list if em] #只要不为空的邮箱
                         if new_add_customers_email_list:
                             diff_add_result = exp.add_subscriber(old_uuid, new_add_customers_email_list)
@@ -815,8 +815,8 @@ class AnalyzeCondition:
 
                     if delete_customers:
                         cursor.execute("""select `customer_email` from `customer` where `uuid` in %s""", (delete_customers,))
-                        emails = cursor.fetchall()
-                        delete_customers_email_list = [em["customer_email"] for em in emails]
+                        new_cus = cursor.fetchall()
+                        delete_customers_email_list = [em["customer_email"] for em in new_cus]
                         delete_customers_email_list = [em for em in delete_customers_email_list if em]  # 只要不为空的邮箱
                         if delete_customers_email_list:
                             for email in delete_customers_email_list:
