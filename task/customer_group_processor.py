@@ -751,10 +751,16 @@ class AnalyzeCondition:
                 new_customer_list = value["customer_list"]
 
                 logger.info("update group id={}, new customer list length={}".format(group_id, len(new_customer_list)))
-
+                dt_now = datetime.datetime.now()
                 if new_customer_list:
-                    cursor.execute("""select `customer_email` from `customer` where `uuid` in %s""", (new_customer_list, ))
+                    cursor.execute("""select `customer_email`, `unsubscribe_status`, `unsubscribe_date` from `customer` where `uuid` in %s""", (new_customer_list, ))
                     emails = cursor.fetchall()
+
+                    # 从需要新增的客户中，排除那些取消订阅的或者处于休眠期的客户
+                    emails = [em for em in emails
+                              if em["unsubscribe_status"] == 0 or
+                              (em["unsubscribe_status"] == 1 and em["unsubscribe_date"] and em["unsubscribe_date"] < dt_now)]
+
                     new_customer_email_list = [em["customer_email"] for em in emails]
                     new_customer_email_list = [em for em in new_customer_email_list if em]
                 else:
@@ -767,6 +773,12 @@ class AnalyzeCondition:
                     old_uuid = customer_group["uuid"]
                     if customer_group["customer_list"]:
                         old_customer_list = eval(customer_group["customer_list"])
+                        cursor.execute("select `uuid`, `unsubscribe_status`, `unsubscribe_date` from `customer` where uuid in %s", (old_customer_list, ))
+                        old_cus = cursor.fetchall()
+                        # 从现有的收件人中排除那些取消订阅的或者处于休眠期的客户
+                        old_customer_list = [oc["uuid"] for oc in old_cus if oc["unsubscribe_status"] == 0 or
+                                  (oc["unsubscribe_status"] == 1 and oc["unsubscribe_date"] and oc[
+                                      "unsubscribe_date"] < dt_now)]
                     else:
                         old_customer_list = []
                 else:
