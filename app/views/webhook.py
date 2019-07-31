@@ -257,7 +257,6 @@ class CheckoutsDelete(APIView):
         print("------------ Checkouts Delete ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
-
         result = request.data
         if not result.get("id"):
             return Response({"code": 200})
