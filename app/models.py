@@ -231,7 +231,7 @@ class Customer(models.Model):
     customer_email = models.EmailField(max_length=255, blank=True, null=True, verbose_name="客户邮箱")
 
     subscribe_time = models.DateTimeField(blank=True, null=True, verbose_name="最近购物时间")
-    sign_up_time = models.DateTimeField(blank=True, null=True, verbose_name="客户登陆时间")
+    sign_up_time = models.DateTimeField(blank=True, null=True, db_index=True, verbose_name="客户登陆时间")
     last_cart_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后一次购物时间")
     last_order_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后一次订单时间")
     last_order_status_choices = ((0, 'is paid'), (1, 'is unpaid'))
@@ -246,8 +246,8 @@ class Customer(models.Model):
                                                 null=True, verbose_name="")
 
     unsubscribe_choices = ((0, 'is false'), (1, 'is true'), (2, 'is sleep'))
-    unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅")
-    unsubscribe_date = models.CharField(blank=True, null=True, max_length=255, verbose_name="取消订阅时间/休眠截止时间")
+    unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅或者休眠")
+    unsubscribe_date = models.DateTimeField(blank=True, null=True, verbose_name="取消订阅时间/休眠的截止时间")  # unsubscribe_status=1时为取消订阅时间，unsubscribe_status=2时为休眠的截止时间
 
     payment_amount = models.CharField(blank=True, null=True, max_length=255, verbose_name="客户付款金额")
 
@@ -366,9 +366,10 @@ class CheckoutEvent(models.Model):
     checkout_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
     checkout_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    # store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
+    email_date = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="最后一次邮件通知时间，为空代表还没有发送过促销邮件")
 
     class Meta:
         managed = False

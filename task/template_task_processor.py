@@ -148,11 +148,11 @@ class TemplateProcessor:
                     uuids = [uid[0] for uid in ret]
                     uuids = [uid for uid in uuids if uid]   # 去掉里面的空包弹
                     cursor.execute("select `sender`, `sender_address` from `store` where id=%s", (store_id, ))
-                    store = cursor.fetchone()
+                    sender = cursor.fetchone()
 
-                    if store and uuids:
+                    if sender and uuids:
                         # 拿到了所对应的邮件组id, 开始发送邮件
-                        exp = ems_api.ExpertSender(from_name=store[0], from_email=store[1])
+                        exp = ems_api.ExpertSender(from_name=sender[0], from_email=sender[1])
 
                         result = exp.create_and_send_newsletter(uuids, subject=subject, html=html)
                         send_result = result["code"]
