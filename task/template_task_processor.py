@@ -95,7 +95,7 @@ class TemplateProcessor:
                 conn.commit()
 
                 time_now = datetime.datetime.now()
-                cursor.execute("""update `email_template` set `state`=1, `update_time`=%s where id=%s""", (template_id, time_now))
+                cursor.execute("""update `email_template` set `state`=1, `update_time`=%s where id=%s""", (time_now, template_id))
                 conn.commit()
 
         except Exception as e:
