@@ -140,7 +140,7 @@ class ExpertSender:
         try:
             xml_data = self.jsontoxml(data)
             xml_data = xml_data % ("<![CDATA[%s]]>" % html)
-            result = requests.post(url, xml_data, headers=self.headers)
+            result = requests.post(url, xml_data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("create and send newsletter", result)
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
@@ -391,7 +391,7 @@ class ExpertSender:
         try:
             xml_data = self.jsontoxml(data)
             xml_data = xml_data % ("<![CDATA[%s]]>" % html)
-            result = requests.post(url, xml_data, headers=self.headers)
+            result = requests.post(url, xml_data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("create transactional message", result)
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
@@ -446,7 +446,7 @@ class ExpertSender:
         try:
             xml_data = self.jsontoxml(data)
             xml_data = xml_data % ("<![CDATA[%s]]>" % html)
-            result = requests.put(url, xml_data, headers=self.headers)
+            result = requests.put(url, xml_data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("update transactional message", result)
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
@@ -604,14 +604,13 @@ if __name__ == '__main__':
 </div>
 </body>
 </html>"""
-    html_test = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>jquery</title></head><body><div style="width:1200px;margin:0 auto;"><div class="showBox" style="overflow-wrap: break-word; text-align: center; font-size: 14px;"><div style="margin: 0px auto; width: 100%; border-bottom: 1px solid rgb(204, 204, 204); padding-bottom: 20px;"><div style="margin: 0px auto; width: 30%;"><h2>Email Subject</h2><div>monthly payments.</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="margin: 0px auto; width: 70%; line-height: 20px; padding: 20px 0px;"><div style="padding: 10px 0px;">Solve reCAPTCHA Lifetime Promo $525 Only! - Limited one-time payment lifetime offer... pay only one-time for $525 and you'll get to solve unlimited recaptchas with 2000 threads forever free and will never be billed with any extra costs and monthly payments.</div><div style="padding: 10px 0px;">If you are having trouble viewing this email, please <a href="http://www.tiptopfree.com" target="_blank">click here</a> .</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="width: 30%; margin: 0px auto;"><img src="https://smartsend.seamarketings.com/media/4/cjefasyupn6mwlg.png" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="width: 100%;"><img src="https://smartsend.seamarketings.com/media/4/76t4ljhidg9b3oq.png" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 28px; font-weight: 700;"> You left an item in your cart</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-family: &quot;Segoe UI Emoji&quot;; font-weight: 400; font-style: normal; font-size: 16px;">Lucky Day! We saw that you were about to pickup some goods in our shop and that you didn't get a chance to finish your order. We have got a proposal for you: Use discount code "CH2" when you check out and save $2 on your order!中国 If you have questions, feel free to us at charrcter@service.com and we promise they will make you smile. Have a nice day! The Charrcter Team</div></div><div style="width: calc(100% - 24px); padding: 20px 12px;"><div style="width: calc(50% - 24px); margin: 10px; display: inline-block; vertical-align: top; border: 1px solid rgb(204, 204, 204);"><a href="https://tiptopfree.myshopify.com/products/85c1def7c57a?utm_source=smartsend&utm_medium=newsletter&utm_campaign=HOT IN CHARRCTER&utm_term=1835250843693_93" target="_blank"><img src="https://cdn.shopify.com/s/files/1/0031/7276/1645/products/3245874_ce259f9ef0.jpg?v=1558755169" style="width: 100%;"></a><h3 style="font-weight: 700;">Snap Front Gingham Cardigans</h3><h3>21.11</h3></div><div style="width: calc(50% - 24px); margin: 10px; display: inline-block; vertical-align: top; border: 1px solid rgb(204, 204, 204);"><a href="https://tiptopfree.myshopify.com/products/61734bd4590a?utm_source=smartsend&utm_medium=newsletter&utm_campaign=HOT IN CHARRCTER&utm_term=1837106790445_93" target="_blank"><img src="https://cdn.shopify.com/s/files/1/0031/7276/1645/products/2_32f41108-9c49-4340-aa64-d63bb88db57d.jpg?v=1558762698" style="width: 100%;"></a><h3 style="font-weight: 700;">Slim Leg  Belt  Striped Pants</h3><h3>19.79</h3></div><div style="width: calc(50% - 24px); margin: 10px; display: inline-block; vertical-align: top; border: 1px solid rgb(204, 204, 204);"><a href="https://tiptopfree.myshopify.com/products/hpantaf777147aa29-casual-straight-leg-pants?utm_source=smartsend&utm_medium=newsletter&utm_campaign=HOT IN CHARRCTER&utm_term=1835086151725_93" target="_blank"><img src="https://cdn.shopify.com/s/files/1/0031/7276/1645/products/17_8b779838-30cb-4559-97f9-8040d769bc71.jpg?v=1558603927" style="width: 100%;"></a><h3 style="font-weight: 700;">Striped Casual Straight Leg Pants</h3><h3>19.99</h3></div><div style="width: calc(50% - 24px); margin: 10px; display: inline-block; vertical-align: top; border: 1px solid rgb(204, 204, 204);"><a href="https://tiptopfree.myshopify.com/products/41f4ff785998?utm_source=smartsend&utm_medium=newsletter&utm_campaign=HOT IN CHARRCTER&utm_term=3831821533229_93" target="_blank"><img src="https://cdn.shopify.com/s/files/1/0031/7276/1645/products/41F4FF785998_97fd3b1837.jpg?v=1560825511" style="width: 100%;"></a><h3 style="font-weight: 700;">V-Neck Solid Color Casual Sexy T-Shirt</h3><h3>23.95</h3></div><div style="width: calc(50% - 24px); margin: 10px; display: inline-block; vertical-align: top; border: 1px solid rgb(204, 204, 204);"><a href="https://tiptopfree.myshopify.com/products/c8dfcd3572cb?utm_source=smartsend&utm_medium=newsletter&utm_campaign=HOT IN CHARRCTER&utm_term=1835181899821_93" target="_blank"><img src="https://cdn.shopify.com/s/files/1/0031/7276/1645/products/yuyuyuyuyuyui.jpg?v=1558779722" style="width: 100%;"></a><h3 style="font-weight: 700;">Sexy Cotton Linen Ruffled Halter Bow Vacation Dress</h3><h3>30.33</h3></div></div><div style="width: 100%; padding-bottom: 20px;"><a href="http://www.tiptopfree.com" target="_blank"><div style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px;">Back to Shop &gt;&gt;&gt;</div></a></div><div style="width: 100%; padding-bottom: 20px;"><div>service@tiptopfree.com</div></div><div style="width: 100%; padding-bottom: 20px;"><div>2019 Tiptopfree. All rights reserved.</div></div><div style="width: 100%; padding-bottom: 20px;"><div>www.tiptopfree.com</div></div><div style="width: 100%; padding-bottom: 20px;"><a href="*[link_unsubscribe]*"><div style="display: inline-block; padding: 10px; color: rgb(204, 204, 204); font-size: 14px; border-radius: 10px; border: 1px solid rgb(204, 204, 204);">Unsubscribe</div></a></div></div></div></body></html>"""
     ems = ExpertSender("Leemon", "leemon.li@orderplus.com")
     # print(ems.get_message_statistics(372))
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))
     # print(ems.add_subscriber(38, ["fatty091@gmail.com"]))
     # html = open("index.html")
-    print(ems.create_and_send_newsletter([25], "get-removed-subscribers TTT", html=html_test)) # ,"2019-07-09 21:09:00"
+    print(ems.create_and_send_newsletter([25], "chinese TEST", html="<p>中国人</p>")) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
