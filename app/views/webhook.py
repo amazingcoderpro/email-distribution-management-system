@@ -249,4 +249,11 @@ class CheckoutsDelete(APIView):
         print("------------ Checkouts Delete ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
+        result = request.data
+        if not result.get("id"):
+            return Response({"code": 200})
+        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
+        checkout_instance = models.CheckoutEvent.objects.filter(store=store, checkout_id=request.data["id"]).first()
+        checkout_instance.status = 2
+        checkout_instance.save()
         return Response({"code": 200})
