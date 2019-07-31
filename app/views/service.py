@@ -213,7 +213,7 @@ class SendMailView(generics.CreateAPIView):
         subscribers_res = ems_instance.create_subscribers_list(store_instance.name)
         if subscribers_res["code"] != 1:
             return Response({"detail": subscribers_res["msg"]}, status=status.HTTP_400_BAD_REQUEST)
-        subscriber_flag =  ems_instance.add_subscriber(subscribers_res["data"], [email_address])
+        subscriber_flag = ems_instance.add_subscriber(subscribers_res["data"], [email_address])
         if subscriber_flag["code"] != 1:
             return Response({"detail": subscriber_flag["msg"]}, status=status.HTTP_400_BAD_REQUEST)
         result = ems_instance.create_and_send_newsletter([subscribers_res["data"]], store_instance.name, html=html)
