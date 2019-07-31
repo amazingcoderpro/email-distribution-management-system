@@ -256,7 +256,7 @@ class EMSDataProcessor:
             # 获取休眠的收件人
             snoozed_result = self.ems.get_snoozed_subscribers()
             # 查询出目前系统中所有可用的listID对应的store_id
-            cursor.execute("select uuid, store_id from customer_group where state in (0,1)")
+            cursor.execute("select uuid, store_id from customer_group")
             store_result = cursor.fetchall()
             if not store_result:
                 logger.warning("No customer groups are available.")
