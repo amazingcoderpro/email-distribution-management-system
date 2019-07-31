@@ -93,6 +93,28 @@ class EventOrderPaid(APIView):
         else:
             models.OrderEvent.objects.create(**res)
         models.CheckoutEvent.objects.filter(store=store, checkout_id=request.data["checkout_id"]).update(status=1)
+        customer_instance = models.Customer.objects.filter(uuid=request.data["customer"]["id"]).first()
+        if not customer_instance:
+            customer_res = {}
+            customer_res["store"] = store
+            customer_res["uuid"] = request.data["customer"]["id"]
+            customer_res["customer_email"] = request.data["customer"]["email"]
+            customer_res["first_name"] = request.data["customer"]["first_name"]
+            customer_res["last_name"] = request.data["customer"]["last_name"]
+            customer_res["accept_marketing_status"] = request.data["customer"]["accepts_marketing"]
+            sign_up_time = request.data["customer"]["created_at"].replace("T"," ")[:-6]
+            customer_res["sign_up_time"] = datetime.datetime.strptime(sign_up_time, "%Y-%m-%d %H:%M:%S")
+            customer_res["last_order_status"] = 0
+            customer_res["last_order_id"] = request.data["customer"]["last_order_id"]
+            updated_at = request.data["customer"]["updated_at"].replace("T"," ")[:-6]
+            customer_res["last_order_time"] = datetime.datetime.strptime(updated_at, "%Y-%m-%d %H:%M:%S")
+            customer_res["create_time"] = datetime.datetime.now()
+            models.Customer.objects.create(**customer_res)
+        else:
+            customer_instance.last_order_status = 0
+            updated_at = request.data["customer"]["updated_at"].replace("T", " ")[:-6]
+            customer_instance.last_order_time = datetime.datetime.strptime(updated_at, "%Y-%m-%d %H:%M:%S")
+            customer_instance.save()
         return Response({"code": 200})
 
 
