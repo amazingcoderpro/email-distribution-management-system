@@ -553,15 +553,13 @@ class ShopifyDataProcessor:
 
     def update_store_webhook(self, store=None):
         webhooks = [
-            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/update/', 'topic': 'orders/updated'},
+
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/paid/', 'topic': 'orders/paid'},
-            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/create/', 'topic': 'orders/create'},
-            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/fulfilled/','topic': 'orders/fulfilled'},
-            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/partially_fulfilled/','topic': 'orders/partially_fulfilled'},
-            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/draft_orders/create/','topic': 'draft_orders/create'},
-            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/draft_orders/update/','topic': 'draft_orders/update'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/customers/create/','topic': 'customers/create'},
-            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/customers/update/','topic': 'customers/update'}
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/customers/update/','topic': 'customers/update'},
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/checkouts/create/','topic': 'checkouts/create'},
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/checkouts/update/','topic': 'checkouts/update'},
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/checkouts/delete/','topic': 'checkouts/delete'},
         ]
         webhook_info = shopify_webhook.products_api(shop_uri=store[0][1], access_token=store[0][2])
         for webhook in webhooks:

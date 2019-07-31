@@ -57,7 +57,13 @@ class TemplateProcessor:
                 time_format = "%Y-%m-%d %H:%M:%S"
                 begin_time = datetime.datetime.strptime(send_rule["begin_time"], time_format)
                 end_time = datetime.datetime.strptime(send_rule["end_time"], time_format)
+                datetime_now = datetime.datetime.now()
                 while begin_time <= end_time:
+                    # 小于当前时间的计划任务不需要创建出来
+                    if begin_time < datetime_now:
+                        begin_time += datetime.timedelta(days=1)
+                        continue
+
                     cron_type = send_rule.get("cron_type", "")
                     cron_time = datetime.datetime.strptime(send_rule.get("cron_time", ""), "%H:%M:%S").time()
                     if cron_type in self.days:
