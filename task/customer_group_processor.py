@@ -968,16 +968,16 @@ class AnalyzeCondition:
 
             # ToDo parse email_delay
             excute_time = datetime.datetime.now() # flow从此刻开始
-            for item in eval(email_delay):
-                if item["type"] == 1:  # 代表是邮件任务
-                    template_id, unit = item["values"], item["unit"]
+            for item in json.loads(email_delay):
+                if item["type"] == "Email":  # 代表是邮件任务
+                    template_id, unit = item["value"], item["unit"]
                     # 通过template_id去创建一个事务性邮件，并返回email_uuid
                     subject, html = self.get_template_info_by_id(template_id)
                     email_uuid = self.create_trigger_email_by_template(store_id, template_id, subject, html, t_id)[0]
                     # 将触发邮件任务参数增加到待入库数据列表中
                     insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(new_customer_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now()))
-                elif item["type"] == 0:  # 代表是delay
-                    num, unit = item["values"], item["unit"]
+                elif item["type"] == "Delay":  # 代表是delay
+                    num, unit = item["value"], item["unit"]
                     if unit in ["days", "hours"]:
                         excute_time += datetime.timedelta(**{unit:num})
                     else:
@@ -1072,7 +1072,7 @@ class AnalyzeCondition:
                 if not store:
                     raise Exception("store is not found, store id={}".format(store_id))
                 ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
-                res = ems.create_transactional_message(subject, html)
+                res = ems.create_transactional_message(subject=subject, html=html)
                 if res["code"] != 1:
                     raise Exception(res["msg"])
                 email_uuid = res["data"]
@@ -1093,7 +1093,7 @@ class AnalyzeCondition:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return result
+        return result["uuid"], result["email_template_id"]
 
     def get_template_info_by_id(self, template_id):
         """
@@ -1116,7 +1116,7 @@ class AnalyzeCondition:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return result
+        return result["subject"], result["html"]
 
 
 if __name__ == '__main__':
@@ -1133,7 +1133,7 @@ if __name__ == '__main__':
     #              }
 
     ac = AnalyzeCondition(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
-    ac.update_customer_group_list()
+    # ac.update_customer_group_list()
     # conditions = ac.get_conditions()
     # for cond in conditions:
     #     cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
