@@ -199,9 +199,10 @@ class EMSDataProcessor:
                 if store_view_id:
                     papi = GoogleApi(view_id=store_view_id, json_path=os.path.join(ROOT_PATH, r"sdk\googleanalytics\client_secrets.json"))
                     shopify_google_data = papi.get_report(key_word="", start_time="1daysAgo", end_time="today")
-                    sessions = shopify_google_data.get("total_results", "").get("sessions", 0)
-                    orders = shopify_google_data.get("total_results", "").get("transactions", 0)
-                    revenue = shopify_google_data.get("total_results", "").get("revenue", 0.0)
+                    shopify_dict = shopify_google_data.get("total_results", {})
+                    sessions = shopify_dict.get("sessions", 0)
+                    orders = shopify_dict.get("transactions", 0)
+                    revenue = shopify_dict.get("revenue", 0.0)
                     total_orders += orders
                     total_sessions += sessions
                     total_revenue += revenue
