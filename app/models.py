@@ -356,7 +356,7 @@ class CheckoutEvent(models.Model):
     """
     checkout事件信息
     """
-    checkout_id = models.CharField(max_length=255, verbose_name="checkout的唯一标识符")
+    checkout_id = models.CharField(db_index=True, max_length=255, verbose_name="checkout的唯一标识符")
     customer_uuid = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
     #product_list = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
     abandoned_checkout_url = models.TextField(blank=True, null=True, verbose_name="checkout_url")
@@ -366,7 +366,7 @@ class CheckoutEvent(models.Model):
     checkout_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
     checkout_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    # store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
