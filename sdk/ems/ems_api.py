@@ -396,7 +396,7 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def send_transactional_messages(self, email_id, to_email):
+    def send_transactional_messages(self, email_id, to_email, list_id):
         """
         发送事务性邮件 http://sms.expertsender.cn/api/v2/methods/email-messages/send-transactional-messages/
         :param email_id: 事务邮件ID
@@ -407,10 +407,11 @@ class ExpertSender:
         data = {"ApiRequest": {
             "ApiKey": self.api_key,
             "Data": {
-                "Receiver": {"Email": to_email}}
+                "Receiver": {"Email": to_email,"ListId": list_id}}
             }}
         try:
-            result = requests.post(url, self.jsontoxml(data), headers=self.headers)
+            data = self.jsontoxml(data)
+            result = requests.post(url, data, headers=self.headers)
             return self.retrun_result("send transactional messages", result)
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
@@ -630,10 +631,10 @@ if __name__ == '__main__':
     # print(ems.get_export_progress(11))  # 11
     # print(ems.clear_subscriber(25, ""))  # 11
     # print(ems.add_subscriber(25, ["limengqiAliase@163.com", "leemon.li@orderplus.com"]))
-    # print(ems.create_transactional_message("transactional message test", contentFromUrl="http://sources.aopcdn.com/edm/html/buzzyly/20190625/1561447955806.html"))  # 350
-    # print(ems.send_transactional_messages(350, "leemon.li@orderplus.com"))  # 350
+    # print(ems.create_transactional_message("transactional message test1", html="<a href='*[link_unsubscribe]*'>Unsubscribe</a>"))  # 350
+    print(ems.send_transactional_messages(400, "leemon.li@orderplus.com", 25))  # 350
     # print(ems.update_transactional_message(350, "Aliase", "limengqiAliase@163.com", "transactional message test 11", html=html_b))  # 350
     # print(ems.delete_message(349))
     # print(ems.get_opt_out_link_subscribers(25))
-    print(ems.get_snoozed_subscribers(25))
+    # print(ems.get_snoozed_subscribers(25))
 
