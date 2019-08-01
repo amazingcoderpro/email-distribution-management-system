@@ -99,7 +99,6 @@ class EmailTemplateUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         instance.enable = validated_data["enable"]
         instance.save()
-        return instance
 
 
 class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
