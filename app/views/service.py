@@ -176,7 +176,7 @@ class EmailTriggerView(generics.ListCreateAPIView):
     queryset = models.EmailTrigger.objects.all()
     serializer_class = service.EmailTriggerSerializer
     pagination_class = PNPagination
-    filter_backends = (service_filter.EmailTempFilter,)
+    filter_backends = (service_filter.EmailTriggerFilter,)
     # permission_classes = (IsAuthenticated, StorePermission)
     permission_classes = (IsAuthenticated,)
     authentication_classes = (JSONWebTokenAuthentication,)
@@ -185,12 +185,12 @@ class EmailTriggerView(generics.ListCreateAPIView):
 class EmailTriggerOptView(generics.DestroyAPIView):
     """邮件 Trigger 删除"""
     queryset = models.EmailTrigger.objects.all()
-    serializer_class = service.EmailTemplateSerializer
+    serializer_class = service.EmailTriggerSerializer
     permission_classes = (IsAuthenticated, CustomerGroupOptPermission)
     authentication_classes = (JSONWebTokenAuthentication,)
 
     def perform_destroy(self, instance):
-        instance.state = 2
+        instance.status = 2
         instance.save()
 
 
