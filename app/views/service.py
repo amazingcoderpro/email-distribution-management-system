@@ -190,7 +190,7 @@ class EmailTriggerOptView(generics.DestroyAPIView):
     authentication_classes = (JSONWebTokenAuthentication,)
 
     def perform_destroy(self, instance):
-        instance.type = 2
+        instance.status = 2
         instance.save()
 
 
