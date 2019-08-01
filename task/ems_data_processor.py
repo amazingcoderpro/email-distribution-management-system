@@ -86,8 +86,8 @@ class EMSDataProcessor:
             # 获取当前用户组listId
             cursor.execute("""select uuid,store_id from customer_group where state in (0,1)""")
             uuid_list = cursor.fetchall()
-            # 获取每一个listId对应的ems数据
-            update_list = []
+            # 获取每一个用户组listId对应的ems数据
+            group_update_list = []
             for uuid, store_id in uuid_list:
                 if not uuid:
                     continue
@@ -95,18 +95,36 @@ class EMSDataProcessor:
                 if datas["code"]==1 and datas["data"]:
                     statistic = datas["data"]["SummaryStatistics"]["SummaryStatistic"]
                     sents, opens, clicks = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"])
-                    open_rate, click_rate = (opens/sents) if sents else 0, (clicks/sents) if sents else 0
-                    update_list.append((sents, opens, clicks, open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
+                    open_rate, click_rate = round(opens/sents,4) if sents else 0.0, round(clicks/sents,4) if sents else 0.0
+                    group_update_list.append((sents, opens, clicks, open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
             # 更新数据库
             cursor.executemany(
-                """update customer_group set sents=%s, opens=%s, clicks=%s, open_rate=%s, click_rate=%s, update_time=%s where uuid=%s and store_id=%s""", update_list)
-            logger.info("update all customer group success.")
+                """update customer_group set sents=%s, opens=%s, clicks=%s, open_rate=%s, click_rate=%s, update_time=%s where uuid=%s and store_id=%s""", group_update_list)
+            logger.info("update all customer group ems datas success.")
             conn.commit()
 
             # 获取当前flow的ListId
-
+            cursor.execute("""select customer_list_id,store_id from email_trigger where status in (0,1)""")
+            list_id_list = cursor.fetchall()
+            # 获取每一个flow的ListId对应的ems数据
+            flow_update_list = []
+            for uuid, store_id in list_id_list:
+                if not uuid:
+                    continue
+                datas = self.ems.get_summary_statistics(uuid)
+                if datas["code"] == 1 and datas["data"]:
+                    statistic = datas["data"]["SummaryStatistics"]["SummaryStatistic"]
+                    sents, opens, clicks = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"])
+                    open_rate, click_rate = round(opens / sents,4) if sents else 0.0, round(clicks / sents,4) if sents else 0.0
+                    flow_update_list.append((open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
+            # 更新数据库
+            cursor.executemany(
+                """update email_trigger set open_rate=%s, click_rate=%s, update_time=%s where customer_list_id=%s and store_id=%s""",
+                flow_update_list)
+            logger.info("update all email trigger ems datas success.")
+            conn.commit()
         except Exception as e:
-            logger.exception("update customer group data exception e={}".format(e))
+            logger.exception("update customer group and email trigger ems datas exception e={}".format(e))
             return False
         finally:
             cursor.close() if cursor else 0
@@ -306,7 +324,7 @@ if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
     # obj.insert_subscriber_activity()
-    # obj.update_customer_group_data()
+    obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
-    obj.insert_dashboard_data()
+    # obj.insert_dashboard_data()
     # obj.update_unsubscriber_and_snoozed_customers()
