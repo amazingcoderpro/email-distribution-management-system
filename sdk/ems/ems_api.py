@@ -266,16 +266,19 @@ class ExpertSender:
                 except:
                     error_msg_list = msg.get("Message")
                 if "@for" not in str(error_msg_list):
-                    logger.info("add subscriber failed! The reason is %s" % msg)
-                    return {"code": 2, "msg": msg, "data": "", "invalid_email": invalid_email}
+                    logger.info("add subscriber failed! The reason is %s" % error_msg_list)
+                    return {"code": 2, "msg": error_msg_list, "data": "", "invalid_email": invalid_email}
                 else:
+                    error_msg = ""
                     if isinstance(error_msg_list, list):
                         for error_email in error_msg_list:
                             invalid_email.append(error_email.get("@for"))
+                            error_msg += " ".join(error_email.values()) + "; "
                     elif isinstance(error_msg_list, dict):
                         invalid_email.append(error_msg_list.get("@for"))
-                    logger.info("add subscriber partial success! The reason is %s" % msg)
-                    return {"code": 3, "msg": msg, "data": "", "invalid_email": invalid_email}
+                        error_msg = " ".join(error_msg_list.values())
+                    logger.info("add subscriber partial success! The reason is %s" % error_msg)
+                    return {"code": 3, "msg": error_msg, "data": "", "invalid_email": invalid_email}
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
@@ -608,9 +611,9 @@ if __name__ == '__main__':
     # print(ems.get_message_statistics(372))
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))
-    # print(ems.add_subscriber(38, ["fatty091@gmail.com"]))
+    print(ems.add_subscriber(25, ["fatty091@gmail.com","yacineh1604@mail.ru", "aaaaesd"]))
     # html = open("index.html")
-    print(ems.create_and_send_newsletter([25], "chinese TEST", html="<p>中国人</p>")) # ,"2019-07-09 21:09:00"
+    # print(ems.create_and_send_newsletter([25], "chinese TEST", html="<p>中国人</p>")) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
