@@ -109,6 +109,9 @@ class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
                   "create_time",
                   "update_time"
         )
+        extra_kwargs = {
+            'product_list': {'write_only': False, 'read_only': True},
+        }
 
     def create(self, validated_data):
         store = models.Store.objects.filter(user=self.context["request"].user).first()
