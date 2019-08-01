@@ -96,7 +96,7 @@ class EmailTemplate(models.Model):
     description = models.TextField(blank=True, null=True, verbose_name="描述")
     subject = models.TextField(verbose_name="邮件标题")
     heading_text = models.TextField(verbose_name="邮件")
-    revenue = models.DecimalField(default=0.00, max_digits=5, decimal_places=5, verbose_name="对应的销售额")
+    revenue = models.DecimalField(default=0.00, max_digits=8, decimal_places=5, verbose_name="对应的销售额")
     sessions = models.IntegerField(default=0, verbose_name="流量数")
     transcations = models.IntegerField(default=0, verbose_name="交易次数")
     logo = models.TextField(verbose_name="邮件logo")
@@ -115,13 +115,13 @@ class EmailTemplate(models.Model):
     send_type_choices = ((0, '定时邮件'), (1, '触发邮件'), (3, '测试邮件'))
     send_type = models.SmallIntegerField(db_index=True, choices=send_type_choices, default=0, verbose_name="邮件模板发送类型")
     html = models.TextField(blank=True, null=True, verbose_name="描述")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    # store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        # managed = False
         db_table = 'email_template'
         ordering = ["update_time"]
 
@@ -133,13 +133,13 @@ class EmailRecord(models.Model):
     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
     clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
     unsubscribes = models.IntegerField(blank=True, null=True,  verbose_name="退订量")
-    open_rate = models.DecimalField(blank=True, null=True,  max_digits=5, decimal_places=5, verbose_name="邮件打开率")
-    click_rate = models.DecimalField(blank=True, null=True,  max_digits=5, decimal_places=5, verbose_name="邮件单击率")
-    unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=5, decimal_places=5, verbose_name="邮件退订率")
+    open_rate = models.DecimalField(blank=True, null=True,  max_digits=8, decimal_places=5, verbose_name="邮件打开率")
+    click_rate = models.DecimalField(blank=True, null=True,  max_digits=8, decimal_places=5, verbose_name="邮件单击率")
+    unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=8, decimal_places=5, verbose_name="邮件退订率")
     type_choice = ((0, 'Newsletter'), (1, 'Transactional'), (2, 'Test'))
     type = models.SmallIntegerField(blank=True, null=True, verbose_name="邮件类型")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    # store_id = models.IntegerField(verbose_name="店铺id")
+    # store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    store_id = models.IntegerField(verbose_name="店铺id")
     email_template_id = models.IntegerField(blank=True, null=True,  verbose_name="模版id")  # type=0
     email_trigger_id = models.IntegerField(blank=True, null=True,  verbose_name="邮件触发器id")  # type=1
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
@@ -155,9 +155,9 @@ class EmailTrigger(models.Model):
     customer_list_id = models.CharField(db_index=True, max_length=255, blank=True, null=True, verbose_name="flows筛选出来的ListId")
     title = models.CharField(db_index=True, max_length=255, verbose_name="标题")
     description = models.TextField(blank=True, null=True, verbose_name="描述")
-    open_rate = models.DecimalField(default=0.00,  max_digits=5, decimal_places=5, verbose_name="邮件打开率")
-    click_rate = models.DecimalField(default=0.00,  max_digits=5, decimal_places=5, verbose_name="邮件单击率")
-    revenue = models.DecimalField(default=0.00,  max_digits=5, decimal_places=5, verbose_name="对应的销售额")
+    open_rate = models.DecimalField(default=0.00,  max_digits=8, decimal_places=5, verbose_name="邮件打开率")
+    click_rate = models.DecimalField(default=0.00,  max_digits=8, decimal_places=5, verbose_name="邮件单击率")
+    revenue = models.DecimalField(default=0.00,  max_digits=8, decimal_places=5, verbose_name="对应的销售额")
     # members = models.IntegerField(blank=True, null=True,  verbose_name="数量")
     relation_info = models.TextField(blank=True, null=True, verbose_name="筛选条件")
     email_delay = models.TextField(blank=True, null=True, verbose_name="发送邮件顺序")
@@ -168,8 +168,8 @@ class EmailTrigger(models.Model):
     note = models.TextField(default="[]", verbose_name="对应Note列表")
     status_choice = ((0, 'disable'), (1, 'enable'), (2, 'delete'))
     status = models.SmallIntegerField(default=0, verbose_name="邮件类型")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    # store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    # store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(db_index=True,auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True,auto_now=True, verbose_name="更新时间")
 
