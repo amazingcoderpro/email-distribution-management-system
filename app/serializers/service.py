@@ -109,6 +109,9 @@ class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
                   "create_time",
                   "update_time"
         )
+        extra_kwargs = {
+            'product_list': {'write_only': False, 'read_only': True},
+        }
 
     def create(self, validated_data):
         store = models.Store.objects.filter(user=self.context["request"].user).first()
@@ -118,12 +121,13 @@ class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
         instance = super(TriggerEmailTemplateSerializer, self).create(validated_data)
         html = validated_data["html"]
 
-        product_list = json.loads(validated_data["product_list"])
-        for item in product_list:
-            dic = {"email_category": "newsletter", "template_name": instance.title, "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
-            uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
-            new_iamge_url = item["url"] + uri_structure
-            html = html.replace(item["url"], new_iamge_url)
+        if validated_data.get("product_list"):
+            product_list = json.loads(validated_data["product_list"])
+            for item in product_list:
+                dic = {"email_category": "newsletter", "template_name": instance.title, "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
+                uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
+                new_iamge_url = item["url"] + uri_structure
+                html = html.replace(item["url"], new_iamge_url)
         instance.html = html
         instance.save()
         # ems_instance = ems_api.ExpertSender(store.name, store.email)
