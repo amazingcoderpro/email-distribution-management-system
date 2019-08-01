@@ -167,7 +167,7 @@ class EmailTrigger(models.Model):
     status_choice = ((0, 'disable'), (1, 'enable'), (2, 'delete'))
     status = models.SmallIntegerField(default=0, verbose_name="邮件类型")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(db_index=True,auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True,auto_now=True, verbose_name="更新时间")
 
