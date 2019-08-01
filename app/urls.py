@@ -28,7 +28,7 @@ v1_urlpatterns = [
     url(r'^email_template/$', service.EmailTemplateView.as_view()),
     url(r'^email_template/trigger/$', service.TriggerEmailTemplateView.as_view()),
     url(r'^email_template/(?P<pk>[0-9]+)/$', service.EmailTemplateDeleteView.as_view()),
-    url(r'^email_template/enable/(?P<pk>[0-9]+)/$', service.EmailTemplateUpdateView.as_view()),
+    # url(r'^email_template/enable/(?P<pk>[0-9]+)/$', service.EmailTemplateUpdateView.as_view()),
 
     url(r'^top_product/$', service.TopProductView.as_view()),
     url(r'^upload_picture/$', service.UploadPicture.as_view()),
