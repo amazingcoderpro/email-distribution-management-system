@@ -61,12 +61,16 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
                   "product_list",
                   "send_rule",
                   "customer_group_list",
-                  "state",
+                  "status",
+                  "enable",
                   "html",
                   # "send_type",
                   "create_time",
                   "update_time"
         )
+        extra_kwargs = {
+            'product_list': {'write_only': False, 'read_only': True},
+        }
 
     def create(self, validated_data):
         store = models.Store.objects.filter(user=self.context["request"].user).first()
@@ -85,6 +89,18 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
         return instance
 
 
+class EmailTemplateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmailTemplate
+        fields = (
+                  "enable",
+        )
+
+    def update(self, instance, validated_data):
+        instance.enable = validated_data["enable"]
+        instance.save()
+
+
 class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.EmailTemplate
@@ -100,27 +116,31 @@ class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
                   "product_list",
                   "send_rule",
                   "customer_group_list",
-                  "state",
+                  "status",
                   "html",
                   # "send_type",
                   "create_time",
                   "update_time"
         )
+        extra_kwargs = {
+            'product_list': {'write_only': False, 'read_only': True},
+        }
 
     def create(self, validated_data):
         store = models.Store.objects.filter(user=self.context["request"].user).first()
         validated_data["store"] = store
-        validated_data["state"] = 1
+        validated_data["status"] = 0    # 默认为禁用状态
         validated_data["send_type"] = 1
         instance = super(TriggerEmailTemplateSerializer, self).create(validated_data)
         html = validated_data["html"]
 
-        product_list = json.loads(validated_data["product_list"])
-        for item in product_list:
-            dic = {"email_category": "newsletter", "template_name": instance.title, "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
-            uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
-            new_iamge_url = item["url"] + uri_structure
-            html = html.replace(item["url"], new_iamge_url)
+        if validated_data.get("product_list"):
+            product_list = json.loads(validated_data["product_list"])
+            for item in product_list:
+                dic = {"email_category": "newsletter", "template_name": instance.title, "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
+                uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
+                new_iamge_url = item["url"] + uri_structure
+                html = html.replace(item["url"], new_iamge_url)
         instance.html = html
         instance.save()
         # ems_instance = ems_api.ExpertSender(store.name, store.email)
@@ -178,7 +198,8 @@ class SendMailSerializer(serializers.ModelSerializer):
         store_instance = models.Store.objects.filter(user=self.context["request"].user).first()
         validated_data["store"] = store_instance
         validated_data["send_type"] = 3
-        validated_data["state"] = 0
+        validated_data["status"] = 0
+        validated_data["enable"] = 0
         instance = super(SendMailSerializer, self).create(validated_data)
 
         ems_instance = ems_api.ExpertSender(store_instance.name, store_instance.email)
@@ -186,7 +207,7 @@ class SendMailSerializer(serializers.ModelSerializer):
         subscribers_res = ems_instance.create_subscribers_list(store_instance.name)
         if subscribers_res["code"] != 1:
             raise serializers.ValidationError(subscribers_res["msg"])
-        subscriber_flag =  ems_instance.add_subscriber(subscribers_res["data"],email_address)
+        subscriber_flag = ems_instance.add_subscriber(subscribers_res["data"],email_address)
         if subscriber_flag["code"] != 1:
             raise serializers.ValidationError(subscriber_flag["msg"])
         result = ems_instance.create_and_send_newsletter([subscribers_res["data"]], store_instance.name, "https://smartsend.seamarketings.com/EmailPage?id={}".format(instance.id))
@@ -204,7 +225,6 @@ class DashboardSerializer(serializers.ModelSerializer):
             "total_open",
             "total_click",
             "total_sent",
-
             "total_revenue",
             "total_orders",
             "avg_repeat_purchase_rate",

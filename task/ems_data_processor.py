@@ -86,8 +86,8 @@ class EMSDataProcessor:
             # 获取当前用户组listId
             cursor.execute("""select uuid,store_id from customer_group where state in (0,1)""")
             uuid_list = cursor.fetchall()
-            # 获取每一个listId对应的ems数据
-            update_list = []
+            # 获取每一个用户组listId对应的ems数据
+            group_update_list = []
             for uuid, store_id in uuid_list:
                 if not uuid:
                     continue
@@ -95,15 +95,36 @@ class EMSDataProcessor:
                 if datas["code"]==1 and datas["data"]:
                     statistic = datas["data"]["SummaryStatistics"]["SummaryStatistic"]
                     sents, opens, clicks = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"])
-                    open_rate, click_rate = (opens/sents) if sents else 0, (clicks/sents) if sents else 0
-                    update_list.append((sents, opens, clicks, open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
+                    open_rate, click_rate = round(opens/sents,5) if sents else 0.0, round(clicks/sents,5) if sents else 0.0
+                    group_update_list.append((sents, opens, clicks, open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
             # 更新数据库
             cursor.executemany(
-                """update customer_group set sents=%s, opens=%s, clicks=%s, open_rate=%s, click_rate=%s, update_time=%s where uuid=%s and store_id=%s""", update_list)
-            logger.info("update all customer group success.")
+                """update customer_group set sents=%s, opens=%s, clicks=%s, open_rate=%s, click_rate=%s, update_time=%s where uuid=%s and store_id=%s""", group_update_list)
+            logger.info("update all customer group ems datas success.")
+            conn.commit()
+
+            # 获取当前flow的ListId
+            cursor.execute("""select customer_list_id,store_id from email_trigger where status in (0,1)""")
+            list_id_list = cursor.fetchall()
+            # 获取每一个flow的ListId对应的ems数据
+            flow_update_list = []
+            for uuid, store_id in list_id_list:
+                if not uuid:
+                    continue
+                datas = self.ems.get_summary_statistics(uuid)
+                if datas["code"] == 1 and datas["data"]:
+                    statistic = datas["data"]["SummaryStatistics"]["SummaryStatistic"]
+                    sents, opens, clicks = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"])
+                    open_rate, click_rate = round(opens / sents,5) if sents else 0.0, round(clicks / sents,5) if sents else 0.0
+                    flow_update_list.append((open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
+            # 更新数据库
+            cursor.executemany(
+                """update email_trigger set open_rate=%s, click_rate=%s, update_time=%s where customer_list_id=%s and store_id=%s""",
+                flow_update_list)
+            logger.info("update all email trigger ems datas success.")
             conn.commit()
         except Exception as e:
-            logger.exception("update customer group data exception e={}".format(e))
+            logger.exception("update customer group and email trigger ems datas exception e={}".format(e))
             return False
         finally:
             cursor.close() if cursor else 0
@@ -166,7 +187,14 @@ class EMSDataProcessor:
                 # 从emailReocrd表中获取当前店铺所有非测试邮件的数据
                 cursor.execute("""select sum(sents),sum(opens),sum(clicks),sum(unsubscribes),sum(open_rate),sum(click_rate),
                 sum(unsubscribe_rate),count(uuid) from email_record where type in (0,1) and store_id=%s""", (store_id,))
-                sents,opens,clicks,unsubscribes,open_rate,click_rate,unsubscribe_rate,email_count = cursor.fetchone()
+                new_res = []
+                for r in cursor.fetchone():
+                    if not r:
+                        new_res.append(0)
+                    else:
+                        new_res.append(r)
+                sents,opens,clicks,unsubscribes,open_rate,click_rate,unsubscribe_rate,email_count = tuple(new_res)
+
                 avg_open_rate = (open_rate/email_count) if open_rate and email_count else 0
                 avg_click_rate = (click_rate/email_count) if click_rate and email_count else 0
                 avg_unsubscribe_rate = (unsubscribe_rate/email_count) if unsubscribe_rate and email_count else 0
@@ -176,42 +204,42 @@ class EMSDataProcessor:
                                                            seconds=now_date.second, microseconds=now_date.microsecond)
                 last_time = zero_time + datetime.timedelta(hours=23, minutes=59, seconds=59)
                 # 获取当前店铺所有的orders
-                cursor.execute("""select total_orders, total_revenue, total_sessions from dashboard where store_id= %s and update_time between %s and %s""",
-                               (store_id, zero_time-datetime.timedelta(days=1), last_time-datetime.timedelta(days=1)))
-                orders_info = cursor.fetchone()
-                if orders_info:
-                    total_orders, total_revenue, total_sessions = orders_info
-                else:
-                    total_orders = total_revenue = total_sessions = 0
-
-                # 获取当前店铺支付订单大于等于2的用户数
-                cursor.execute("""select count(customer_uuid) from (SELECT customer_uuid, count(id) as num FROM order_event where store_id= %s and status_tag='paid' group by customer_uuid) as res where num >= 2;""", (store_id, ))
-                orders_gte2 = cursor.fetchone()[0]
-
-                # 获取当前店铺的用户总量
-                cursor.execute("""SELECT count(id)  FROM  order_event where store_id= %s;""", (store_id, ))
-                total_cumtomers = cursor.fetchone()[0]
-
-                # 获取GA数据
-                cursor.execute(
-                    """select store.store_view_id from store where store.id = %s""", (store_id, ))
-                store_view_id = cursor.fetchone()[0]
-                if store_view_id:
-                    papi = GoogleApi(view_id=store_view_id, json_path=os.path.join(ROOT_PATH, r"sdk\googleanalytics\client_secrets.json"))
-                    shopify_google_data = papi.get_report(key_word="", start_time="1daysAgo", end_time="today")
-                    shopify_dict = shopify_google_data.get("total_results", {})
-                    sessions = shopify_dict.get("sessions", 0)
-                    orders = shopify_dict.get("transactions", 0)
-                    revenue = shopify_dict.get("revenue", 0.0)
-                    total_orders += orders
-                    total_sessions += sessions
-                    total_revenue += revenue
-                    # 平均转换率  总支付订单数÷总流量
-                    avg_conversion_rate = (total_orders/ total_sessions) if total_sessions else 0
-                    # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
-                    avg_repeat_purchase_rate = (orders_gte2/total_cumtomers) if total_cumtomers else 0
-                else:
-                    sessions=orders=revenue=total_orders=total_sessions=total_revenue=avg_conversion_rate=avg_repeat_purchase_rate = 0
+                # cursor.execute("""select total_orders, total_revenue, total_sessions from dashboard where store_id= %s and update_time between %s and %s""",
+                #                (store_id, zero_time-datetime.timedelta(days=1), last_time-datetime.timedelta(days=1)))
+                # orders_info = cursor.fetchone()
+                # if orders_info:
+                #     total_orders, total_revenue, total_sessions = orders_info
+                # else:
+                #     total_orders = total_revenue = total_sessions = 0
+                #
+                # # 获取当前店铺支付订单大于等于2的用户数
+                # cursor.execute("""select count(customer_uuid) from (SELECT customer_uuid, count(id) as num FROM order_event where store_id= %s and status_tag='paid' group by customer_uuid) as res where num >= 2;""", (store_id, ))
+                # orders_gte2 = cursor.fetchone()[0]
+                #
+                # # 获取当前店铺的用户总量
+                # cursor.execute("""SELECT count(id)  FROM  order_event where store_id= %s;""", (store_id, ))
+                # total_cumtomers = cursor.fetchone()[0]
+                #
+                # # 获取GA数据
+                # cursor.execute(
+                #     """select store.store_view_id from store where store.id = %s""", (store_id, ))
+                # store_view_id = cursor.fetchone()[0]
+                # if store_view_id:
+                #     papi = GoogleApi(view_id=store_view_id, json_path=os.path.join(ROOT_PATH, r"sdk\googleanalytics\client_secrets.json"))
+                #     shopify_google_data = papi.get_report(key_word="", start_time="1daysAgo", end_time="today")
+                #     shopify_dict = shopify_google_data.get("total_results", {})
+                #     sessions = shopify_dict.get("sessions", 0)
+                #     orders = shopify_dict.get("transactions", 0)
+                #     revenue = shopify_dict.get("revenue", 0.0)
+                #     total_orders += orders
+                #     total_sessions += sessions
+                #     total_revenue += revenue
+                #     # 平均转换率  总支付订单数÷总流量
+                #     avg_conversion_rate = (total_orders/ total_sessions) if total_sessions else 0
+                #     # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
+                #     avg_repeat_purchase_rate = (orders_gte2/total_cumtomers) if total_cumtomers else 0
+                # else:
+                #     sessions=orders=revenue=total_orders=total_sessions=total_revenue=avg_conversion_rate=avg_repeat_purchase_rate = 0
 
                 # 更新数据入库
                 cursor.execute("""select id from dashboard where store_id=%s and update_time between %s and %s""", (store_id, zero_time, last_time))
@@ -219,18 +247,14 @@ class EMSDataProcessor:
                 if dashboard_id:
                     # update
                     cursor.execute("""update dashboard set total_sent=%s, total_open=%s, total_click=%s, total_unsubscribe=%s, avg_open_rate=%s,
-                     avg_click_rate=%s, avg_unsubscribe_rate=%s, update_time=%s, session=%s, orders=%s, revenue=%s, total_orders=%s, 
-                     total_sessions=%s, total_revenue=%s, avg_conversion_rate=%s, avg_repeat_purchase_rate=%s where id=%s""",
-                     (sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date,
-                     sessions, orders, revenue, total_orders, total_sessions, total_revenue, avg_conversion_rate, avg_repeat_purchase_rate, dashboard_id[0]))
+                     avg_click_rate=%s, avg_unsubscribe_rate=%s, update_time=%s where id=%s""",
+                     (sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date, dashboard_id[0]))
                 else:
                     # insert
                     cursor.execute("""insert into dashboard (total_sent, total_open, total_click, total_unsubscribe, avg_open_rate,
-                     avg_click_rate, avg_unsubscribe_rate, create_time, update_time, store_id,
-                    session, orders, revenue, total_orders, total_sessions, total_revenue, avg_conversion_rate, avg_repeat_purchase_rate) 
-                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                    (sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date,now_date,store_id,
-                     sessions, orders, revenue, total_orders, total_sessions, total_revenue, avg_conversion_rate, avg_repeat_purchase_rate))
+                     avg_click_rate, avg_unsubscribe_rate, create_time, update_time, store_id) 
+                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                    (sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date,now_date,store_id))
                 logger.info("update store(%s) dashboard success at %s." % (store_id, now_date))
                 conn.commit()
         except Exception as e:
@@ -300,7 +324,7 @@ if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
     # obj.insert_subscriber_activity()
-    # obj.update_customer_group_data()
+    obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
-    obj.insert_dashboard_data()
+    # obj.insert_dashboard_data()
     # obj.update_unsubscriber_and_snoozed_customers()
