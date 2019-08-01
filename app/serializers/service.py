@@ -62,6 +62,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
                   "send_rule",
                   "customer_group_list",
                   "status",
+                  "enable",
                   "html",
                   # "send_type",
                   "create_time",
