@@ -88,11 +88,6 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-    def update(self, instance, validated_data):
-        instance["enable"] = validated_data["enable"]
-        instance.save()
-        return instance
-
 
 class EmailTemplateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -102,9 +97,8 @@ class EmailTemplateUpdateSerializer(serializers.ModelSerializer):
         )
 
     def update(self, instance, validated_data):
-        instance["enable"] = validated_data["enable"]
+        instance.enable = validated_data["enable"]
         instance.save()
-        return instance
 
 
 class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
