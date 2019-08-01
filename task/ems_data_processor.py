@@ -302,5 +302,5 @@ if __name__ == '__main__':
     # obj.insert_subscriber_activity()
     # obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
-    # obj.insert_dashboard_data()
-    obj.update_unsubscriber_and_snoozed_customers()
+    obj.insert_dashboard_data()
+    # obj.update_unsubscriber_and_snoozed_customers()

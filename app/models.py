@@ -229,21 +229,18 @@ class Customer(models.Model):
     first_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="first_name")
     last_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_name")
     customer_email = models.EmailField(max_length=255, blank=True, null=True, verbose_name="客户邮箱")
-
     subscribe_time = models.DateTimeField(blank=True, null=True, verbose_name="最近购物时间")
     sign_up_time = models.DateTimeField(blank=True, null=True, db_index=True, verbose_name="客户登陆时间")
     last_cart_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后一次购物时间")
     last_order_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后一次订单时间")
     last_order_status_choices = ((0, 'is paid'), (1, 'is unpaid'))
     last_order_status = models.SmallIntegerField(db_index=True, choices=last_order_status_choices, blank=True, null=True, verbose_name="客户最后一次订单状态")
-
     last_cart_status_choices = ((0, 'is empty'), (1, 'is not empty'))
     last_cart_status = models.SmallIntegerField(db_index=True, choices=last_cart_status_choices, blank=True,
                                                  null=True, verbose_name="客户最后一次购物车状态")
 
     accept_marketing_choices = ((0, 'is true'), (1, 'is false'))
-    accept_marketing_status = models.SmallIntegerField(db_index=True, choices=accept_marketing_choices, blank=True,
-                                                null=True, verbose_name="")
+    accept_marketing_status = models.SmallIntegerField(db_index=True, choices=accept_marketing_choices, blank=True,null=True, verbose_name="")
 
     unsubscribe_choices = ((0, 'is false'), (1, 'is true'), (2, 'is sleep'))
     unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅或者休眠")

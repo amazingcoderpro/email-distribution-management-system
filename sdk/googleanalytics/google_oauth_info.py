@@ -7,6 +7,7 @@ from config import logger
 
 class GoogleApi():
     def __init__(self, view_id, ga_source="smartsend", json_path=""):
+    # def __init__(self, view_id, ga_source="pinbooster", json_path=""):
         """
         获取店铺的GA数据
         :param view_id: 视图的id
@@ -102,7 +103,7 @@ if __name__ == '__main__':
     google_data = GoogleApi(view_id="195406097")
     print(google_data.get_report(key_word="", start_time="1daysAgo", end_time="today"))
     print(1)
-#
+
 
 
 
