@@ -57,8 +57,8 @@ class Store(models.Model):
 
 class Dashboard(models.Model):
     """Dashboard"""
-    revenue = models.FloatField(default=0, verbose_name="Revenue")
-    orders = models.IntegerField(default=0, verbose_name="Orders")
+    revenue = models.FloatField(default=0, blank=True, null=True, verbose_name="Revenue")
+    orders = models.IntegerField(default=0,blank=True, null=True, verbose_name="Orders")
     # repeat_purchase_rate = models.FloatField(blank=True, null=True,  verbose_name="Repeat Purchase Rate")
     # conversion_rate = models.FloatField(blank=True, null=True,   verbose_name="Conversion Rate")
     # delta_sent = models.IntegerField(blank=True, null=True,  verbose_name="Sent 增量")
@@ -81,7 +81,7 @@ class Dashboard(models.Model):
     avg_click_rate = models.FloatField(blank=True, null=True,  verbose_name="Click Rate")
     avg_unsubscribe_rate = models.FloatField(blank=True, null=True,  verbose_name="Unsubscribe Rate")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    # store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
@@ -108,13 +108,15 @@ class EmailTemplate(models.Model):
     # html = models.TextField(blank=True, null=False, verbose_name="邮件html")
     customer_group_list = models.TextField(verbose_name="邮件对应的客户组列表")
     send_rule = models.TextField(verbose_name="发送邮件规则")
-    state_choices = ((0, '待解析'), (1, '已解析'), (2, '已删除'))
-    state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="状态")
+    status_choices = ((0, '待解析'), (1, '已解析'), (2, '已删除'))
+    status = models.SmallIntegerField(db_index=True, choices=status_choices, default=0, verbose_name="状态")
+    enable_choice = ((0, '禁用'), (1, '启用'))
+    enable = models.SmallIntegerField(default=0,choices=enable_choice, verbose_name="是否启用")
     send_type_choices = ((0, '定时邮件'), (1, '触发邮件'), (3, '测试邮件'))
     send_type = models.SmallIntegerField(db_index=True, choices=send_type_choices, default=0, verbose_name="邮件模板发送类型")
     html = models.TextField(blank=True, null=True, verbose_name="描述")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    # store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -164,15 +166,15 @@ class EmailTrigger(models.Model):
     #                (1, 'Do not send if the customer if your customer makes a purchase.'),
     #                (2, 'Do not send if the customer received an email from this campaign in the last 7 days.'))
     note = models.TextField(default="[]", verbose_name="对应Note列表")
-    type_choice = ((0, 'execute'), (1, 'pause'), (2, 'delete'))
-    type = models.SmallIntegerField(default=0, verbose_name="邮件类型")
+    status_choice = ((0, 'disable'), (1, 'enable'), (2, 'delete'))
+    status = models.SmallIntegerField(default=0, verbose_name="邮件类型")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    # store_id = models.IntegerField(verbose_name="店铺id")
-    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    create_time = models.DateTimeField(db_index=True,auto_now_add=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(db_index=True,auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        # managed = False
+        managed = False
         db_table = 'email_trigger'
         ordering = ["-id"]
 
@@ -180,14 +182,14 @@ class EmailTrigger(models.Model):
 class EmailTask(models.Model):
     template = models.ForeignKey(EmailTemplate, blank=True, null=True, on_delete=models.DO_NOTHING)
     uuid = models.CharField(db_index=True, max_length=255, blank=True, null=True, verbose_name="事务邮件ID")
-    state_choices = ((0, '待发送'), (1, '已发送(成功)'), (2, "模板已删除"), (3, '已发送但发送失败'))
-    state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="邮件发送状态")
+    status_choices = ((0, '待发送'), (1, '已发送(成功)'),(2, '已发送但发送失败'), (3, '模版禁用'), (4, "模板已删除"))
+    status = models.SmallIntegerField(db_index=True, choices=status_choices, default=0, verbose_name="邮件发送状态")
     remark = models.TextField(blank=True, null=True, verbose_name="备注")
     execute_time = models.DateTimeField(db_index=True, verbose_name="执行时间")
     finished_time = models.DateTimeField(blank=True, null=True, verbose_name="完成时间")
     customer_list = models.TextField(blank=True, null=True, verbose_name="符合触发条件的用户列表")
     email_trigger = models.ForeignKey(EmailTrigger, blank=True, null=True, on_delete=models.DO_NOTHING)
-    # email_trigger_id = models.IntegerField(db_index=True, default=None, verbose_name="email_trigger_id")
+    #email_trigger_id = models.IntegerField(db_index=True, default=None, verbose_name="email_trigger_id")
     type_choices = ((0, 'Timed mail'), (1, 'Trigger mail'))
     type = models.SmallIntegerField(db_index=True, choices=type_choices, default=0, verbose_name="邮件类型")
     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
@@ -230,21 +232,18 @@ class Customer(models.Model):
     first_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="first_name")
     last_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_name")
     customer_email = models.EmailField(max_length=255, blank=True, null=True, verbose_name="客户邮箱")
-
     subscribe_time = models.DateTimeField(blank=True, null=True, verbose_name="最近购物时间")
     sign_up_time = models.DateTimeField(blank=True, null=True, db_index=True, verbose_name="客户登陆时间")
     last_cart_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后一次购物时间")
     last_order_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后一次订单时间")
     last_order_status_choices = ((0, 'is paid'), (1, 'is unpaid'))
     last_order_status = models.SmallIntegerField(db_index=True, choices=last_order_status_choices, blank=True, null=True, verbose_name="客户最后一次订单状态")
-
     last_cart_status_choices = ((0, 'is empty'), (1, 'is not empty'))
     last_cart_status = models.SmallIntegerField(db_index=True, choices=last_cart_status_choices, blank=True,
                                                  null=True, verbose_name="客户最后一次购物车状态")
 
     accept_marketing_choices = ((0, 'is true'), (1, 'is false'))
-    accept_marketing_status = models.SmallIntegerField(db_index=True, choices=accept_marketing_choices, blank=True,
-                                                null=True, verbose_name="")
+    accept_marketing_status = models.SmallIntegerField(db_index=True, choices=accept_marketing_choices, blank=True,null=True, verbose_name="")
 
     unsubscribe_choices = ((0, 'is false'), (1, 'is true'), (2, 'is sleep'))
     unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅或者休眠")
@@ -344,7 +343,7 @@ class OrderEvent(models.Model):
     #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     order_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
     order_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
-    create_time = models.DateTimeField(db_index=True, verbose_name="创建时间")
+    create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
@@ -367,8 +366,8 @@ class CheckoutEvent(models.Model):
     checkout_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
     checkout_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
     store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    # store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
-    create_time = models.DateTimeField(auto_now=True, db_index=True, verbose_name="创建时间")
+    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    create_time = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
     email_date = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="最后一次邮件通知时间，为空代表还没有发送过促销邮件")
 

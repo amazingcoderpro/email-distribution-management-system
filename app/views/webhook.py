@@ -216,7 +216,7 @@ class CheckoutsCreate(APIView):
                         checkout_id = checkout_id,
                         total_price= total_price,
                         status=0,
-                        product_info = json.dumps(product_info),
+                        product_info = product_info,
                         abandoned_checkout_url= abandoned_checkout_url,
                         checkout_create_time= checkout_create_time,
                         checkout_update_time= checkout_update_time,
