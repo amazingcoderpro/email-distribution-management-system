@@ -515,40 +515,127 @@ class ShopifyDataProcessor:
         return True
 
     def updata_shopify_ga(self):
-        logger.info("update_shopify GA is cheking...")
+        # logger.info("update_shopify GA is cheking...")
+        # try:
+        #     conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+        #                   password=self.db_password).get_instance()
+        #     cursor = conn.cursor() if conn else None
+        #     if not cursor:
+        #         return False
+        #     cursor.execute(
+        #             """SELECT email_template.id as template_id, store.store_view_id FROM email_template join store on email_template.store_id = edm.store.id;""")
+        #     stores = cursor.fetchall()
+        #     if stores:
+        #         results_list = []
+        #         for template_id, store_view_id in stores:
+        #             if not store_view_id:
+        #                 continue
+        #             google_api = GoogleApi(view_id=store_view_id, json_path=os.path.join(ROOT_PATH, r"sdk\googleanalytics\client_secrets.json"))
+        #             google_info = google_api.get_report(key_word="", start_time="1daysAgo", end_time="today")
+        #             if google_info["code"] ==1:
+        #                 data_list = google_info.get("data", {}).get("results", {})
+        #                 values = data_list.get(str(template_id), "")
+        #                 # for key, values in data_list.items():
+        #                 res = (values.get("sessions", ""), values.get("transactions", ""), values.get("revenue", ""), datetime.datetime.now(), template_id)
+        #                 results_list.append(res)
+        #         cursor.executemany("""update email_template set sessions=%s, transcations=%s, revenue=%s ,update_time=%s where id =%s""", results_list)
+        #         conn.commit()
+        #     else:
+        #         logger.info("update shopify GA，no search any templates")
+        # except Exception as e:
+        #     logger.exception("update shopify GA e={}".format(e))
+        #     return False
+        # finally:
+        #     cursor.close() if cursor else 0
+        #     conn.close() if conn else 0
+        # logger.info("update shopify GA is finished...")
+        # return True
+        """
+        每天凌晨一点拉取GA数据
+        :return:
+        """
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
                           password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
-            cursor.execute(
-                    """SELECT email_template.id as template_id, store.store_view_id FROM email_template join store on email_template.store_id = edm.store.id;""")
-            stores = cursor.fetchall()
-            if stores:
-                results_list = []
-                for template_id, store_view_id in stores:
-                    if not store_view_id:
-                        continue
-                    google_api = GoogleApi(view_id=store_view_id, json_path=os.path.join(ROOT_PATH, r"sdk\googleanalytics\client_secrets.json"))
-                    google_info = google_api.get_report(key_word="", start_time="1daysAgo", end_time="today")
-                    if google_info["code"] ==1:
-                        data_list = google_info.get("data", {}).get("results", {})
-                        values = data_list.get(str(template_id), "")
-                        # for key, values in data_list.items():
-                        res = (values.get("sessions", ""), values.get("transactions", ""), values.get("revenue", ""), datetime.datetime.now(), template_id)
-                        results_list.append(res)
-                cursor.executemany("""update email_template set sessions=%s, transcations=%s, revenue=%s ,update_time=%s where id =%s""", results_list)
+            # 获取所有店铺
+            cursor.execute("""select id from store""")
+            for store in cursor.fetchall():
+                store_id = store[0]
+                # 配置时间
+                now_date = datetime.datetime.now()
+                zero_time = now_date - datetime.timedelta(hours=now_date.hour, minutes=now_date.minute,
+                                                          seconds=now_date.second, microseconds=now_date.microsecond)
+                last_time = zero_time + datetime.timedelta(hours=23, minutes=59, seconds=59)
+                # 获取当前店铺所有的orders
+                cursor.execute(
+                    """select total_orders, total_revenue, total_sessions from dashboard where store_id= %s and update_time between %s and %s""",
+                    (store_id, zero_time - datetime.timedelta(days=1), last_time - datetime.timedelta(days=1)))
+                orders_info = cursor.fetchone()
+                if orders_info:
+                    total_orders, total_revenue, total_sessions = orders_info
+                else:
+                    total_orders = total_revenue = total_sessions = 0
+
+                # 获取当前店铺支付订单大于等于2的用户数
+                cursor.execute(
+                    """select count(customer_uuid) from (SELECT customer_uuid, count(id) as num FROM order_event where store_id= %s and status_tag='paid' group by customer_uuid) as res where num >= 2;""",
+                    (store_id,))
+                orders_gte2 = cursor.fetchone()[0]
+
+                # 获取当前店铺的用户总量
+                cursor.execute("""SELECT count(id)  FROM  order_event where store_id= %s;""", (store_id,))
+                total_cumtomers = cursor.fetchone()[0]
+
+                # 获取GA数据
+                cursor.execute(
+                    """select store.store_view_id from store where store.id = %s""", (store_id,))
+                store_view_id = cursor.fetchone()[0]
+                if store_view_id:
+                    papi = GoogleApi(view_id=store_view_id,
+                                     json_path=os.path.join(ROOT_PATH, r"sdk\googleanalytics\client_secrets.json"))
+                    shopify_google_data = papi.get_report(key_word="", start_time="1daysAgo", end_time="today")
+                    shopify_dict = shopify_google_data.get("total_results", {})
+                    sessions = shopify_dict.get("sessions", 0)
+                    orders = shopify_dict.get("transactions", 0)
+                    revenue = shopify_dict.get("revenue", 0.0)
+                    total_orders += orders
+                    total_sessions += sessions
+                    total_revenue += revenue
+                    # 平均转换率  总支付订单数÷总流量
+                    avg_conversion_rate = (total_orders / total_sessions) if total_sessions else 0
+                    # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
+                    avg_repeat_purchase_rate = (orders_gte2 / total_cumtomers) if total_cumtomers else 0
+                else:
+                    sessions = orders = revenue = total_orders = total_sessions = total_revenue = avg_conversion_rate = avg_repeat_purchase_rate = 0
+
+                # 更新数据入库
+                cursor.execute("""select id from dashboard where store_id=%s and update_time between %s and %s""",
+                               (store_id, zero_time, last_time))
+                dashboard_id = cursor.fetchone()
+                if dashboard_id:
+                    # update
+                    cursor.execute("""update dashboard set  update_time=%s, session=%s, orders=%s, revenue=%s, total_orders=%s, 
+                             total_sessions=%s, total_revenue=%s, avg_conversion_rate=%s, avg_repeat_purchase_rate=%s where id=%s""",
+                                   (now_date,sessions, orders, revenue, total_orders, total_sessions, total_revenue,
+                                    avg_conversion_rate, avg_repeat_purchase_rate, dashboard_id[0]))
+                else:
+                    # insert
+                    cursor.execute("""insert into dashboard ( create_time, update_time, store_id,
+                            session, orders, revenue, total_orders, total_sessions, total_revenue, avg_conversion_rate, avg_repeat_purchase_rate) 
+                            values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                                   (now_date, now_date, store_id, sessions, orders, revenue, total_orders, total_sessions, total_revenue,
+                                    avg_conversion_rate, avg_repeat_purchase_rate))
+                logger.info("update store(%s) dashboard success at %s." % (store_id, now_date))
                 conn.commit()
-            else:
-                logger.info("update shopify GA，no search any templates")
         except Exception as e:
-            logger.exception("update shopify GA e={}".format(e))
+            logger.exception("update dashboard data exception e={}".format(e))
             return False
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        logger.info("update shopify GA is finished...")
         return True
 
     def update_store_webhook(self, store=None):
