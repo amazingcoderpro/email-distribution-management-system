@@ -180,7 +180,7 @@ def run():
 
     # 模板解析定时任务
     tmp = TemplateProcessor(db_info=db_info)
-    tp.create_periodic_task(tmp.analyze_templates,  seconds=300)
+    tp.create_periodic_task(tmp.analyze_templates,  seconds=120)
 
     # 模板邮件定时发送任务
     tp.create_periodic_task(tmp.execute_email_task, seconds=120, max_instances=50, interval=120)

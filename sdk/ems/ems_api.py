@@ -140,7 +140,7 @@ class ExpertSender:
         try:
             xml_data = self.jsontoxml(data)
             xml_data = xml_data % ("<![CDATA[%s]]>" % html)
-            result = requests.post(url, xml_data, headers=self.headers)
+            result = requests.post(url, xml_data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("create and send newsletter", result)
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
@@ -391,12 +391,12 @@ class ExpertSender:
         try:
             xml_data = self.jsontoxml(data)
             xml_data = xml_data % ("<![CDATA[%s]]>" % html)
-            result = requests.post(url, xml_data, headers=self.headers)
+            result = requests.post(url, xml_data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("create transactional message", result)
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def send_transactional_messages(self, email_id, to_email):
+    def send_transactional_messages(self, email_id, to_email, list_id):
         """
         发送事务性邮件 http://sms.expertsender.cn/api/v2/methods/email-messages/send-transactional-messages/
         :param email_id: 事务邮件ID
@@ -407,10 +407,11 @@ class ExpertSender:
         data = {"ApiRequest": {
             "ApiKey": self.api_key,
             "Data": {
-                "Receiver": {"Email": to_email}}
+                "Receiver": {"Email": to_email,"ListId": list_id}}
             }}
         try:
-            result = requests.post(url, self.jsontoxml(data), headers=self.headers)
+            data = self.jsontoxml(data)
+            result = requests.post(url, data, headers=self.headers)
             return self.retrun_result("send transactional messages", result)
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
@@ -445,7 +446,7 @@ class ExpertSender:
         try:
             xml_data = self.jsontoxml(data)
             xml_data = xml_data % ("<![CDATA[%s]]>" % html)
-            result = requests.put(url, xml_data, headers=self.headers)
+            result = requests.put(url, xml_data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("update transactional message", result)
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
@@ -603,14 +604,13 @@ if __name__ == '__main__':
 </div>
 </body>
 </html>"""
-    html_test = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>jquery</title></head><body><div style="width:1200px;margin:0 auto;"><div class="showBox" style="overflow-wrap: break-word; text-align: center; font-size: 14px;"><div style="margin: 0px auto; width: 100%; border-bottom: 1px solid rgb(204, 204, 204); padding-bottom: 20px;"><div style="margin: 0px auto; width: 30%;"><h2>Subject Line</h2><div>TEST</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="margin: 0px auto; width: 70%; line-height: 20px; padding: 20px 0px;"><div style="padding: 10px 0px;">TEST</div><div style="padding: 10px 0px;">If you are having trouble viewing this email, please click here.</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="width: 30%; margin: 0px auto;"><img src="https://smartsend.seamarketings.com/media/1/tu31cnrk5a4w0be.jpg" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="width: 100%;"><img src="https://smartsend.seamarketings.com/media/1/2o9ue8r1sbqzw3i.jpg" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 28px; font-weight: 700;">TEST</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-family: &quot;Segoe UI Emoji&quot;; font-weight: 400; font-style: normal; font-size: 16px;">TEST</div></div><div style="width: calc(100% - 24px); padding: 20px 12px;"><div style="width: calc(50% - 24px); margin: 10px; display: inline-block; vertical-align: top; border: 1px solid rgb(204, 204, 204);"><img src="https://cdn.shopify.com/s/files/1/0026/8386/3113/products/3203893_1f975daa63.png?v=1534423891" style="width: 100%;"><h3 style="font-weight: 700;">Fly Weave Phantom Sneaker</h3><h3>44.99</h3></div><div style="width: calc(50% - 24px); margin: 10px; display: inline-block; vertical-align: top; border: 1px solid rgb(204, 204, 204);"><img src="https://cdn.shopify.com/s/files/1/0026/8386/3113/products/3261702_ea3b152a26.jpg?v=1540266988" style="width: 100%;"><h3 style="font-weight: 700;">Smart Watch Q18</h3><h3>29.99</h3></div><div style="width: calc(50% - 24px); margin: 10px; display: inline-block; vertical-align: top; border: 1px solid rgb(204, 204, 204);"><img src="https://cdn.shopify.com/s/files/1/0026/8386/3113/products/3260875_2261e62c96.jpg?v=1539847546" style="width: 100%;"><h3 style="font-weight: 700;">Men Plus Size Warm Fleece Denim Jacket</h3><h3>41.29</h3></div><div style="width: calc(50% - 24px); margin: 10px; display: inline-block; vertical-align: top; border: 1px solid rgb(204, 204, 204);"><img src="https://cdn.shopify.com/s/files/1/0026/8386/3113/products/489798464654651.jpg?v=1539758567" style="width: 100%;"><h3 style="font-weight: 700;">Fade Away Hoodie</h3><h3>30.99</h3></div><div style="width: calc(50% - 24px); margin: 10px; display: inline-block; vertical-align: top; border: 1px solid rgb(204, 204, 204);"><img src="https://cdn.shopify.com/s/files/1/0026/8386/3113/products/3198399_d8bed6de6a.jpg?v=1534408229" style="width: 100%;"><h3 style="font-weight: 700;">Cotton X PU Mens Fashion Baseball Jacket</h3><h3>42.99</h3></div><div style="width: calc(50% - 24px); margin: 10px; display: inline-block; vertical-align: top; border: 1px solid rgb(204, 204, 204);"><img src="https://cdn.shopify.com/s/files/1/0026/8386/3113/products/38011E73FD8D_e8c6378edf.jpg?v=1547889147" style="width: 100%;"><h3 style="font-weight: 700;">Men's Sport And Leisure Striped Hooded Suit</h3><h3>48.99</h3></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px;">Back to Shop &gt;&gt;&gt;</div></div><div style="width: 100%; padding-bottom: 20px;"><div></div></div><div style="width: 100%; padding-bottom: 20px;"><div>{year} {shop_name}. All rights reserved.</div></div><div style="width: 100%; padding-bottom: 20px;"><div>{shop_address}</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="display: inline-block; padding: 10px; color: rgb(204, 204, 204); font-size: 14px; border-radius: 10px; border: 1px solid rgb(204, 204, 204);">Unsubscribe</div></div></div></div></body></html>"""
     ems = ExpertSender("Leemon", "leemon.li@orderplus.com")
     # print(ems.get_message_statistics(372))
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))
     # print(ems.add_subscriber(38, ["fatty091@gmail.com"]))
     # html = open("index.html")
-    # print(ems.create_and_send_newsletter([25], "get-removed-subscribers TTT", html="<a href='*[link_unsubscribe]*'>Unsubscribe</a>")) # ,"2019-07-09 21:09:00"
+    print(ems.create_and_send_newsletter([25], "chinese TEST", html="<p>中国人</p>")) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
@@ -630,10 +630,10 @@ if __name__ == '__main__':
     # print(ems.get_export_progress(11))  # 11
     # print(ems.clear_subscriber(25, ""))  # 11
     # print(ems.add_subscriber(25, ["limengqiAliase@163.com", "leemon.li@orderplus.com"]))
-    # print(ems.create_transactional_message("transactional message test", contentFromUrl="http://sources.aopcdn.com/edm/html/buzzyly/20190625/1561447955806.html"))  # 350
-    # print(ems.send_transactional_messages(350, "leemon.li@orderplus.com"))  # 350
+    # print(ems.create_transactional_message("transactional message test1", html="<a href='*[link_unsubscribe]*'>Unsubscribe</a>"))  # 350
+    # print(ems.send_transactional_messages(400, "leemon.li@orderplus.com", 25))  # 350
     # print(ems.update_transactional_message(350, "Aliase", "limengqiAliase@163.com", "transactional message test 11", html=html_b))  # 350
     # print(ems.delete_message(349))
     # print(ems.get_opt_out_link_subscribers(25))
-    print(ems.get_snoozed_subscribers(25))
+    # print(ems.get_snoozed_subscribers(25))
 

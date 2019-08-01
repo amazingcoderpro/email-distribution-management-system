@@ -754,14 +754,14 @@ class AnalyzeCondition:
                 dt_now = datetime.datetime.now()
                 if new_customer_list:
                     cursor.execute("""select `customer_email`, `unsubscribe_status`, `unsubscribe_date` from `customer` where `uuid` in %s""", (new_customer_list, ))
-                    emails = cursor.fetchall()
+                    new_cus = cursor.fetchall()
 
                     # 从需要新增的客户中，排除那些取消订阅的或者处于休眠期的客户
-                    emails = [em for em in emails
+                    new_cus = [em for em in new_cus
                               if em["unsubscribe_status"] == 0 or
-                              (em["unsubscribe_status"] == 1 and em["unsubscribe_date"] and em["unsubscribe_date"] < dt_now)]
+                              (em["unsubscribe_status"] == 2 and em["unsubscribe_date"] and em["unsubscribe_date"] < dt_now)]
 
-                    new_customer_email_list = [em["customer_email"] for em in emails]
+                    new_customer_email_list = [em["customer_email"] for em in new_cus]
                     new_customer_email_list = [em for em in new_customer_email_list if em]
                 else:
                     new_customer_email_list = []
@@ -773,12 +773,13 @@ class AnalyzeCondition:
                     old_uuid = customer_group["uuid"]
                     if customer_group["customer_list"]:
                         old_customer_list = eval(customer_group["customer_list"])
-                        cursor.execute("select `uuid`, `unsubscribe_status`, `unsubscribe_date` from `customer` where uuid in %s", (old_customer_list, ))
-                        old_cus = cursor.fetchall()
-                        # 从现有的收件人中排除那些取消订阅的或者处于休眠期的客户
-                        old_customer_list = [oc["uuid"] for oc in old_cus if oc["unsubscribe_status"] == 0 or
-                                  (oc["unsubscribe_status"] == 1 and oc["unsubscribe_date"] and oc[
-                                      "unsubscribe_date"] < dt_now)]
+                        if old_customer_list:
+                            cursor.execute("select `uuid`, `unsubscribe_status`, `unsubscribe_date` from `customer` where uuid in %s", (old_customer_list, ))
+                            old_cus = cursor.fetchall()
+                            # 从现有的收件人中排除那些取消订阅的或者处于休眠期的客户
+                            old_customer_list = [oc["uuid"] for oc in old_cus if oc["unsubscribe_status"] == 0 or
+                                      (oc["unsubscribe_status"] == 2 and oc["unsubscribe_date"] and oc[
+                                          "unsubscribe_date"] < dt_now)]
                     else:
                         old_customer_list = []
                 else:
@@ -800,8 +801,8 @@ class AnalyzeCondition:
                     delete_customers = list(set(old_customer_list) - set(new_customer_list))     #需要删除的客户id
                     if new_add_customers:
                         cursor.execute("""select `customer_email` from `customer` where `uuid` in %s""", (new_add_customers,))
-                        emails = cursor.fetchall()
-                        new_add_customers_email_list = [em["customer_email"] for em in emails]
+                        new_cus = cursor.fetchall()
+                        new_add_customers_email_list = [em["customer_email"] for em in new_cus]
                         new_add_customers_email_list = [em for em in new_add_customers_email_list if em] #只要不为空的邮箱
                         if new_add_customers_email_list:
                             diff_add_result = exp.add_subscriber(old_uuid, new_add_customers_email_list)
@@ -815,8 +816,8 @@ class AnalyzeCondition:
 
                     if delete_customers:
                         cursor.execute("""select `customer_email` from `customer` where `uuid` in %s""", (delete_customers,))
-                        emails = cursor.fetchall()
-                        delete_customers_email_list = [em["customer_email"] for em in emails]
+                        new_cus = cursor.fetchall()
+                        delete_customers_email_list = [em["customer_email"] for em in new_cus]
                         delete_customers_email_list = [em for em in delete_customers_email_list if em]  # 只要不为空的邮箱
                         if delete_customers_email_list:
                             for email in delete_customers_email_list:
@@ -920,21 +921,21 @@ class AnalyzeCondition:
             # between date
             if store_id and condition_id:
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list` from `email_trigger` where store_id=%s and id=%s""",
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where store_id=%s and id=%s""",
                     (store_id, condition_id))
             elif store_id:
                 # 未删除的才取出来
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list` from `email_trigger` where store_id=%s and type!=2""",
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where store_id=%s and type!=2""",
                     (store_id,))
             elif condition_id:
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list` from `email_trigger` where id=%s""",
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where id=%s""",
                     (condition_id,))
             else:
                 # 未删除的才取出来
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list` from `email_trigger` where id>=0 and type!=2""")
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where id>=0 and type!=2""")
 
             res = cursor.fetchall()
             if res:
@@ -948,6 +949,80 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return result
 
+    def store_sender_and_email_by_id(self,store_id):
+        """
+        获取商店发送者和email
+        :param store_id: 店铺ID
+        :return: `name`, `sender`, `sender_address`
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return None
+            cursor.execute("select `name`, `sender`, `sender_address` from `store` where id=%s", (store_id,))
+            store = cursor.fetchone()
+            if not store:
+                logger.warning("store is not found, store id={}".format(store_id))
+                return None
+        except Exception as e:
+            logger.exception("update customer list from email_trigger exception: {}".format(e))
+            return None
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return store
+
+    def customer_uuid_to_email(self, customer_uuid_list):
+        """
+        将customer_uuid转换成email
+        :param customer_uuid_list: customer uuid列表
+        :return: email 列表
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return None
+            cursor.execute("select `customer_email` from `customer` where uuid in %s", (tuple(customer_uuid_list),))
+            store = cursor.fetchall()
+            if not store:
+                logger.warning("not found any data")
+                return None
+            email_list = list(set([s["customer_email"] for s in store]))
+        except Exception as e:
+            logger.exception("customer uuid to customer email exception: {}".format(e))
+            return None
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return email_list
+
+    def insert_customer_list_id_from_email_trigger(self, customer_list_id, trigger_id):
+        """
+        插入为此flow创建的ListId
+        :param customer_list_id: ListId
+        :param trigger_id: flow ID
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+            cursor.execute("update `email_trigger` set customer_list_id=%s where id=%s", (customer_list_id, trigger_id))
+            conn.commit()
+        except Exception as e:
+            logger.exception("customer uuid to customer email exception: {}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
+
     def parse_trigger_tasks(self):
         """
         解析触发邮件任务, 定时获取符合触发信息的新用户，并且创建定时任务
@@ -958,7 +1033,7 @@ class AnalyzeCondition:
         update_list = []
         insert_list = []
         for cond in trigger_conditions:
-            store_id, t_id, title, relation_info, email_delay, note, old_customer_list = cond.values()
+            store_id, t_id, title, relation_info, email_delay, note, old_customer_list, customer_list_id = cond.values()
             customer_list = self.get_customers_by_condition(condition=json.loads(cond["relation_info"]),
                                                           store_id=cond["store_id"])
             if not customer_list:
@@ -977,6 +1052,32 @@ class AnalyzeCondition:
                 continue
             old_customer_list.extend(new_customer_list)
             update_list.append((str(old_customer_list), datetime.datetime.now(), t_id))
+
+            # 创建任务之前，应该更新一下创建收件人列表
+            store = self.store_sender_and_email_by_id(store_id)
+            if not store:
+                logger.error("store(id=%s) is not exists." % store_id)
+                return False
+            ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
+            if not customer_list_id:
+                # 创建收件人列表
+                res = ems.create_subscribers_list(title)  # 以flow的title命名为收件人列表名称
+                if res["code"] != 1:
+                    logger.error("create subscribers list failed")
+                    return False
+                customer_list_id = res["data"]
+                # 将ListId反填回数据库
+                r = self.insert_customer_list_id_from_email_trigger(customer_list_id, t_id)
+                if not r:
+                    logger.error("insert_customer_list_id_from_email_trigger failed")
+                    return False
+            # 将old_customer_list转换成邮箱地址列表
+            email_list = self.customer_uuid_to_email(old_customer_list)
+            #添加收件人
+            rest = ems.add_subscriber(customer_list_id, email_list)
+            if not rest:
+                logger.error("add subscribers failed")
+                return False
 
             # ToDo parse email_delay
             excute_time = datetime.datetime.now() # flow从此刻开始
@@ -1145,7 +1246,7 @@ if __name__ == '__main__':
     #              }
 
     ac = AnalyzeCondition(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
-    # ac.update_customer_group_list()
+    ac.update_customer_group_list()
     # conditions = ac.get_conditions()
     # for cond in conditions:
     #     cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
@@ -1153,4 +1254,4 @@ if __name__ == '__main__':
     # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
     # print(ac.filter_received_customer(1, 372))
-    print(ac.parse_trigger_tasks())
+    # print(ac.parse_trigger_tasks())

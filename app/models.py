@@ -150,6 +150,7 @@ class EmailRecord(models.Model):
 
 class EmailTrigger(models.Model):
     """邮件触发器"""
+    customer_list_id = models.CharField(db_index=True, max_length=255, blank=True, null=True, verbose_name="flows筛选出来的ListId")
     title = models.CharField(db_index=True, max_length=255, verbose_name="标题")
     description = models.TextField(blank=True, null=True, verbose_name="描述")
     open_rate = models.DecimalField(default=0.00,  max_digits=3, decimal_places=2, verbose_name="邮件打开率")
@@ -171,7 +172,7 @@ class EmailTrigger(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        # managed = False
         db_table = 'email_trigger'
         ordering = ["-id"]
 
