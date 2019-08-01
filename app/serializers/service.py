@@ -94,6 +94,19 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
         return instance
 
 
+class EmailTemplateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmailTemplate
+        fields = (
+                  "enable",
+        )
+
+    def update(self, instance, validated_data):
+        instance["enable"] = validated_data["enable"]
+        instance.save()
+        return instance
+
+
 class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.EmailTemplate

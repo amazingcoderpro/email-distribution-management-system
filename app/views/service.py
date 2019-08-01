@@ -104,7 +104,7 @@ class EmailTemplateDeleteView(generics.DestroyAPIView):
 class EmailTemplateUpdateView(generics.UpdateAPIView):
     """邮件模版 更新"""
     queryset = models.EmailTemplate.objects.all()
-    serializer_class = service.EmailTemplateSerializer
+    serializer_class = service.EmailTemplateUpdateSerializer
     permission_classes = (IsAuthenticated, CustomerGroupOptPermission)
     authentication_classes = (JSONWebTokenAuthentication,)
 
