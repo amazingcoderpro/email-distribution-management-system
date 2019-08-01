@@ -95,7 +95,7 @@ class EMSDataProcessor:
                 if datas["code"]==1 and datas["data"]:
                     statistic = datas["data"]["SummaryStatistics"]["SummaryStatistic"]
                     sents, opens, clicks = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"])
-                    open_rate, click_rate = round(opens/sents,4) if sents else 0.0, round(clicks/sents,4) if sents else 0.0
+                    open_rate, click_rate = round(opens/sents,5) if sents else 0.0, round(clicks/sents,5) if sents else 0.0
                     group_update_list.append((sents, opens, clicks, open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
             # 更新数据库
             cursor.executemany(
@@ -115,7 +115,7 @@ class EMSDataProcessor:
                 if datas["code"] == 1 and datas["data"]:
                     statistic = datas["data"]["SummaryStatistics"]["SummaryStatistic"]
                     sents, opens, clicks = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"])
-                    open_rate, click_rate = round(opens / sents,4) if sents else 0.0, round(clicks / sents,4) if sents else 0.0
+                    open_rate, click_rate = round(opens / sents,5) if sents else 0.0, round(clicks / sents,5) if sents else 0.0
                     flow_update_list.append((open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
             # 更新数据库
             cursor.executemany(
