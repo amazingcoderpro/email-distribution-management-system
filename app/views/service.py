@@ -176,7 +176,7 @@ class EmailTriggerView(generics.ListCreateAPIView):
     queryset = models.EmailTrigger.objects.all()
     serializer_class = service.EmailTriggerSerializer
     pagination_class = PNPagination
-    filter_backends = (service_filter.EmailTempFilter,)
+    filter_backends = (service_filter.EmailTriggerFilter,)
     # permission_classes = (IsAuthenticated, StorePermission)
     permission_classes = (IsAuthenticated,)
     authentication_classes = (JSONWebTokenAuthentication,)

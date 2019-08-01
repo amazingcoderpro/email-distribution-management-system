@@ -38,6 +38,15 @@ class EmailTempFilter(BaseFilterBackend):
         return queryset.filter(**filte_kwargs)
 
 
+class EmailTriggerFilter(BaseFilterBackend):
+    """邮件触发器 过滤"""
+
+    def filter_queryset(self, request, queryset, view):
+        store = models.Store.objects.filter(user=request.user).first()
+        filte_kwargs = {"store":  store, "type__in": [0,1]}
+        return queryset.filter(**filte_kwargs)
+
+
 class TopDashboardFilter(BaseFilterBackend):
     """Dashboard 过滤"""
     filter_keys = {
