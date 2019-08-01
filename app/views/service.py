@@ -123,8 +123,7 @@ class TopProductView(APIView):
             "top_fifteen": "",
             "top_thirty": ""
         }
-        top_product = models.TopProduct.objects.filter(store=store).values("id", "top_three", "top_seven", "top_fifteen",
-                                                             "top_thirty").first()
+        top_product = models.TopProduct.objects.filter(store=store).values("id", "top_three", "top_seven", "top_fifteen", "top_thirty").first()
         if not top_product:
             return Response(res)
         res["id"] = top_product["id"]
