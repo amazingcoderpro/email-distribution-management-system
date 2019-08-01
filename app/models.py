@@ -149,8 +149,8 @@ class EmailRecord(models.Model):
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    email_template_id = models.IntegerField(blank=True, null=True,  verbose_name="模版id")  # type=0
-    email_trigger_id = models.IntegerField(blank=True, null=True,  verbose_name="邮件触发器id")  # type=1
+    email_template_id = models.IntegerField(blank=True, null=True,  verbose_name="模版id")  # type=0时使用的参数
+    email_trigger_id = models.IntegerField(blank=True, null=True,  verbose_name="邮件触发器id")  # type=1时使用的参数
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
