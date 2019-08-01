@@ -4,6 +4,9 @@ from django.utils import timezone
 # from django_hstore import hstore
 from django_mysql.models import JSONField
 
+# 迁移之前将期改为True
+ENABLE_MIGRATE = False
+
 
 class User(AbstractUser):
     """系统用户表"""
@@ -51,7 +54,7 @@ class Store(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        managed = ENABLE_MIGRATE
         db_table = 'store'
 
 
@@ -80,13 +83,15 @@ class Dashboard(models.Model):
     avg_open_rate = models.FloatField(blank=True, null=True,  verbose_name="Open Rate")
     avg_click_rate = models.FloatField(blank=True, null=True,  verbose_name="Click Rate")
     avg_unsubscribe_rate = models.FloatField(blank=True, null=True,  verbose_name="Unsubscribe Rate")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    # store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    if ENABLE_MIGRATE:
+        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    else:
+        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        managed = ENABLE_MIGRATE
         db_table = 'dashboard'
 
 
@@ -115,13 +120,15 @@ class EmailTemplate(models.Model):
     send_type_choices = ((0, '定时邮件'), (1, '触发邮件'), (3, '测试邮件'))
     send_type = models.SmallIntegerField(db_index=True, choices=send_type_choices, default=0, verbose_name="邮件模板发送类型")
     html = models.TextField(blank=True, null=True, verbose_name="描述")
-    # store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    if ENABLE_MIGRATE:
+        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    else:
+        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        # managed = False
+        managed = ENABLE_MIGRATE
         db_table = 'email_template'
         ordering = ["update_time"]
 
@@ -138,15 +145,17 @@ class EmailRecord(models.Model):
     unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=8, decimal_places=5, verbose_name="邮件退订率")
     type_choice = ((0, 'Newsletter'), (1, 'Transactional'), (2, 'Test'))
     type = models.SmallIntegerField(blank=True, null=True, verbose_name="邮件类型")
-    # store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    store_id = models.IntegerField(verbose_name="店铺id")
+    if ENABLE_MIGRATE:
+        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    else:
+        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     email_template_id = models.IntegerField(blank=True, null=True,  verbose_name="模版id")  # type=0
     email_trigger_id = models.IntegerField(blank=True, null=True,  verbose_name="邮件触发器id")  # type=1
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        managed = ENABLE_MIGRATE
         db_table = 'email_record'
 
 
@@ -168,13 +177,15 @@ class EmailTrigger(models.Model):
     note = models.TextField(default="[]", verbose_name="对应Note列表")
     status_choice = ((0, 'disable'), (1, 'enable'), (2, 'delete'))
     status = models.SmallIntegerField(default=0, verbose_name="邮件类型")
-    # store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    if ENABLE_MIGRATE:
+        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    else:
+        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     create_time = models.DateTimeField(db_index=True,auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True,auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        managed = ENABLE_MIGRATE
         db_table = 'email_trigger'
         ordering = ["-id"]
 
@@ -188,15 +199,18 @@ class EmailTask(models.Model):
     execute_time = models.DateTimeField(db_index=True, verbose_name="执行时间")
     finished_time = models.DateTimeField(blank=True, null=True, verbose_name="完成时间")
     customer_list = models.TextField(blank=True, null=True, verbose_name="符合触发条件的用户列表")
-    email_trigger = models.ForeignKey(EmailTrigger, blank=True, null=True, on_delete=models.DO_NOTHING)
-    #email_trigger_id = models.IntegerField(db_index=True, default=None, verbose_name="email_trigger_id")
+    if ENABLE_MIGRATE:
+        email_trigger_id = models.IntegerField(db_index=True, default=None, verbose_name="email_trigger_id")
+    else:
+        email_trigger = models.ForeignKey(EmailTrigger, blank=True, null=True, on_delete=models.DO_NOTHING)
+
     type_choices = ((0, 'Timed mail'), (1, 'Trigger mail'))
     type = models.SmallIntegerField(db_index=True, choices=type_choices, default=0, verbose_name="邮件类型")
     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        managed = ENABLE_MIGRATE
         db_table = 'email_task'
 
 
@@ -215,14 +229,15 @@ class CustomerGroup(models.Model):
     customer_list = models.TextField(blank=True, null=False, verbose_name="对应客户列表")
     state_choices = ((0, '待解析'), (1, '已解析'), (2, '已删除'))
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="状态")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    # store_id = models.IntegerField(verbose_name="店铺id")
+    if ENABLE_MIGRATE:
+        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    else:
+        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
-        # unique_together = ("store", "uuid")
+        managed = ENABLE_MIGRATE
         db_table = 'customer_group'
 
 
@@ -258,14 +273,19 @@ class Customer(models.Model):
     # clicked_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户单击邮箱次数")
     orders_count = models.IntegerField(blank=True, null=True, verbose_name="订单数量")
     last_order_id = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_order_id")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    # store_id = models.IntegerField(verbose_name="店铺id")
+    if ENABLE_MIGRATE:
+        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    else:
+        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
-        unique_together = ("store", "uuid")
+        managed = ENABLE_MIGRATE
+        if ENABLE_MIGRATE:
+            unique_together = ("store_id", "uuid")
+        else:
+            unique_together = ("store", "uuid")
         db_table = 'customer'
 
 
@@ -276,9 +296,10 @@ class SubscriberActivity(models.Model):
     message_uuid = models.IntegerField(db_index=True, null=True, blank=True, verbose_name="关联的邮件ID")
     type_choices = ((0, 'Opens'), (1, 'Clicks'), (2, 'Sends'))
     type = models.SmallIntegerField(default=0, verbose_name="客户操作类型")
-
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(verbose_name="店铺id")
+    if ENABLE_MIGRATE:
+        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    else:
+        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -292,14 +313,19 @@ class ProductCategory(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品类目标题")
     url = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品类目标题url")
     category_id = models.CharField(db_index=True, max_length=255,blank=True, null=True, verbose_name="产品类目id")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING, blank=True, null=True)
-    #store_id = models.IntegerField(verbose_name="店铺id")
+    if ENABLE_MIGRATE:
+        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    else:
+        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING, blank=True)
     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
-        unique_together = ("category_id", "store")
+        managed = ENABLE_MIGRATE
+        if ENABLE_MIGRATE:
+            unique_together = ("category_id", "store_id")
+        else:
+            unique_together = ("category_id", "store")
         db_table = 'product_category'
 
 
@@ -313,13 +339,15 @@ class Product(models.Model):
     price = models.CharField(blank=True, null=True, max_length=255, verbose_name="产品价格")
     product_category = models.ForeignKey(ProductCategory, on_delete=models.DO_NOTHING,blank=True, null=True)
     state = models.SmallIntegerField(default=0, verbose_name="前端判断是否勾选状态")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    # store_id = models.IntegerField(verbose_name="店铺id")
+    if ENABLE_MIGRATE:
+        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    else:
+        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        managed = ENABLE_MIGRATE
         unique_together = ("product_category", "uuid")
         db_table = 'product'
 
@@ -339,16 +367,22 @@ class OrderEvent(models.Model):
     # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
     product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
     total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    if ENABLE_MIGRATE:
+        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    else:
+        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     order_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
     order_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
-        unique_together = ("store", "order_uuid")
+        managed = ENABLE_MIGRATE
+        if ENABLE_MIGRATE:
+            unique_together = ("store_id", "order_uuid")
+        else:
+            unique_together = ("store", "order_uuid")
+
         db_table = 'order_event'
 
 
@@ -365,14 +399,16 @@ class CheckoutEvent(models.Model):
     total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
     checkout_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
     checkout_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    if ENABLE_MIGRATE:
+        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    else:
+        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     create_time = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
     email_date = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="最后一次邮件通知时间，为空代表还没有发送过促销邮件")
 
     class Meta:
-        managed = False
+        managed = ENABLE_MIGRATE
         db_table = 'checkout_event'
 
 
@@ -382,11 +418,13 @@ class TopProduct(models.Model):
     top_seven = models.TextField(blank=True, null=True, verbose_name="前七天的销售量")
     top_fifteen = models.TextField(blank=True, null=True, verbose_name="前十五天的销售量")
     top_thirty = models.TextField(blank=True, null=True, verbose_name="前三十天的销售量")
-    store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    #store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    if ENABLE_MIGRATE:
+        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    else:
+        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        managed = ENABLE_MIGRATE
         db_table = 'top_product'
