@@ -39,9 +39,10 @@ class TemplateProcessor:
 
             logger.info("analyze_templates start. template_id={}".format(template_id))
             if template_id:
-                cursor.execute("""select id, send_rule from `email_template` where state=0 and id=%s""", (template_id, ))
+                cursor.execute("""select id, send_rule from `email_template` where status=0 and id=%s""", (template_id, ))
             else:
-                cursor.execute("""select id, send_rule from `email_template` where state=0 and send_type=0""")
+                # 找到所有状态是待解析，已启用且类型为模板邮件的模板
+                cursor.execute("""select id, send_rule from `email_template` where status=0 and send_type=0 and enable=1""")
 
             data = cursor.fetchall()
             if not data:
@@ -90,12 +91,12 @@ class TemplateProcessor:
                 # 一个模板解析完就存一次库
                 time_now = datetime.datetime.now()
                 for exet in execute_times:
-                    cursor.execute("insert into `email_task` (`state`, `execute_time`, `create_time`, `update_time`, "
+                    cursor.execute("insert into `email_task` (`status`, `execute_time`, `create_time`, `update_time`, "
                                    "`template_id`, `type`) values (%s, %s, %s, %s, %s, %s)", (0, exet, time_now, time_now, template_id, 0))
                 conn.commit()
 
                 time_now = datetime.datetime.now()
-                cursor.execute("""update `email_template` set `state`=1, `update_time`=%s where id=%s""", (time_now, template_id))
+                cursor.execute("""update `email_template` set `status`=1, `update_time`=%s where id=%s""", (time_now, template_id))
                 conn.commit()
 
         except Exception as e:
@@ -111,6 +112,7 @@ class TemplateProcessor:
         :param interval:　间隔周期
         :return:
         """
+
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
                           password=self.db_password).get_instance()
@@ -123,7 +125,7 @@ class TemplateProcessor:
             dt_min = datetime.datetime.now()-datetime.timedelta(seconds=interval/2+10)
             dt_max = datetime.datetime.now()+datetime.timedelta(seconds=interval/2+10)
             cursor.execute("""select id, template_id from `email_task` 
-            where state=0 and type=0 and execute_time>=%s and execute_time<=%s""", (dt_min, dt_max))
+            where status=0 and type=0 and execute_time>=%s and execute_time<=%s""", (dt_min, dt_max))
 
             tasks = cursor.fetchall()
             if not tasks:
@@ -134,15 +136,20 @@ class TemplateProcessor:
                 # 遍历每一个任务，找到他对应的模板　
                 task_id, template_id = task
                 logger.info("execute_email_task get need execute task={}".format(task_id))
-                cursor.execute("select `state`, `customer_group_list`, `subject`, `html`, `store_id` from `email_template` where id=%s", (template_id, ))
+                cursor.execute("select `status`, `enable`, `customer_group_list`, `subject`, `html`, `store_id` from `email_template` where id=%s", (template_id, ))
 
                 # 如果模板的状态变成了已经删除，则不再发送，且把该模板对就的所有未发送的task全置成已删除
                 ret = cursor.fetchone()
-                template_state, template_group_list, subject, html, store_id = ret
-                if template_state == 2:
-                    cursor.execute("""update `email_task` set `state`=2 where template_id=%s　and state=0""", (template_id,))
-                    conn.commit()
-                    logger.info("task's template have been deleted, task id={}, template_id={}".format(task_id, template_id))
+                template_state, enable, template_group_list, subject, html, store_id = ret
+                if template_state == 2:#删除了
+                    pass
+                    #模板的禁用和删除由接口处理，这里不再做处理了
+                    # cursor.execute("""update `email_task` set `status`=4 where template_id=%s　and status=0""", (template_id,))
+                    # conn.commit()
+                    # logger.info("task's template have been deleted, task id={}, template_id={}".format(task_id, template_id))
+                elif enable == 0:
+                    pass
+                    #模板被禁用了
                 else:
                     # 拿到该模板里包含的customer group,每个group对应的邮件组id
                     cursor.execute("select `uuid` from `customer_group` where id in %s", (eval(template_group_list), ))
@@ -159,7 +166,7 @@ class TemplateProcessor:
                         result = exp.create_and_send_newsletter(uuids, subject=subject, html=html)
                         send_result = result["code"]
                         email_id = result["data"]
-                        send_msg = email_id     # 发送成功后把email id存在remark中
+                        send_msg = "email id: {} ".format(email_id)     # 发送成功后把email id存在remark中
                         if send_result != 1:
                             send_result = 3     # 发送失败
                             send_msg += result["msg"]
@@ -173,7 +180,7 @@ class TemplateProcessor:
 
                         time_now = datetime.datetime.now()
                         # 更新任务状态
-                        cursor.execute("""update `email_task` set `state`=%s, `remark`=%s, `finished_time`=%s, 
+                        cursor.execute("""update `email_task` set `status`=%s, `remark`=%s, `finished_time`=%s, 
                         `update_time`=%s where id=%s""", (send_result, str(send_msg), time_now, time_now, task_id))
                         conn.commit()
 
