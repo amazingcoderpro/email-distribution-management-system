@@ -76,7 +76,7 @@ class Dashboard(models.Model):
     session = models.IntegerField(blank=True, null=True, verbose_name="session")
     avg_repeat_purchase_rate = models.FloatField(blank=True, null=True,  verbose_name="Repeat Purchase Rate")
     avg_conversion_rate = models.FloatField(blank=True, null=True,  verbose_name="Conversion Rate")
-    total_sent = models.IntegerField(blank=True, null=True,  verbose_name="Sent总量")
+    total_sent = models.IntegerField(default=0, verbose_name="Sent总量")
     total_open = models.IntegerField(blank=True, null=True,  verbose_name="Open总量")
     total_click = models.IntegerField(blank=True, null=True,  verbose_name="Click总量")
     total_unsubscribe = models.IntegerField(blank=True, null=True,  verbose_name="Unsubscribe总量")
