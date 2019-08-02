@@ -177,6 +177,8 @@ def run():
     # 定期更新customer group
     ac = AnalyzeCondition(db_info=db_info)
     tp.create_periodic_task(ac.update_customer_group_list, seconds=7200)
+    tp.create_periodic_task(ac.parse_trigger_tasks, seconds=300, max_instances=50)  # 间隔5分钟扫描一遍email_trigger表
+    tp.create_periodic_task(ac.execute_flow_task, seconds=118, max_instances=50)  # 每隔2分钟扫描email_task表，为避免与定时任务重复，故取时间间隔118秒
 
     # 模板解析定时任务
     tmp = TemplateProcessor(db_info=db_info)

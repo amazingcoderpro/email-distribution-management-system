@@ -34,7 +34,7 @@ class AnalyzeCondition:
         self.note_dict = {"customer makes a purchase": self.filter_purchase_customer,
                           "customer received an email from this campaign in the last 7 days": self.filter_received_customer,
                         }
-            
+
     def order_filter(self, store_id, status, relation, value, min_time=None, max_time=None):
         """
         筛选满足订单条件的客户id
@@ -861,6 +861,7 @@ class AnalyzeCondition:
         return True
 
     def filter_purchase_customer(self, store_id, start_time, end_time=datetime.datetime.now()):
+
         """
         搜索在flow过程中完成了一次购买的用户(发第一封邮件时不需要筛选，以后每次发邮件前都需要)
         :param store_id: 用户所属的店铺
@@ -874,6 +875,7 @@ class AnalyzeCondition:
         return adapt_customers
 
     def filter_received_customer(self, store_id, email_id):
+
         """
         7天之内收到过此邮件的用户
         :param store_id: 用户所属的店铺
@@ -905,7 +907,7 @@ class AnalyzeCondition:
 
     def get_trigger_conditions(self, store_id=None, condition_id=None):
         """
-        批量获取email trigger中的condition
+        批量获取email trigger中的condition(启用的flow)
         :param store_id: 可选，店铺ID
         :param condition_id: 可选，email_trigger_id
         :return:
@@ -926,7 +928,7 @@ class AnalyzeCondition:
             elif store_id:
                 # 未删除的才取出来
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where store_id=%s and type!=2""",
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where store_id=%s and status=1""",
                     (store_id,))
             elif condition_id:
                 cursor.execute(
@@ -935,7 +937,7 @@ class AnalyzeCondition:
             else:
                 # 未删除的才取出来
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where id>=0 and type!=2""")
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where status=1""")
 
             res = cursor.fetchall()
             if res:
@@ -1231,6 +1233,94 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return result["subject"], result["html"]
 
+    def execute_flow_task(self):
+        """
+        定时获取未执行的flow任务
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+            now_time = datetime.datetime.now()
+            cursor.execute("""select t.id as id,t.remark as remark,t.execute_time as execute_time,t.customer_list as customer_list,
+            t.uuid as uuid,f.store_id as store_id,f.note as note,f.create_time as create_time,f.customer_list_id as customer_list_id
+            from email_task as t join email_trigger as f on t.email_trigger_id=f.id 
+            where t.type=1 and t.status=0 and t.uuid is not null and f.customer_list_id is not null and execute_time between %s and %s""",
+                           (now_time-datetime.timedelta(seconds=70), now_time+datetime.timedelta(seconds=70)))
+            result = cursor.fetchall()
+            logger.info("get need to execute flow email tasks success.")
+            update_tuple_list = []
+            for res in result:
+                if not eval(str(res["customer_list"])):
+                    continue
+                customer_list = eval(res["customer_list"])
+                # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
+                if "customer received an email from this campaign in the last 7 days" in eval(res["note"]):
+                    customers_7day = self.filter_received_customer(res["store_id"], res["uuid"])
+                    customer_list = list(set(customer_list)-set(customers_7day))
+                    logger.info("filter the customer received an email from this campaign in the last 7 days.")
+                if "customer makes a purchase" in eval(res["note"]) and res["remark"] != "first":
+                    # 对customer_list里的收件人进行note筛选(从第一封邮件开始完成购买的人)
+                    customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"])
+                    customer_list = list(set(customer_list) - set(customers_purchased))
+                    logger.info("filter the customer makes a purchase.")
+                # 开始对筛选过的用户发送邮件
+                store = self.store_sender_and_email_by_id(res["store_id"])
+                if not store:
+                    logger.error("store(id=%s) is not exists." % res["store_id"])
+                    return False
+                ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
+                # 需要将uuid 转换成email
+                email_list = self.customer_uuid_to_email(customer_list)
+                send_error_info = ""
+                status = 2
+                for customer in email_list:
+                    rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
+                    if rest["code"] != 1:
+                        logger.warning("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
+                        send_error_info += rest["msg"] + "; "
+                    else:
+                        status = 1
+                logger.info("send transactional messages {}".format("success" if status==1 else "fialed"))
+                # 邮件发送完毕，回填数据
+                update_tuple_list.append ((send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
+            update_res = self.update_flow_email_task(update_tuple_list)
+            logger.info("execute flow task finished.")
+        except Exception as e:
+            logger.exception("get template info by id exception: {}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return update_res
+
+    def update_flow_email_task(self, update_tuple_list):
+        """
+        更新执行任务后的数据
+        :param update_tuple_list: 数据元祖列表
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+            cursor.executemany("""update email_task set remark=%s,finished_time=%s,customer_list=%s,update_time=%s,status=%s 
+                        where id=%s""", update_tuple_list)
+            conn.commit()
+            logger.info("update flow email task datas success.")
+        except Exception as e:
+            logger.exception("update flow email task datas exception: {}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
+
 
 if __name__ == '__main__':
     # condition = {"relation": "&&,||", "group_condition":
@@ -1246,7 +1336,7 @@ if __name__ == '__main__':
     #              }
 
     ac = AnalyzeCondition(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
-    ac.update_customer_group_list()
+    # ac.update_customer_group_list()
     # conditions = ac.get_conditions()
     # for cond in conditions:
     #     cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
@@ -1254,4 +1344,5 @@ if __name__ == '__main__':
     # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
     # print(ac.filter_received_customer(1, 372))
-    # print(ac.parse_trigger_tasks())
+    print(ac.parse_trigger_tasks())
+    # print(ac.execute_flow_task())
