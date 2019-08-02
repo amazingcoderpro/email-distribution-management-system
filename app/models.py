@@ -101,7 +101,7 @@ class EmailTemplate(models.Model):
     description = models.TextField(blank=True, null=True, verbose_name="描述")
     subject = models.TextField(verbose_name="邮件标题")
     heading_text = models.TextField(verbose_name="邮件")
-    revenue = models.DecimalField(default=0.00, max_digits=8, decimal_places=5, verbose_name="对应的销售额")
+    revenue = models.DecimalField(default=0, max_digits=10, decimal_places=4, verbose_name="对应的销售额")
     sessions = models.IntegerField(default=0, verbose_name="流量数")
     transcations = models.IntegerField(default=0, verbose_name="交易次数")
     logo = models.TextField(verbose_name="邮件logo")
@@ -109,7 +109,7 @@ class EmailTemplate(models.Model):
     headline = models.TextField(verbose_name="邮件headline")
     body_text = models.TextField(verbose_name="邮件body_text")
     # top_type = models.TextField(verbose_name="选择的哪类top product")
-    product_list = models.TextField(verbose_name="产品列表")
+    product_list = models.TextField(verbose_name="产品列表", blank=True, null=True)
     # html = models.TextField(blank=True, null=False, verbose_name="邮件html")
     customer_group_list = models.TextField(verbose_name="邮件对应的客户组列表")
     send_rule = models.TextField(verbose_name="发送邮件规则")
@@ -130,7 +130,7 @@ class EmailTemplate(models.Model):
     class Meta:
         managed = ENABLE_MIGRATE
         db_table = 'email_template'
-        ordering = ["update_time"]
+        ordering = ["-id"]
 
 
 class EmailRecord(models.Model):
@@ -140,17 +140,17 @@ class EmailRecord(models.Model):
     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
     clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
     unsubscribes = models.IntegerField(blank=True, null=True,  verbose_name="退订量")
-    open_rate = models.DecimalField(blank=True, null=True,  max_digits=8, decimal_places=5, verbose_name="邮件打开率")
-    click_rate = models.DecimalField(blank=True, null=True,  max_digits=8, decimal_places=5, verbose_name="邮件单击率")
-    unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=8, decimal_places=5, verbose_name="邮件退订率")
+    open_rate = models.DecimalField(blank=True, null=True,  max_digits=10, decimal_places=4, verbose_name="邮件打开率")
+    click_rate = models.DecimalField(blank=True, null=True,  max_digits=10, decimal_places=4, verbose_name="邮件单击率")
+    unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=10, decimal_places=4, verbose_name="邮件退订率")
     type_choice = ((0, 'Newsletter'), (1, 'Transactional'), (2, 'Test'))
     type = models.SmallIntegerField(blank=True, null=True, verbose_name="邮件类型")
     if ENABLE_MIGRATE:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    email_template_id = models.IntegerField(blank=True, null=True,  verbose_name="模版id")  # type=0
-    email_trigger_id = models.IntegerField(blank=True, null=True,  verbose_name="邮件触发器id")  # type=1
+    email_template_id = models.IntegerField(blank=True, null=True,  verbose_name="模版id")  # type=0时使用的参数
+    email_trigger_id = models.IntegerField(blank=True, null=True,  verbose_name="邮件触发器id")  # type=1时使用的参数
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -164,9 +164,9 @@ class EmailTrigger(models.Model):
     customer_list_id = models.CharField(db_index=True, max_length=255, blank=True, null=True, verbose_name="flows筛选出来的ListId")
     title = models.CharField(db_index=True, max_length=255, verbose_name="标题")
     description = models.TextField(blank=True, null=True, verbose_name="描述")
-    open_rate = models.DecimalField(default=0.00,  max_digits=8, decimal_places=5, verbose_name="邮件打开率")
-    click_rate = models.DecimalField(default=0.00,  max_digits=8, decimal_places=5, verbose_name="邮件单击率")
-    revenue = models.DecimalField(default=0.00,  max_digits=8, decimal_places=5, verbose_name="对应的销售额")
+    open_rate = models.DecimalField(default=0,  max_digits=10, decimal_places=4, verbose_name="邮件打开率")
+    click_rate = models.DecimalField(default=0,  max_digits=10, decimal_places=4, verbose_name="邮件单击率")
+    revenue = models.DecimalField(default=0,  max_digits=10, decimal_places=4, verbose_name="对应的销售额")
     # members = models.IntegerField(blank=True, null=True,  verbose_name="数量")
     relation_info = models.TextField(blank=True, null=True, verbose_name="筛选条件")
     email_delay = models.TextField(blank=True, null=True, verbose_name="发送邮件顺序")
@@ -222,8 +222,8 @@ class CustomerGroup(models.Model):
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
     clicks = models.IntegerField(blank=True, null=True,  verbose_name="点击量")
-    open_rate = models.DecimalField(default=0.00,  max_digits=8, decimal_places=5, verbose_name="邮件打开率")
-    click_rate = models.DecimalField(default=0.00,  max_digits=8, decimal_places=5, verbose_name="邮件单击率")
+    open_rate = models.DecimalField(default=0.00,  max_digits=10, decimal_places=4, verbose_name="邮件打开率")
+    click_rate = models.DecimalField(default=0.00,  max_digits=10, decimal_places=4, verbose_name="邮件单击率")
     members = models.CharField(default=0, max_length=255, verbose_name="数量")
     relation_info = models.TextField(blank=True, null=False, verbose_name="客户关系")
     customer_list = models.TextField(blank=True, null=False, verbose_name="对应客户列表")
