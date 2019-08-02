@@ -563,7 +563,7 @@ class ShopifyDataProcessor:
                 if store_view_id:
                     papi = GoogleApi(view_id=store_view_id,
                                      json_path=os.path.join(ROOT_PATH, r"sdk\googleanalytics\client_secrets.json"))
-                    shopify_google_data = papi.get_report(key_word="", start_time="1daysAgo", end_time="today")
+                    shopify_google_data = papi.get_report(key_word="", start_time="100daysAgo", end_time="today")
                     if shopify_google_data["code"] == 1:
                         data_list = shopify_google_data.get("data", {}).get("results", {})
                         for values in data_list.items():
@@ -592,8 +592,17 @@ class ShopifyDataProcessor:
                 # 更新email_trigger的数据
                 cursor.execute("""select id, email_delay from email_trigger where store_id=%s""",(store_id, ))
                 trigger_info = cursor.fetchall()
-                for trigger_data in trigger_info:
-                    print(trigger_data)
+                trigger_tuple = []
+                for triggers in trigger_info:
+                    template_list = [trigger["value"] for trigger in json.loads(triggers[1]) if trigger["type"]=="Email"]
+                    template_revenue =0.0
+                    for templante_info in template_list:
+                        template_revenue += data_list.get(templante_info, {}).get("revenue", 0.0)
+                    trigger_tuple.append((template_revenue,datetime.datetime.now(),triggers[0]))
+
+                # 更新email_tiggers数据
+                cursor.executemany("""update email_trigger set revenue=%s, update_time=%s where id=%s""", trigger_tuple)
+
                 # 更新dashboard数据
                 cursor.execute("""select id from dashboard where store_id=%s and update_time between %s and %s""",
                                (store_id, zero_time, last_time))
