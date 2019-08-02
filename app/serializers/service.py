@@ -65,8 +65,9 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
                   "enable",
                   "html",
                   # "send_type",
+                  "revenue",
                   "create_time",
-                  "update_time"
+                  "update_time",
         )
 
     def create(self, validated_data):
@@ -90,6 +91,25 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
                 instance.html = html
                 instance.save()
         return instance
+
+    def to_representation(self, instance):
+        data = super(EmailTemplateSerializer, self).to_representation(instance)
+        records = models.EmailRecord.objects.filter(email_template_id=instance.id, store_id=instance.store.id).all()
+
+        sents = clicks = opens = 0
+        if records:
+            for r in records:
+                sents += r.sents if isinstance(r.sents, int) else 0
+                clicks += r.clicks if isinstance(r.clicks, int) else 0
+                opens += r.opens if isinstance(r.opens, int) else 0
+
+        data["click_rate"] = 0
+        data["open_rate"] = 0
+        if sents > 0:
+            data["click_rate"] = clicks/sents
+            data["open_rate"] = opens/sents
+
+        return data
 
 
 class EmailTemplateUpdateSerializer(serializers.ModelSerializer):

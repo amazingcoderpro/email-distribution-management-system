@@ -827,8 +827,8 @@ class AnalyzeCondition:
                                                 ", group id={}, uuid={}, delete email={}".format(diff_delete_result, group_id, old_uuid, email))
 
                     cursor.execute(
-                        "update `customer_group` set customer_list=%s, update_time=%s, state=1 where id=%s",
-                        (str(new_customer_list), datetime.datetime.now(), group_id))
+                        "update `customer_group` set customer_list=%s, members=%s, update_time=%s, state=1 where id=%s",
+                        (str(new_customer_list), len(new_customer_list), datetime.datetime.now(), group_id))
                     conn.commit()
                 else:
                     # 还没有创建过email group id
@@ -847,8 +847,8 @@ class AnalyzeCondition:
                         if add_result["code"] != 1:
                             logger.error("update_customer_group_list add_subscriber failed, group id={}, uuid={}, result={}".format(group_id, uuid, add_result))
                         cursor.execute(
-                            "update `customer_group` set uuid=%s, customer_list=%s, update_time=%s, state=1 where id=%s",
-                            (str(uuid), str(new_customer_list), datetime.datetime.now(), group_id))
+                            "update `customer_group` set uuid=%s, customer_list=%s, members=%s, update_time=%s, state=1 where id=%s",
+                            (str(uuid), str(new_customer_list), len(new_customer_list), datetime.datetime.now(), group_id))
                         conn.commit()
                     else:
                         logger.error("update_customer_group_list create_subscribers_list failed, group id={}, result={}".format(group_id, create_result))
