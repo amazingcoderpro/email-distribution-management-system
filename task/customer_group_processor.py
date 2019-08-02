@@ -907,7 +907,7 @@ class AnalyzeCondition:
 
     def get_trigger_conditions(self, store_id=None, condition_id=None):
         """
-        批量获取email trigger中的condition
+        批量获取email trigger中的condition(启用的flow)
         :param store_id: 可选，店铺ID
         :param condition_id: 可选，email_trigger_id
         :return:
@@ -928,7 +928,7 @@ class AnalyzeCondition:
             elif store_id:
                 # 未删除的才取出来
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where store_id=%s and type!=2""",
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where store_id=%s and status=1""",
                     (store_id,))
             elif condition_id:
                 cursor.execute(
@@ -937,7 +937,7 @@ class AnalyzeCondition:
             else:
                 # 未删除的才取出来
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where id>=0 and type!=2""")
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where status=1""")
 
             res = cursor.fetchall()
             if res:
@@ -1244,10 +1244,12 @@ class AnalyzeCondition:
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
                 return False
+            now_time = datetime.datetime.now()
             cursor.execute("""select t.id as id,t.remark as remark,t.execute_time as execute_time,t.customer_list as customer_list,
             t.uuid as uuid,f.store_id as store_id,f.note as note,f.create_time as create_time,f.customer_list_id as customer_list_id
             from email_task as t join email_trigger as f on t.email_trigger_id=f.id 
-            where t.type=1 and t.status=0 and t.uuid is not null and f.customer_list_id is not null""")
+            where t.type=1 and t.status=0 and t.uuid is not null and f.customer_list_id is not null and execute_time between %s and %s""",
+                           (now_time-datetime.timedelta(seconds=70), now_time+datetime.timedelta(seconds=70)))
             result = cursor.fetchall()
             logger.info("get need to execute flow email tasks success.")
             update_tuple_list = []
