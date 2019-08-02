@@ -202,23 +202,23 @@ class SendMailView(generics.CreateAPIView):
     authentication_classes = (JSONWebTokenAuthentication,)
 
     def post(self, request, *args, **kwargs):
-
+        store = models.Store.objects.filter(user=request.user).first()
+        store_url = store.url
         email_address = request.data["email_address"]
         html = request.data["html"]
         subject = request.data["subject"]
-
+        html = html.replace(store_url+"?utm_source=smartsend", store_url+"?utm_source=smartsend&utm_medium=newsletter")
         product_list = request.data.get("product_list", None)
         if product_list:
             if product_list != "[]":
-                product_list = json.loads(product_list["product_list"])
+                product_list = json.loads(product_list)
                 for item in product_list:
                     dic = {"email_category": "newsletter", "product_uuid": str(item["uuid"])}
-                    uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
-                    new_iamge_url = item["url"] + uri_structure
-                    html = html.replace(item["url"], new_iamge_url)
+                    uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_term={product_uuid}".format(**dic)
+                    new_image_url = item["url"] + uri_structure
+                    html = html.replace(item["url"], new_image_url)
 
         store_instance = models.Store.objects.filter(user=request.user).first()
-
         ems_instance = ems_api.ExpertSender(store_instance.name, store_instance.email)
 
         subscribers_res = ems_instance.create_subscribers_list(store_instance.name)
