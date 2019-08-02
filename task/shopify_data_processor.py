@@ -543,6 +543,12 @@ class ShopifyDataProcessor:
                 orders_info = cursor.fetchone()
                 if orders_info:
                     total_orders, total_revenue, total_sessions = orders_info
+                    if total_orders is None:
+                        total_orders= 0
+                    if total_revenue is None:
+                        total_revenue= 0.0
+                    if total_sessions is None:
+                        total_sessions= 0
                 else:
                     total_orders = total_revenue = total_sessions = 0
 
