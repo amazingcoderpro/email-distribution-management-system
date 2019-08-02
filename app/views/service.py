@@ -6,7 +6,7 @@ from rest_framework.response import Response
 # from io import BytesIO
 # import base64
 # from PIL import Image
-import random, string, os
+import random, string, os, json
 
 from app import models
 from app.pageNumber.pageNumber import PNPagination
@@ -35,8 +35,6 @@ class CustomerGroupView(generics.ListCreateAPIView):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
-
 
 
 class CustomerGroupOptView(generics.DestroyAPIView):
@@ -204,12 +202,23 @@ class SendMailView(generics.CreateAPIView):
     authentication_classes = (JSONWebTokenAuthentication,)
 
     def post(self, request, *args, **kwargs):
-
+        store = models.Store.objects.filter(user=request.user).first()
+        store_url = store.url
         email_address = request.data["email_address"]
         html = request.data["html"]
         subject = request.data["subject"]
-        store_instance = models.Store.objects.filter(user=request.user).first()
+        html = html.replace(store_url+"?utm_source=smartsend", store_url+"?utm_source=smartsend&utm_medium=newsletter")
+        product_list = request.data.get("product_list", None)
+        if product_list:
+            if product_list != "[]":
+                product_list = json.loads(product_list)
+                for item in product_list:
+                    dic = {"email_category": "newsletter", "product_uuid": str(item["uuid"])}
+                    uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_term={product_uuid}".format(**dic)
+                    new_image_url = item["url"] + uri_structure
+                    html = html.replace(item["url"], new_image_url)
 
+        store_instance = models.Store.objects.filter(user=request.user).first()
         ems_instance = ems_api.ExpertSender(store_instance.name, store_instance.email)
 
         subscribers_res = ems_instance.create_subscribers_list(store_instance.name)
