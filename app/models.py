@@ -130,7 +130,7 @@ class EmailTemplate(models.Model):
     class Meta:
         managed = ENABLE_MIGRATE
         db_table = 'email_template'
-        ordering = ["update_time"]
+        ordering = ["-id"]
 
 
 class EmailRecord(models.Model):
