@@ -75,7 +75,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
         validated_data["store"] = store
         instance = super(EmailTemplateSerializer, self).create(validated_data)
         html = validated_data["html"]
-        store_url = store.url
+        store_url = store.domain
         html = html.replace(store_url+"?utm_source=smartsend", store_url+f"?utm_source=smartsend&utm_medium=newsletter&utm_campaign={instance.title}&utm_term={instance.id}")
 
         product_list = validated_data.get("product_list", None)
@@ -166,7 +166,8 @@ class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
         validated_data["send_type"] = 1
         instance = super(TriggerEmailTemplateSerializer, self).create(validated_data)
         html = validated_data["html"]
-        html = html.replace(store.url+"?utm_source=smartsend", store.url+f"?utm_source=smartsend&utm_medium=flow&utm_capaign={instance.subject}&utm_term={instance.id}")
+        store_url = store.domain
+        html = html.replace(store_url+"?utm_source=smartsend", store_url+f"?utm_source=smartsend&utm_medium=flow&utm_capaign={instance.subject}&utm_term={instance.id}")
         product_list = validated_data.get("product_list", None)
         if product_list:
             if product_list != "[]":

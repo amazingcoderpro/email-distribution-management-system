@@ -120,7 +120,9 @@ class TopProductView(APIView):
             "top_fifteen": "",
             "top_thirty": ""
         }
+        print(store)
         top_product = models.TopProduct.objects.filter(store=store).values("id", "top_three", "top_seven", "top_fifteen", "top_thirty").first()
+        print(top_product)
         if not top_product:
             return Response(res)
         res["id"] = top_product["id"]
@@ -203,7 +205,7 @@ class SendMailView(generics.CreateAPIView):
 
     def post(self, request, *args, **kwargs):
         store = models.Store.objects.filter(user=request.user).first()
-        store_url = store.url
+        store_url = store.domain
         email_address = request.data["email_address"]
         html = request.data["html"]
         subject = request.data["subject"]
