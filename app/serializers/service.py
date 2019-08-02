@@ -97,7 +97,6 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super(EmailTemplateSerializer, self).to_representation(instance)
         records = models.EmailRecord.objects.filter(email_template_id=instance.id, store_id=instance.store.id).all()
-        print(data)
         sents = clicks = opens = 0
         if records:
             for r in records:
