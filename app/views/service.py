@@ -6,7 +6,7 @@ from rest_framework.response import Response
 # from io import BytesIO
 # import base64
 # from PIL import Image
-import random, string, os
+import random, string, os, json
 
 from app import models
 from app.pageNumber.pageNumber import PNPagination
@@ -36,8 +36,6 @@ class CustomerGroupView(generics.ListCreateAPIView):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
-
 
 
 class CustomerGroupOptView(generics.DestroyAPIView):
@@ -209,6 +207,17 @@ class SendMailView(generics.CreateAPIView):
         email_address = request.data["email_address"]
         html = request.data["html"]
         subject = request.data["subject"]
+
+        product_list = request.data.get("product_list", None)
+        if product_list:
+            if product_list != "[]":
+                product_list = json.loads(product_list["product_list"])
+                for item in product_list:
+                    dic = {"email_category": "newsletter", "product_uuid": str(item["uuid"])}
+                    uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
+                    new_iamge_url = item["url"] + uri_structure
+                    html = html.replace(item["url"], new_iamge_url)
+
         store_instance = models.Store.objects.filter(user=request.user).first()
 
         ems_instance = ems_api.ExpertSender(store_instance.name, store_instance.email)
