@@ -16,7 +16,6 @@ from app.permission.permission import CustomerGroupOptPermission, StorePermissio
 from sdk.ems import ems_api
 
 
-
 class CustomerGroupView(generics.ListCreateAPIView):
     """客户组列表 增加"""
     queryset = models.CustomerGroup.objects.all()
