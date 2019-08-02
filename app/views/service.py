@@ -71,7 +71,7 @@ class StoreOperView(generics.UpdateAPIView):
 
 class EmailTemplateView(generics.ListCreateAPIView):
     """邮件模版展示 增加"""
-    queryset = models.EmailTemplate.objects.filter(send_type=0).all()
+    queryset = models.EmailTemplate.objects.all()
     serializer_class = service.EmailTemplateSerializer
     pagination_class = PNPagination
     filter_backends = (service_filter.EmailTempFilter,)
@@ -81,24 +81,24 @@ class EmailTemplateView(generics.ListCreateAPIView):
 
 class TriggerEmailTemplateView(generics.CreateAPIView):
     """触发邮件模版 增加"""
-    queryset = models.EmailTemplate.objects.filter(send_type=1).all()
+    queryset = models.EmailTemplate.objects.all()
     serializer_class = service.TriggerEmailTemplateSerializer
-    pagination_class = PNPagination
-    filter_backends = (service_filter.EmailTempFilter,)
+    # pagination_class = PNPagination
+    # filter_backends = (service_filter.EmailTriggerFilter,)
     permission_classes = (IsAuthenticated, StorePermission)
     authentication_classes = (JSONWebTokenAuthentication,)
 
-
-class EmailTemplateDeleteView(generics.DestroyAPIView):
-    """邮件模版 删除"""
-    queryset = models.EmailTemplate.objects.all()
-    serializer_class = service.EmailTemplateSerializer
-    permission_classes = (IsAuthenticated, CustomerGroupOptPermission)
-    authentication_classes = (JSONWebTokenAuthentication,)
-
-    def perform_destroy(self, instance):
-        instance.status = 2
-        instance.save()
+#
+# class EmailTemplateDeleteView(generics.DestroyAPIView):
+#     """邮件模版 删除"""
+#     queryset = models.EmailTemplate.objects.all()
+#     serializer_class = service.EmailTemplateSerializer
+#     permission_classes = (IsAuthenticated, CustomerGroupOptPermission)
+#     authentication_classes = (JSONWebTokenAuthentication,)
+#
+#     def perform_destroy(self, instance):
+#         instance.status = 2
+#         instance.save()
 
 
 class EmailTemplateUpdateView(generics.UpdateAPIView):
@@ -189,16 +189,12 @@ class EmailTriggerView(generics.ListCreateAPIView):
     authentication_classes = (JSONWebTokenAuthentication,)
 
 
-class EmailTriggerOptView(generics.DestroyAPIView):
-    """邮件 Trigger 删除"""
+class EmailTriggerOptView(generics.UpdateAPIView):
+    """邮件 Trigger 状态更新"""
     queryset = models.EmailTrigger.objects.all()
-    serializer_class = service.EmailTriggerSerializer
+    serializer_class = service.EmailTriggerOptSerializer
     permission_classes = (IsAuthenticated, CustomerGroupOptPermission)
     authentication_classes = (JSONWebTokenAuthentication,)
-
-    def perform_destroy(self, instance):
-        instance.status = 2
-        instance.save()
 
 
 class SendMailView(generics.CreateAPIView):

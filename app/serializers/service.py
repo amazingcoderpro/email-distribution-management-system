@@ -68,9 +68,6 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
                   "create_time",
                   "update_time"
         )
-        # extra_kwargs = {
-        #     'product_list': {'write_only': False, 'read_only': True},
-        # }
 
     def create(self, validated_data):
         store = models.Store.objects.filter(user=self.context["request"].user).first()
@@ -78,15 +75,20 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
         instance = super(EmailTemplateSerializer, self).create(validated_data)
         html = validated_data["html"]
 
-        products = eval(validated_data["product_list"])
-        if products:
-            for item in products:
-                dic = {"email_category": "newsletter", "template_name": instance.title, "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
-                uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
-                new_iamge_url = item["url"] + uri_structure
-                html = html.replace(item["url"], new_iamge_url)
-        instance.html = html
-        instance.save()
+        product_list = validated_data.get("product_list", None)
+        if product_list:
+            if product_list != "[]":
+                try:
+                    product_list = json.loads(validated_data["product_list"])
+                    for item in product_list:
+                        dic = {"email_category": "newsletter", "template_name": instance.title, "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
+                        uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
+                        new_iamge_url = item["url"] + uri_structure
+                        html = html.replace(item["url"], new_iamge_url)
+                except Exception as e:
+                    raise serializers.ValidationError("Param 'product_list' must be a json format")
+                instance.html = html
+                instance.save()
         return instance
 
 
@@ -94,12 +96,22 @@ class EmailTemplateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.EmailTemplate
         fields = (
-                  "enable",
+                "enable",
+                "status",
         )
 
     def update(self, instance, validated_data):
-        instance.enable = validated_data["enable"]
-        instance.save()
+        if instance.status == 2:
+            return instance
+
+        instance = super(EmailTemplateUpdateSerializer, self).update(instance, validated_data)
+        if "enable" in validated_data.keys():
+            # 如果是禁用或启用，则将task中状态为待发送和已禁用的同步修改成禁用或待发送
+            models.EmailTask.objects.filter(template_id=instance.id, status__in=[0, 3]).update(status=(0 if instance.enable==1 else 3))
+        else:
+            # 如果是删除模板，则将对应的task中状态为待发送和已禁用的，改成删除状态
+            models.EmailTask.objects.filter(template_id=instance.id, status__in=[0, 3]).update(status=4)
+        return instance
 
 
 class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
@@ -123,9 +135,6 @@ class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
                   "create_time",
                   "update_time"
         )
-        extra_kwargs = {
-            'product_list': {'write_only': False, 'read_only': True},
-        }
 
     def create(self, validated_data):
         store = models.Store.objects.filter(user=self.context["request"].user).first()
@@ -135,20 +144,22 @@ class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
         instance = super(TriggerEmailTemplateSerializer, self).create(validated_data)
         html = validated_data["html"]
 
-        products = eval(validated_data["product_list"])
-        if products:
-            for item in products:
-                dic = {"email_category": "newsletter", "template_name": instance.title, "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
-                uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
-                new_iamge_url = item["url"] + uri_structure
-                html = html.replace(item["url"], new_iamge_url)
-        instance.html = html
-        instance.save()
-        # ems_instance = ems_api.ExpertSender(store.name, store.email)
-        # result = ems_instance.create_transactional_message(instance.subject, html=instance.html,)
-        # if result["code"] != 1:
-        #     raise serializers.ValidationError(result["msg"])
-        # models.EmailRecord.objects.create(uuid=result["data"],email_template_id=instance.id,type=1,email_trigger_id)
+        product_list = validated_data.get("product_list", None)
+        if product_list:
+            if product_list != "[]":
+                try:
+                    product_list = json.loads(validated_data["product_list"])
+                    for item in product_list:
+                        dic = {"email_category": "newsletter", "template_name": instance.title,
+                               "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
+                        uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(
+                            **dic)
+                        new_iamge_url = item["url"] + uri_structure
+                        html = html.replace(item["url"], new_iamge_url)
+                except Exception as e:
+                    raise serializers.ValidationError("Param 'product_list' must be a json format")
+                instance.html = html
+                instance.save()
         return instance
 
 
@@ -156,6 +167,7 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.EmailTrigger
         fields = ("id",
+                  "status",     # 0--disable, 1-enable
                   "title",
                   "description",
                   "open_rate",
@@ -170,6 +182,32 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data["store"] = models.Store.objects.filter(user=self.context["request"].user).first()
         instance = super(EmailTriggerSerializer, self).create(validated_data)
+        return instance
+
+
+class EmailTriggerOptSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmailTrigger
+        fields = (
+            "status",     # 0--disable, 1-enable
+        )
+
+    def update(self, instance, validated_data):
+        if instance.status == 2:
+            return instance
+
+        task_status = 0
+        if validated_data["status"] == 0:
+            task_status = 3
+        elif validated_data["status"] == 1:
+            task_status = 0
+        elif validated_data["status"] == 2:
+            task_status = 4
+        else:
+            raise serializers.ValidationError("Trigger status must be in options [0, 1, 2]")
+
+        instance = super(EmailTriggerOptSerializer, self).update(instance, validated_data)
+        models.EmailTask.objects.filter(email_trigger_id=instance.id, status__in=[0, 3]).update(status=task_status)
         return instance
 
 
