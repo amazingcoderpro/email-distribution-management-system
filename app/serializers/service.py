@@ -95,7 +95,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super(EmailTemplateSerializer, self).to_representation(instance)
         records = models.EmailRecord.objects.filter(email_template_id=instance.id, store_id=instance.store.id).all()
-
+        print(data)
         sents = clicks = opens = 0
         if records:
             for r in records:
@@ -103,6 +103,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
                 clicks += r.clicks if isinstance(r.clicks, int) else 0
                 opens += r.opens if isinstance(r.opens, int) else 0
 
+        data["revenue"] = float(data["revenue"])
         data["click_rate"] = 0
         data["open_rate"] = 0
         if sents > 0:
@@ -192,7 +193,7 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
                   "description",
                   "open_rate",
                   "click_rate",
-                  "click_rate",
+                  "revenue",
                   "relation_info",
                   "email_delay",
                   "create_time",
@@ -203,6 +204,13 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
         validated_data["store"] = models.Store.objects.filter(user=self.context["request"].user).first()
         instance = super(EmailTriggerSerializer, self).create(validated_data)
         return instance
+
+    def to_representation(self, instance):
+        data = super(EmailTriggerSerializer, self).to_representation(instance)
+        data["open_rate"] = float(instance.open_rate)
+        data["click_rate"] = float(instance.click_rate)
+        data["revenue"] = float(instance.revenue)
+        return data
 
 
 class EmailTriggerOptSerializer(serializers.ModelSerializer):
