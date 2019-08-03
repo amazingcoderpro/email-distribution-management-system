@@ -229,7 +229,7 @@ class CustomerGroup(models.Model):
     customer_list = models.TextField(blank=True, null=False, verbose_name="对应客户列表")
     state_choices = ((0, '待解析'), (1, '已解析'), (2, '已删除'))
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="状态")
-    if True:
+    if ENABLE_MIGRATE:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
@@ -237,7 +237,7 @@ class CustomerGroup(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = True
+        managed = ENABLE_MIGRATE
         db_table = 'customer_group'
 
 
