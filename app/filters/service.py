@@ -80,4 +80,5 @@ class TopDashboardFilter(BaseFilterBackend):
             val = request.query_params.get(filter_key, '')
             if val is not '':
                 filte_kwargs[self.filter_keys[filter_key]] = val
+        print(filte_kwargs)
         return queryset.filter(**filte_kwargs)
