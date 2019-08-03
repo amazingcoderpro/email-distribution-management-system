@@ -70,7 +70,7 @@ class Dashboard(models.Model):
     # open_rate = models.FloatField(blank=True, null=True,  verbose_name="Open Rate")
     # click_rate = models.FloatField(blank=True, null=True,  verbose_name="Click Rate")
     # unsubscribe_rate = models.FloatField(blank=True, null=True,  verbose_name="Unsubscribe Rate")
-    total_revenue = models.FloatField(blank=True, null=True,  verbose_name="Revenue")
+    total_revenue = models.FloatField(default=0,  verbose_name="Revenue")
     total_orders = models.IntegerField(default=0,   verbose_name="Orders")
     total_sessions = models.IntegerField(blank=True, null=True, verbose_name="sessions总量")
     session = models.IntegerField(blank=True, null=True, verbose_name="session")
