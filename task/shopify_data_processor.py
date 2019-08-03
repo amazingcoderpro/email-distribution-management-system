@@ -640,7 +640,7 @@ class ShopifyDataProcessor:
 
     def update_store_webhook(self, store=None):
         webhooks = [
-
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/cart/update/', 'topic': 'carts/update'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/paid/', 'topic': 'orders/paid'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/customers/create/','topic': 'customers/create'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/customers/update/','topic': 'customers/update'},

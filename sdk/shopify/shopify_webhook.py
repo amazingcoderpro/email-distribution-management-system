@@ -102,7 +102,7 @@ if __name__ == '__main__':
     topic = "carts/update"
     products_api = ProductsApi(shop_uri=shop_uri, access_token=access_token)
     # 創建webhook
-    # products_api.create_webhook(topic=topic, address=address)
+    products_api.create_webhook(topic=topic, address=address)
     # 查詢所有的webhook
     products_api.get_all_webhook()
     # 刪除對應ID的webhook
