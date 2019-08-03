@@ -9,9 +9,8 @@ from sdk.googleanalytics.google_oauth_info import GoogleApi
 from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, SHOPIFY_CONFIG
 from task.db_util import DBUtil
-from config import logger
+from config import logger, ROOT_PATH
 from sdk.shopify import shopify_webhook
-from task.ems_data_processor import ROOT_PATH
 
 
 class ShopifyDataProcessor:
@@ -21,6 +20,7 @@ class ShopifyDataProcessor:
         self.db_name = db_info.get("db", "")
         self.db_user = db_info.get("user", "")
         self.db_password = db_info.get("password", "")
+        self.root_path = ROOT_PATH
 
     def save_customer_db(self, customer_insert_list, customer_update_list, cursor=None, conn=None):
         if not cursor:
@@ -568,7 +568,7 @@ class ShopifyDataProcessor:
                 store_view_id = cursor.fetchone()[0]
                 if store_view_id:
                     papi = GoogleApi(view_id=store_view_id,
-                                     json_path=os.path.join(ROOT_PATH, r"sdk\googleanalytics\client_secrets.json"))
+                                     json_path=os.path.join(self.root_path, r"sdk//googleanalytics//client_secrets.json"))
                     shopify_google_data = papi.get_report(key_word="", start_time="100daysAgo", end_time="today")
                     if shopify_google_data["code"] == 1:
                         data_list = shopify_google_data.get("data", {}).get("results", {})

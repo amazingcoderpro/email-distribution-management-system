@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Created by charles on 2019-05-13
 # Function: 
-
+import os
 import logging
 from log_config import log_config
 
@@ -36,3 +36,4 @@ EMS_CONFIG = {
     "api_key": "0x53WuKGWlbq2MQlLhLk"
 }
 
+ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
