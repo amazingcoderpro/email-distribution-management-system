@@ -216,7 +216,7 @@ class EmailTask(models.Model):
 
 class CustomerGroup(models.Model):
     """客户组"""
-    uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="收件人列表ID")
+    uuid = models.CharField(db_index=True, max_length=255, blank=True, null=True, verbose_name="收件人列表ID")
     title = models.CharField(db_index=True, max_length=255, verbose_name="标题")
     description = models.TextField(blank=True, null=True, verbose_name="描述")
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
@@ -229,7 +229,7 @@ class CustomerGroup(models.Model):
     customer_list = models.TextField(blank=True, null=False, verbose_name="对应客户列表")
     state_choices = ((0, '待解析'), (1, '已解析'), (2, '已删除'))
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="状态")
-    if ENABLE_MIGRATE:
+    if True:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
@@ -237,7 +237,7 @@ class CustomerGroup(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = ENABLE_MIGRATE
+        managed = True
         db_table = 'customer_group'
 
 
