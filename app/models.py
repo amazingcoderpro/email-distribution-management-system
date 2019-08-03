@@ -71,7 +71,7 @@ class Dashboard(models.Model):
     # click_rate = models.FloatField(blank=True, null=True,  verbose_name="Click Rate")
     # unsubscribe_rate = models.FloatField(blank=True, null=True,  verbose_name="Unsubscribe Rate")
     total_revenue = models.FloatField(blank=True, null=True,  verbose_name="Revenue")
-    total_orders = models.IntegerField(blank=True, null=True,  verbose_name="Orders")
+    total_orders = models.IntegerField(default=0,   verbose_name="Orders")
     total_sessions = models.IntegerField(blank=True, null=True, verbose_name="sessions总量")
     session = models.IntegerField(blank=True, null=True, verbose_name="session")
     avg_repeat_purchase_rate = models.FloatField(blank=True, null=True,  verbose_name="Repeat Purchase Rate")
@@ -83,7 +83,7 @@ class Dashboard(models.Model):
     avg_open_rate = models.FloatField(blank=True, null=True,  verbose_name="Open Rate")
     avg_click_rate = models.FloatField(blank=True, null=True,  verbose_name="Click Rate")
     avg_unsubscribe_rate = models.FloatField(blank=True, null=True,  verbose_name="Unsubscribe Rate")
-    if ENABLE_MIGRATE:
+    if True:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
@@ -91,7 +91,7 @@ class Dashboard(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = ENABLE_MIGRATE
+        managed = True
         db_table = 'dashboard'
 
 
