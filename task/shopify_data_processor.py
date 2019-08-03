@@ -319,6 +319,7 @@ class ShopifyDataProcessor:
                             status_tag = order["financial_status"]
                             status_url = order["order_status_url"]
                             checkout_id = order["checkout_id"]
+                            cart_token = order["cart_token"] if order["cart_token"] else ""
                             create_time = datetime.datetime.now()
                             update_time = datetime.datetime.now()
                             li = []
@@ -330,8 +331,8 @@ class ShopifyDataProcessor:
                                 li.append({"product_id":product_id,"title":title,"price":price,"quantity":quantity})
                             product_info = json.dumps(li)
                             cursor.execute(
-                                "insert into `order_event` (`order_uuid`,`checkout_id`, `status`,`status_tag`,`status_url`,`product_info`,`customer_uuid`,`total_price`,`store_id`,`order_create_time`,`order_update_time`,`create_time`, `update_time`) values (%s,%s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                                (order_uuid, checkout_id, status, status_tag, status_url, product_info, customer_uuid, total_price, store_id, order_create_time, order_update_time, create_time, update_time))
+                                "insert into `order_event` (`order_uuid`,`checkout_id`, `status`,`status_tag`,`status_url`,`product_info`,`customer_uuid`,`total_price`, `cart_token`,`store_id`,`order_create_time`,`order_update_time`,`create_time`, `update_time`) values (%s, %s,%s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                (order_uuid, checkout_id, status, status_tag, status_url, product_info, customer_uuid, total_price,cart_token, store_id, order_create_time, order_update_time, create_time, update_time))
                             conn.commit()
                             order_id = cursor.lastrowid
                             order_list.append(order_uuid)
