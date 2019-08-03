@@ -216,7 +216,7 @@ class EmailTask(models.Model):
 
 class CustomerGroup(models.Model):
     """客户组"""
-    uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="收件人列表ID")
+    uuid = models.CharField(db_index=True, max_length=255, blank=True, null=True, verbose_name="收件人列表ID")
     title = models.CharField(db_index=True, max_length=255, verbose_name="标题")
     description = models.TextField(blank=True, null=True, verbose_name="描述")
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
@@ -225,8 +225,8 @@ class CustomerGroup(models.Model):
     open_rate = models.DecimalField(default=0.00,  max_digits=10, decimal_places=4, verbose_name="邮件打开率")
     click_rate = models.DecimalField(default=0.00,  max_digits=10, decimal_places=4, verbose_name="邮件单击率")
     members = models.CharField(default=0, max_length=255, verbose_name="数量")
-    relation_info = models.TextField(blank=True, null=False, verbose_name="客户关系")
-    customer_list = models.TextField(blank=True, null=False, verbose_name="对应客户列表")
+    relation_info = models.TextField(blank=True, null=True, verbose_name="客户关系")
+    customer_list = models.TextField(blank=True, null=True, verbose_name="对应客户列表")
     state_choices = ((0, '待解析'), (1, '已解析'), (2, '已删除'))
     state = models.SmallIntegerField(db_index=True, choices=state_choices, default=0, verbose_name="状态")
     if ENABLE_MIGRATE:

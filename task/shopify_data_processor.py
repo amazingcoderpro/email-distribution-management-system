@@ -569,7 +569,8 @@ class ShopifyDataProcessor:
                 if store_view_id:
                     papi = GoogleApi(view_id=store_view_id,
                                      json_path=os.path.join(self.root_path, r"sdk//googleanalytics//client_secrets.json"))
-                    shopify_google_data = papi.get_report(key_word="", start_time="100daysAgo", end_time="today")
+                    shopify_google_data = papi.get_report(key_word="", start_time="1daysAgo", end_time="today")
+                    data_list = {}
                     if shopify_google_data["code"] == 1:
                         data_list = shopify_google_data.get("data", {}).get("results", {})
                         for values in data_list.items():
@@ -639,7 +640,7 @@ class ShopifyDataProcessor:
 
     def update_store_webhook(self, store=None):
         webhooks = [
-
+            {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/cart/update/', 'topic': 'carts/update'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/paid/', 'topic': 'orders/paid'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/customers/create/','topic': 'customers/create'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/customers/update/','topic': 'customers/update'},
@@ -650,6 +651,61 @@ class ShopifyDataProcessor:
         webhook_info = shopify_webhook.products_api(shop_uri=store[0][1], access_token=store[0][2])
         for webhook in webhooks:
             webhook_info.create_webhook(topic=webhook.get("topic", ""), address=webhook.get("address", ""))
+
+    def create_template(self, store=None):
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor_dict = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor_dict:
+                return False
+            store_id, *_ = store[0]
+            logger.info("create_template is beginning...store_id={}".format(store_id))
+
+            create_time = datetime.datetime.now()
+            update_time = datetime.datetime.now()
+
+            cursor_dict.execute(
+                """select title, description, relation_info, email_delay, note from email_trigger where store_id = 1""")
+            email_trigger = cursor_dict.fetchall()
+
+            for item in email_trigger:
+                cursor_dict.execute(
+                    "insert into `email_trigger` (`title`, `description`, `open_rate`, `click_rate`, `revenue`, `relation_info`, `email_delay`, `note`, `status`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (item["title"],item["description"],0,0,0,item["relation_info"],item["email_delay"],item["note"],0,store_id,create_time,update_time))
+                conn.commit()
+
+
+            cursor_dict.execute(
+                """select title, description, subject, heading_text, logo, banner, headline, body_text, customer_group_list, send_rule, send_type, html from email_template where store_id = 1""")
+            email_template = cursor_dict.fetchall()
+
+            for item in email_template:
+                cursor_dict.execute(
+                    "insert into `email_template` (`title`, `description`, `subject`, `heading_text`,`customer_group_list`, `logo`, `banner`, `headline`, `body_text`, `send_rule`, `html`, `send_type`, `status`,`enable`,`revenue`,`sessions`,`transcations`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (item["title"],item["description"],item["subject"],item["heading_text"],item["customer_group_list"],item["logo"],item["banner"],item["headline"],item["body_text"],item["send_rule"],item["html"],item["send_type"],0,0,0,0,0,store_id,create_time,update_time))
+                conn.commit()
+
+
+            cursor_dict.execute(
+                """select title, description, relation_info from customer_group where store_id = 1""")
+            customer_group = cursor_dict.fetchall()
+
+            for item in customer_group:
+                cursor_dict.execute(
+                    "insert into `customer_group` (`title`, `description`,`relation_info`, `open_rate`, `click_rate`, `members`, `state`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (item["title"],item["description"],item["relation_info"],0,0,0,0,store_id,create_time,update_time))
+                conn.commit()
+
+        except Exception as e:
+            logger.exception("create_template e={}".format(e))
+            return False
+        finally:
+            cursor_dict.close() if cursor_dict else 0
+            conn.close() if conn else 0
+
+        logger.info("create_template is finished...")
+        return True
 
     def update_new_shopify(self):
         logger.info("update_new_shopify is cheking...")
@@ -684,6 +740,7 @@ class ShopifyDataProcessor:
             self.update_shopify_order_customer()
 
             # TODO 新店铺创建模版
+            #self.create_template(store)
 
             # TODO 新的店铺创建webhook
             self.update_store_webhook(store)
@@ -867,8 +924,10 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_product()
     # 拉取shopify GA 数据
-    ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
+    # ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
+
+    ShopifyDataProcessor(db_info=db_info).update_new_shopify()
 

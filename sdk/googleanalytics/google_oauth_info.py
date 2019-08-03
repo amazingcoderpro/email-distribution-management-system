@@ -3,11 +3,11 @@ import sys
 from apiclient import discovery
 from oauth2client.service_account import ServiceAccountCredentials
 from config import logger
+from config import SHOPIFY_CONFIG
 
 
 class GoogleApi():
-    def __init__(self, view_id, ga_source="smartsend", json_path=""):
-    # def __init__(self, view_id, ga_source="pinbooster", json_path=""):
+    def __init__(self, view_id, ga_source=SHOPIFY_CONFIG.get("utm_source"), json_path=""):
         """
         获取店铺的GA数据
         :param view_id: 视图的id
@@ -105,7 +105,7 @@ class GoogleApi():
 
 if __name__ == '__main__':
 
-    google_data = GoogleApi(view_id="195406097")
+    google_data = GoogleApi(view_id="180765506")
     print(google_data.get_report(key_word="", start_time="1daysAgo", end_time="today"))
     print(1)
 
