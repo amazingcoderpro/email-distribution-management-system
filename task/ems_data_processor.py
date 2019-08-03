@@ -8,8 +8,6 @@ from config import logger
 from sdk.ems.ems_api import ExpertSender
 from task.db_util import DBUtil
 
-from sdk.googleanalytics.google_oauth_info import GoogleApi
-
 ROOT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
