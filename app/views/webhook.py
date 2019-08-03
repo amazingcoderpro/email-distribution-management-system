@@ -285,3 +285,14 @@ class CheckoutsDelete(APIView):
         store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
         models.CheckoutEvent.objects.filter(store=store, checkout_id=request.data["id"]).update(status=2)
         return Response({"code": 200})
+
+
+class CartsUpdate(APIView):
+    def post(self, request, *args, **kwargs):
+        print("------------ cart update ------------:")
+        # print(request.META, type(request.META))
+        print(json.dumps(request.data))
+        result = request.data
+        print(result)
+        return Response({"code": 200})
+
