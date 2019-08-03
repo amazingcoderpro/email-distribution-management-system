@@ -74,9 +74,12 @@ class GoogleApi():
                 for row in report.get('data', {}).get('rows', []):
                     dimensions = row.get('dimensions', [])
                     dateRangeValues = row.get('metrics', [])
-
                     if dimensions[1] == key_word or not key_word:
-                        temp_key_word = dimensions[1].split('_')[1]
+                        temp_key = dimensions[1].split('_')
+                        if len(temp_key)==1:
+                            temp_key_word = temp_key[0]
+                        else:
+                            temp_key_word = temp_key[0]
                         values = dateRangeValues[0].get('values', [])
                         if values:
                             if temp_key_word not in results:
