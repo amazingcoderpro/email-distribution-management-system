@@ -569,7 +569,8 @@ class ShopifyDataProcessor:
                 if store_view_id:
                     papi = GoogleApi(view_id=store_view_id,
                                      json_path=os.path.join(self.root_path, r"sdk//googleanalytics//client_secrets.json"))
-                    shopify_google_data = papi.get_report(key_word="", start_time="100daysAgo", end_time="today")
+                    shopify_google_data = papi.get_report(key_word="", start_time="1daysAgo", end_time="today")
+                    data_list = {}
                     if shopify_google_data["code"] == 1:
                         data_list = shopify_google_data.get("data", {}).get("results", {})
                         for values in data_list.items():

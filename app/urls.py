@@ -67,6 +67,8 @@ webhook_urlpatterns = [
     url(r'checkouts/update/$', webhook.CheckoutsUpdate.as_view()),
     url(r'checkouts/delete/$', webhook.CheckoutsDelete.as_view()),
 
+    url(r'cart/update/$', webhook.CartsUpdate.as_view()),
+
 ]
 
 
