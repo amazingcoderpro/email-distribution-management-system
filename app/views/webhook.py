@@ -205,7 +205,9 @@ class CheckoutsCreate(APIView):
             product_info.append(product_dict)
         customer_uuid = customer_info.get("id")
         total_price = customer_info.get("total_spent", 0.0)
-        cart_token = request.data["cart_token", ""]
+        cart_token = request.data["cart_token"]
+        if not cart_token:
+            cart_token = ""
         checkout_create_time = result["created_at"].replace("T", " ")[:-6]
         checkout_update_time = result["updated_at"].replace("T", " ")[:-6]
         abandoned_checkout_url = result["abandoned_checkout_url"]
@@ -247,7 +249,9 @@ class CheckoutsUpdate(APIView):
         checkout_create_time = request.data["created_at"].replace("T", " ")[:-6]
         checkout_update_time = request.data["updated_at"].replace("T", " ")[:-6]
         abandoned_checkout_url = request.data["abandoned_checkout_url"]
-        cart_token = request.data["cart_token", ""]
+        cart_token = request.data["cart_token"]
+        if not cart_token:
+            cart_token = ""
         checkout_id = request.data["id"]
         customer_info = request.data.get("customer", "")
         customer_uuid = customer_info.get("id")
