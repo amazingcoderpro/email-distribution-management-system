@@ -292,7 +292,30 @@ class CartsUpdate(APIView):
         print("------------ cart update ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
-        result = request.data
-        print(result)
+        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
+        store_id = store.id
+        product_info = []
+        for product in request.data["line_items"]:
+            product_dict = {"product": product.get("product_id", ""), "sales": product.get("quantity", ""),
+                            "price": product.get("variant_price", "")}
+            product_info.append(product_dict)
+        checkout_id = request.data.get("id", "")
+        create_time = datetime.datetime.now()
+        update_time = datetime.datetime.now()
+        checkout_instance = models.CheckoutEvent.objects.filter(store=store, checkout_id=request.data["id"]).first()
+        if not checkout_instance:
+            models.CheckoutEvent.objects.create(
+                store_id=store_id,
+                status=0,
+                checkout_id=checkout_id,
+                product_info=product_info,
+                create_time=create_time,
+                update_time=update_time
+            )
+        else:
+            checkout_instance.product_info = product_info
+            checkout_instance.update_time = datetime.datetime.now()
+            checkout_instance.save()
         return Response({"code": 200})
+
 

@@ -399,6 +399,7 @@ class CheckoutEvent(models.Model):
     total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
     checkout_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
     checkout_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
+    cart_token = models.CharField(blank=True, null=True, max_length=255, verbose_name="cart_token")
     if ENABLE_MIGRATE:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
