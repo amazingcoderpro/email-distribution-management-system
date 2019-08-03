@@ -198,6 +198,7 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
                   "revenue",
                   "relation_info",
                   "email_delay",
+                  "note",
                   "create_time",
                   "update_time"
         )
