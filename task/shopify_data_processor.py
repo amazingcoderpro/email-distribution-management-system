@@ -736,13 +736,11 @@ class ShopifyDataProcessor:
 
             # 新店铺拉客户, 初始拉取一次，以后由webhook推送新顾客的创建事件
             self.update_shopify_customers(store=store)
-            # TODO 同步shopify customer 和 order的数据同步
             self.update_shopify_order_customer()
 
             # TODO 新店铺创建模版
             #self.create_template(store)
 
-            # TODO 新的店铺创建webhook
             self.update_store_webhook(store)
 
             logger.info("update_new_shopify end init data store_id={}".format(store[0]))
