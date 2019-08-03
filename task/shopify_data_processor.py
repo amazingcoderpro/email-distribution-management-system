@@ -9,18 +9,18 @@ from sdk.googleanalytics.google_oauth_info import GoogleApi
 from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, SHOPIFY_CONFIG
 from task.db_util import DBUtil
-from config import logger
+from config import logger, ROOT_PATH
 from sdk.shopify import shopify_webhook
 
 
 class ShopifyDataProcessor:
-    def __init__(self, db_info, root_path=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))):
+    def __init__(self, db_info):
         self.db_host = db_info.get("host", "")
         self.db_port = db_info.get("port", 3306)
         self.db_name = db_info.get("db", "")
         self.db_user = db_info.get("user", "")
         self.db_password = db_info.get("password", "")
-        self.root_path = root_path
+        self.root_path = ROOT_PATH
 
     def save_customer_db(self, customer_insert_list, customer_update_list, cursor=None, conn=None):
         if not cursor:

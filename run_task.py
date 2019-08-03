@@ -188,7 +188,7 @@ def run():
     tp.create_periodic_task(tmp.execute_email_task, seconds=120, max_instances=50, interval=120)
 
     # shopify 定时更新任务, 请放在这下面
-    sdp = ShopifyDataProcessor(db_info=db_info, root_path=os.path.dirname(os.path.abspath(__file__)))
+    sdp = ShopifyDataProcessor(db_info=db_info)
     tp.create_periodic_task(sdp.update_new_shopify, seconds=120, max_instances=50)   # 新店铺拉 产品类目 产品 订单 top_product
     tp.create_cron_task(sdp.update_shopify_collections, "*", 12, 00)
     tp.create_cron_task(sdp.update_shopify_product, "*", 12, 00)
