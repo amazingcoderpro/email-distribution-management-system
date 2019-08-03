@@ -1093,7 +1093,7 @@ class AnalyzeCondition:
                     insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(new_customer_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now()))
                 elif item["type"] == "Delay":  # 代表是delay
                     num, unit = item["value"], item["unit"]
-                    if unit in ["days", "hours"]:
+                    if unit in ["weeks", "days", "hours", "minutes"]:
                         excute_time += datetime.timedelta(**{unit:num})
                     else:
                         logger.error("delay unit is error, please amend it to days or hours.")
