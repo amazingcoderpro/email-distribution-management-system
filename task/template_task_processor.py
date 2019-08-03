@@ -180,8 +180,8 @@ class TemplateProcessor:
 
                         time_now = datetime.datetime.now()
                         # 更新任务状态
-                        cursor.execute("""update `email_task` set `status`=%s, `remark`=%s, `finished_time`=%s, 
-                        `update_time`=%s where id=%s""", (send_result, str(send_msg), time_now, time_now, task_id))
+                        cursor.execute("""update `email_task` set `status`=%s, `remark`=%s, `uuid`=%s, `finished_time`=%s, 
+                        `update_time`=%s where id=%s""", (send_result, str(send_msg), str(email_id), time_now, time_now, task_id))
                         conn.commit()
 
                         # 在email record中插入一条
