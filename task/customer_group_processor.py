@@ -587,16 +587,20 @@ class AnalyzeCondition:
         try:
             min_time = None
             max_time = None
+            # 兼容一下时间格式
+            format_str_0 = format_str_1 = "%Y-%m-%d %H:%M:%S" if len(values[0]) > 11 else "%Y-%m-%d"
+            if len(values) == 2:
+                format_str_1 = "%Y-%m-%d %H:%M:%S" if len(values[1]) > 11 else "%Y-%m-%d"
             time_now = datetime.datetime.now()
             if relation.lower() in "is in the past":
                 min_time = time_now - unit_convert(unit_=unit, value=values[0])
             elif relation.lower() in "is before":
-                max_time = datetime.datetime.strptime(values[0], "%Y-%m-%d %H:%M:%S")
+                max_time = datetime.datetime.strptime(values[0], format_str_0)
             elif relation.lower() in "is after":
-                min_time = datetime.datetime.strptime(values[0], "%Y-%m-%d %H:%M:%S")
+                min_time = datetime.datetime.strptime(values[0], format_str_0)
             elif relation.lower() == "is between date" or relation.lower() == "between date":
-                min_time = datetime.datetime.strptime(values[0], "%Y-%m-%d %H:%M:%S")
-                max_time = datetime.datetime.strptime(values[1], "%Y-%m-%d %H:%M:%S")
+                min_time = datetime.datetime.strptime(values[0], format_str_0)
+                max_time = datetime.datetime.strptime(values[1], format_str_1)
             elif relation.lower() == "is between" or relation.lower() == "between":
                 max_time = time_now - unit_convert(unit_=unit, value=values[0])
                 min_time = time_now - unit_convert(unit_=unit, value=values[1])
@@ -1077,7 +1081,7 @@ class AnalyzeCondition:
             email_list = self.customer_uuid_to_email(old_customer_list)
             #添加收件人
             rest = ems.add_subscriber(customer_list_id, email_list)
-            if not rest:
+            if rest["code"]==-1 or rest["code"]==2:
                 logger.error("add subscribers failed")
                 return False
 
@@ -1150,7 +1154,7 @@ class AnalyzeCondition:
                 return False
             if datas:
                 cursor.executemany(
-                    """insert into email_task (uuid, template_id,state,remark,execute_time,customer_list,email_trigger_id,type,create_time,update_time) 
+                    """insert into email_task (uuid, template_id,status,remark,execute_time,customer_list,email_trigger_id,type,create_time,update_time) 
                     values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (datas))
                 conn.commit()
                 logger.info("insert email task from trigger success.")
