@@ -34,6 +34,13 @@ class EMSDataProcessor:
             type_choices = {'Opens': 0, 'Clicks': 1, 'Sends': 2}
             for tp in ["Opens", "Clicks", "Sends"]:
                 result[tp] = self.ems.get_subscriber_activity(tp, query_date)[1:]
+            # 查出系统所有的uuid对的店铺id
+            cursor.execute("""select uuid,store_id from email_record where uuid is not null""")
+            uuids = cursor.fetchall()
+            if not uuids:
+                logger.warning("no available uuid")
+                return False
+            uuid_store = {item[0]: item[1] for item in uuids}
             insert_list = []
             for tp, item in result.items():
                 tp = type_choices[tp]
@@ -44,11 +51,9 @@ class EMSDataProcessor:
                         logger.info(e)
                         continue
                     # 需要通过message_uuid获取店铺id
-                    cursor.execute("""select store_id from email_record where uuid=%s""", (int(message_uuid),))
-                    store = cursor.fetchone()
-                    if not store:
+                    if message_uuid not in uuid_store:
                         continue
-                    store_id = store[0]
+                    store_id = uuid_store[message_uuid]
                     cursor.execute("""select id from subscriber_activity where 
                     opt_time=%s and email=%s and message_uuid=%s and type=%s and store_id=%s""", (opt_time, email, int(message_uuid), tp, store_id))
                     is_activity = cursor.fetchone()
@@ -58,9 +63,10 @@ class EMSDataProcessor:
                     else:
                         now_time = datetime.datetime.now()
                         insert_list.append((opt_time, email, int(message_uuid), tp, store_id, now_time, now_time))
-            cursor.executemany("""insert into subscriber_activity (opt_time,email,message_uuid,type,store_id,create_time,update_time) values
-                                    (%s,%s,%s,%s,%s,%s,%s)""", insert_list)
-            conn.commit()
+            if insert_list:
+                cursor.executemany("""insert into subscriber_activity (opt_time,email,message_uuid,type,store_id,create_time,update_time) values
+                                        (%s,%s,%s,%s,%s,%s,%s)""", insert_list)
+                conn.commit()
             logger.info(f"insert subscriber activity success at {query_date}.")
         except Exception as e:
             logger.exception("insert subscriber activity exception e={}".format(e))
@@ -68,6 +74,7 @@ class EMSDataProcessor:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
+            return True
 
     def update_customer_group_data(self):
         """
@@ -319,8 +326,8 @@ class EMSDataProcessor:
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
-    # obj.insert_subscriber_activity()
-    obj.update_customer_group_data()
+    obj.insert_subscriber_activity()
+    # obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
     # obj.insert_dashboard_data()
     # obj.update_unsubscriber_and_snoozed_customers()
