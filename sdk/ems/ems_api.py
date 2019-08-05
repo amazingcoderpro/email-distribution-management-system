@@ -119,6 +119,7 @@ class ExpertSender:
                     "Data": {
                         "Recipients": {"SubscriberLists": {"SubscriberList": []}},
                         "Content": {
+                            "FromName": self.from_name,
                             "FromEmail": self.from_email,
                             "Subject": subject,
                             "Plain": plain,
@@ -419,12 +420,10 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def update_transactional_message(self, email_id, from_name, from_email, subject, plain="", html="", content_from_url=None):
+    def update_transactional_message(self, email_id, subject, plain="", html="", content_from_url=None):
         """
         更新事务性邮件 http://sms.expertsender.cn/api/v2/methods/email-messages/update-transactional-message/
         :param email_id: 事务邮件ID
-        :param from_name: 发件人姓名
-        :param from_email: 发件人邮箱
         :param subject: 邮件主题
         :param plain: 邮件纯文本
         :param html: 邮件html内容
@@ -436,8 +435,8 @@ class ExpertSender:
             "ApiKey": self.api_key,
             "Data": {
                 "Content": {
-                    "FromName": from_name,
-                    "FromEmail": from_email,
+                    "FromName": self.from_name,
+                    "FromEmail": self.from_email,
                     "Subject": subject,
                     "Plain": plain,
                     "Html": "%s",
@@ -613,8 +612,8 @@ if __name__ == '__main__':
     # print(ems.create_subscribers_list("Test001"))
     # print(ems.add_subscriber(25, ["fatty091@gmail.com","yacineh1604@mail.ru", "aaaaesd"]))
     # html = open("index.html")
-    # print(ems.create_and_send_newsletter([25], "chinese TEST", html="<p>中国人</p>")) # ,"2019-07-09 21:09:00"
-    print(ems.get_subscriber_activity("Opens"))
+    print(ems.create_and_send_newsletter([25], "收件人测试", html="<p>测试收件人是否正常</p>")) # ,"2019-07-09 21:09:00"
+    # print(ems.get_subscriber_activity("Opens"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
     # print(ems.get_summary_statistics(63))
