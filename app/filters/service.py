@@ -62,7 +62,6 @@ class EmailTriggerFilter(BaseFilterBackend):
                 filte_kwargs[self.filter_keys[filter_key]] = val
         if "status" not in filte_kwargs.keys():
             filte_kwargs["status__in"] = [0,1]
-        print(filte_kwargs)
         return queryset.filter(**filte_kwargs)
 
 
@@ -80,5 +79,4 @@ class TopDashboardFilter(BaseFilterBackend):
             val = request.query_params.get(filter_key, '')
             if val is not '':
                 filte_kwargs[self.filter_keys[filter_key]] = val
-        print(filte_kwargs)
         return queryset.filter(**filte_kwargs)

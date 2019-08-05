@@ -284,6 +284,7 @@ class ShopifyDataProcessor:
                     return False
             else:
                 stores = input_store
+
             for store in stores:
                 store_id, store_url, store_token, *_ = store
 
@@ -319,6 +320,7 @@ class ShopifyDataProcessor:
                             status_tag = order["financial_status"]
                             status_url = order["order_status_url"]
                             checkout_id = order["checkout_id"]
+                            cart_token = order["cart_token"] if order["cart_token"] else ""
                             create_time = datetime.datetime.now()
                             update_time = datetime.datetime.now()
                             li = []
@@ -927,5 +929,6 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
 
-    ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    #ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
 
