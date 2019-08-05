@@ -284,6 +284,7 @@ class ShopifyDataProcessor:
                     return False
             else:
                 stores = input_store
+
             for store in stores:
                 store_id, store_url, store_token, *_ = store
 
@@ -331,8 +332,8 @@ class ShopifyDataProcessor:
                                 li.append({"product_id":product_id,"title":title,"price":price,"quantity":quantity})
                             product_info = json.dumps(li)
                             cursor.execute(
-                                "insert into `order_event` (`order_uuid`,`checkout_id`, `status`,`status_tag`,`status_url`,`product_info`,`customer_uuid`,`total_price`, `cart_token`,`store_id`,`order_create_time`,`order_update_time`,`create_time`, `update_time`) values (%s, %s,%s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                                (order_uuid, checkout_id, status, status_tag, status_url, product_info, customer_uuid, total_price,cart_token, store_id, order_create_time, order_update_time, create_time, update_time))
+                                "insert into `order_event` (`order_uuid`,`checkout_id`, `status`,`status_tag`,`status_url`,`product_info`,`customer_uuid`,`total_price`,`store_id`,`order_create_time`,`order_update_time`,`create_time`, `update_time`) values (%s,%s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                (order_uuid, checkout_id, status, status_tag, status_url, product_info, customer_uuid, total_price, store_id, order_create_time, order_update_time, create_time, update_time))
                             conn.commit()
                             order_id = cursor.lastrowid
                             order_list.append(order_uuid)
@@ -928,5 +929,6 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
 
-    ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    #ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
 
