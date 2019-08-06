@@ -1042,12 +1042,15 @@ class AnalyzeCondition:
             store_id, t_id, title, relation_info, email_delay, note, old_customer_list, customer_list_id = cond.values()
             customer_list = self.get_customers_by_condition(condition=json.loads(cond["relation_info"]),
                                                           store_id=cond["store_id"])
+            logger.info("search customers by trigger conditions success. trigger_id = %s" % t_id)
             if not customer_list:
                 # 无符合触发条件的用户
                 logger.warning("Not found customers matching the search relation_info: %s"% json.loads(cond["relation_info"]))
                 continue
             # 计算新增用户，创建新的任务，第一次应全是新增用户
-            if not eval(str(old_customer_list)):
+            if not old_customer_list:
+                old_customer_list = []
+            elif not eval(str(old_customer_list)):
                 old_customer_list = []
             else:
                 old_customer_list = eval(old_customer_list)
@@ -1056,6 +1059,7 @@ class AnalyzeCondition:
                 # 无新增符合触发条件的用户
                 logger.warning("No new customers.")
                 continue
+            logger.info("some new customers into customer_list. trigger_id = %s" % t_id)
             old_customer_list.extend(new_customer_list)
             update_list.append((str(old_customer_list), datetime.datetime.now(), t_id))
 
@@ -1078,12 +1082,16 @@ class AnalyzeCondition:
                     logger.error("insert_customer_list_id_from_email_trigger failed")
                     return False
             # 将old_customer_list转换成邮箱地址列表
-            email_list = self.customer_uuid_to_email(old_customer_list)
-            #添加收件人
-            rest = ems.add_subscriber(customer_list_id, email_list)
-            if rest["code"]==-1 or rest["code"]==2:
-                logger.error("add subscribers failed")
-                return False
+            email_list = self.customer_uuid_to_email(new_customer_list)
+            logger.info("new customer list length is %s" % len(email_list))
+            # 添加收件人,每次添加不能超过100个收件人
+            times = int(len(email_list)//99) + 1
+            for t in range(times):
+                rest = ems.add_subscriber(customer_list_id, email_list[99*t:99*(t+1)])
+                if rest["code"]==-1 or rest["code"]==2:
+                    logger.error("add subscribers failed")
+                    return False
+            logger.info("add subscriber success.customer_list_id is %s" % customer_list_id)
 
             # ToDo parse email_delay
             excute_time = datetime.datetime.now() + datetime.timedelta(minutes=5)  # flow从此刻开始，为了避免程序运行时间耽搁，导致第一封邮件容易过去，自动延后5分钟
@@ -1109,8 +1117,12 @@ class AnalyzeCondition:
         # 1、将customer_list反填回数据库
         if not self.update_customer_list_from_trigger(update_list):
             return False
+        logger.info("email_trigger table update success.")
         # 2、拆解的任务入库email_task
-        return self.insert_email_task_from_trigger(insert_list)
+        if self.insert_email_task_from_trigger(insert_list):
+            return False
+        logger.info("email_trigger table update success.")
+        return True
 
     def update_customer_list_from_trigger(self, customer_lists):
         """
@@ -1349,5 +1361,5 @@ if __name__ == '__main__':
     # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
     # print(ac.filter_received_customer(1, 372))
-    # print(ac.parse_trigger_tasks())
-    print(ac.execute_flow_task())
+    print(ac.parse_trigger_tasks())
+    # print(ac.execute_flow_task())
