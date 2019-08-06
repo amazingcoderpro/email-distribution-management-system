@@ -301,6 +301,7 @@ class EMSDataProcessor:
                     store_id = store_dict.get(cus["ListId"])
                     if store_id:
                         update_list.append((datetime.datetime.strptime(cus["UnsubscribedOn"], "%Y-%m-%dT%H:%M:%S.%f"), 1, datetime.datetime.now(), cus["Email"], store_id))
+                        logger.info("email(%s) Unsubscribed success in store(id=%s), UnsubscribedOn %s." % (cus["Email"], store_id, cus["UnsubscribedOn"]))
             if snoozed_result["code"] == 1:
                 logger.info("sttart update snoozed customers.")
                 snoozed_customers_list = snoozed_result["data"]["SnoozedSubscribers"]["SnoozedSubscriber"]
@@ -309,6 +310,7 @@ class EMSDataProcessor:
                     store_id = store_dict.get(cust["ListId"])
                     if store_id:
                         update_list.append((datetime.datetime.strptime(cust["SnoozedUntil"], "%Y-%m-%dT%H:%M:%S.%f"), 2, datetime.datetime.now(), cust["Email"], store_id))
+                        logger.info("email(%s) Snoozed success in store(id=%s), SnoozedUntil %s." % (cust["Email"], store_id, cust["SnoozedUntil"]))
             # 更新数据库
             cursor.executemany("""update customer set unsubscribe_date=%s, unsubscribe_status=%s, update_time=%s where customer_email=%s and store_id=%s""",
                            update_list)
@@ -326,8 +328,8 @@ class EMSDataProcessor:
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
-    obj.insert_subscriber_activity()
+    # obj.insert_subscriber_activity()
     # obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
     # obj.insert_dashboard_data()
-    # obj.update_unsubscriber_and_snoozed_customers()
+    obj.update_unsubscriber_and_snoozed_customers()
