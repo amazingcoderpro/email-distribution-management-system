@@ -3,19 +3,21 @@
 # Created by charles on 2019-08-05
 # Function: 
 
-
+from collections import Counter
+from datetime import datetime, timedelta
+import pymysql
 from pymongo import MongoClient
 from sshtunnel import SSHTunnelForwarder
-from config import MONGO_CONFIG, logger
-from datetime import datetime, timedelta
-from collections import Counter
+
+from config import MONGO_CONFIG, MYSQL_CONFIG, logger
+from task.db_util import DBUtil
 
 
 class DataMigrate:
     """
     数据迁移,
     """
-    def __init__(self, mongo_config):
+    def __init__(self, mongo_config, mysql_config):
         self.mongo_host = mongo_config.get("host", "")
         self.mongo_port = mongo_config.get("port", 27017)
         self.mongo_db = mongo_config.get("db", "looklook")
@@ -30,6 +32,13 @@ class DataMigrate:
         self.ssh_user = mongo_config.get("ssh_user", "")
         self.ssh_password = mongo_config.get("ssh_password", "")
 
+        # mysql配置
+        self.db_host = mysql_config.get("host", "")
+        self.db_port = mysql_config.get("port", 3306)
+        self.db_name = mysql_config.get("db", "")
+        self.db_user = mysql_config.get("user", "")
+        self.db_password = mysql_config.get("password", "")
+
         self.client = None
         self.db = None
         self.ssh_server = None
@@ -37,12 +46,13 @@ class DataMigrate:
     def init_mongo(self):
         if self.use_ssh:
             self.__init_mongo_by_ssh__()
-            return
+            return self.db
 
         try:
             mongo_uri = f"mongodb://{self.mongo_user}:{self.mongo_password}@{self.mongo_host}:{self.mongo_port}/{self.mongo_db}?replicaSet={self.mongo_replicaset}"
             self.client = MongoClient(mongo_uri)
             self.db = self.client[self.mongo_db]
+            return self.db
         except Exception as e:
             logger.exception("Connect mongodb failed!! e={}".format(e))
             raise e
@@ -60,23 +70,48 @@ class DataMigrate:
             logger.exception("Connect mongodb by ssh failed!! e={}".format(e))
             raise e
 
-    def test_db(self):
+    def test_mongo_connection(self):
         if self.use_ssh:
             self.init_mongo_by_ssh()
         else:
             self.init_mongo()
         print(self.db.collection_names(include_system_collections=False))
 
-    def migrate_top_products(self):
-        store_site_names = ["Astrotrex"]
-        recent_products = {}
+    def get_all_stores(self):
+        """
+        获取所有店铺id及名称
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return None
+
+            cursor.execute("""select id, name from store where id>=0""")
+            stores = cursor.fetchall()
+            return stores
+        except Exception as e:
+            logger.exception("get_all_stores exception e={}".format(e))
+            return None
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
+    def update_top_products(self):
+        stores = self.get_all_stores()
+        if not stores:
+            logger.warning("There have not stores to update top products")
+
         time_now = datetime.now()
         time_beg = (datetime.now()-timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
         recent_3days_paid_products = []
         recent_7days_paid_products = []
         recent_15days_paid_products = []
         recent_30days_paid_products = []
-        for store_site in store_site_names:
+        for store in stores:
+            store_site = store.get("name", "")
+            store_id = store.get("id")
             order_collection = self.db["shopify_order"]
             orders = order_collection.find({"site_name": store_site, "updated_at": {"$gte": time_beg}}, {"line_items": 1, "updated_at": 1})
             for order in orders:
@@ -96,17 +131,16 @@ class DataMigrate:
                 else:
                     recent_30days_paid_products += products
 
-        top6_products_recent3days = [item[0] for item in Counter(recent_3days_paid_products).most_common(6)]
-        top6_products_recent7days = [item[0] for item in Counter(recent_7days_paid_products).most_common(6)]
-        top6_products_recent15days = [item[0] for item in Counter(recent_15days_paid_products).most_common(6)]
-        top6_products_recent30days = [item[0] for item in Counter(recent_30days_paid_products).most_common(6)]
+            top6_products_recent3days = [item[0] for item in Counter(recent_3days_paid_products).most_common(6)]
+            top6_products_recent7days = [item[0] for item in Counter(recent_7days_paid_products).most_common(6)]
+            top6_products_recent15days = [item[0] for item in Counter(recent_15days_paid_products).most_common(6)]
+            top6_products_recent30days = [item[0] for item in Counter(recent_30days_paid_products).most_common(6)]
 
-        product_col = self.db["shopify_product"]
-
-        print(top6_products_recent3days)
-        print(top6_products_recent7days)
-        print(top6_products_recent15days)
-        print(top6_products_recent30days)
+            print(top6_products_recent3days)
+            print(top6_products_recent7days)
+            print(top6_products_recent15days)
+            print(top6_products_recent30days)
+            product_col = self.db["shopify_product"]
 
     def close(self):
         logger.info("")
@@ -118,9 +152,9 @@ class DataMigrate:
 
 
 if __name__ == '__main__':
-    dm = DataMigrate(MONGO_CONFIG)
+    dm = DataMigrate(MONGO_CONFIG, MYSQL_CONFIG)
     dm.init_mongo()
-    dm.migrate_top_products()
+    dm.update_top_products()
     dm.close()
 
 
