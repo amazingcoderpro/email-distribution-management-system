@@ -283,13 +283,21 @@ class EMSDataProcessor:
             unsubscriber_result = self.ems.get_opt_out_link_subscribers()
             # 获取休眠的收件人
             snoozed_result = self.ems.get_snoozed_subscribers()
-            # 查询出目前系统中所有可用的listID对应的store_id
+            # 查询出目前系统中所有可用的listID对应的store_id(group_list)
             cursor.execute("select uuid, store_id from customer_group")
-            store_result = cursor.fetchall()
-            if not store_result:
+            store_result_group_list = cursor.fetchall()
+            # 查询出目前系统中所有可用的listID对应的store_id(email_trigger)
+            cursor.execute("select customer_list_id, store_id from email_trigger")
+            store_result_trigger = cursor.fetchall()
+            store_dict = {}
+            if store_result_group_list:
+                store_dict.update({store[0]:store[1] for store in store_result_group_list if store[0]})
+            if store_result_trigger:
+                store_dict.update({store[0]:store[1] for store in store_result_trigger if store[0]})
+            if not store_result_trigger and not store_result_group_list:
                 logger.warning("No customer groups are available.")
                 return True
-            store_dict = {store[0]:store[1] for store in store_result if store[0]}
+
             if unsubscriber_result["code"] != 1 and snoozed_result["code"] != 1:
                 logger.error("get unsubscriber and snoozed customers failed.")
                 return False

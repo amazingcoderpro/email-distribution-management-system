@@ -612,7 +612,7 @@ if __name__ == '__main__':
     # print(ems.create_subscribers_list("Test001"))
     # print(ems.add_subscriber(25, ["fatty091@gmail.com","yacineh1604@mail.ru", "aaaaesd"]))
     # html = open("index.html")
-    print(ems.create_and_send_newsletter([86], "取消订阅完测试", html="<a href='https://baidu.com'>Unsubscribe</a>")) # ,"2019-07-09 21:09:00"
+    # print(ems.create_and_send_newsletter([86], "取消订阅完测试", html="<a href='https://baidu.com'>Unsubscribe</a>")) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
@@ -636,6 +636,6 @@ if __name__ == '__main__':
     # print(ems.send_transactional_messages(400, "leemon.li@orderplus.com", 25))  # 350
     # print(ems.update_transactional_message(350, "Aliase", "limengqiAliase@163.com", "transactional message test 11", html=html_b))  # 350
     # print(ems.delete_message(349))
-    # print(ems.get_opt_out_link_subscribers(86))
+    print(ems.get_opt_out_link_subscribers())
     # print(ems.get_snoozed_subscribers(86))
 
