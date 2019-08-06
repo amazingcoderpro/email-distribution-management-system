@@ -1285,12 +1285,13 @@ class AnalyzeCondition:
                     rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
                     if rest["code"] != 1:
                         logger.warning("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
-                        send_error_info += rest["msg"] + "; "
+                        msg = rest["msg"]["Message"] if isinstance(rest["msg"], dict) else str(rest["msg"])
+                        send_error_info += msg + "; "
                     else:
                         status = 1
-                logger.info("send transactional messages {}".format("success" if status==1 else "fialed"))
+                logger.info("send transactional messages {}".format("success" if status == 1 else "fialed"))
                 # 邮件发送完毕，回填数据
-                update_tuple_list.append ((send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
+                update_tuple_list.append((send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
             update_res = self.update_flow_email_task(update_tuple_list)
             logger.info("execute flow task finished.")
         except Exception as e:
@@ -1348,5 +1349,5 @@ if __name__ == '__main__':
     # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
     # print(ac.filter_received_customer(1, 372))
-    print(ac.parse_trigger_tasks())
-    # print(ac.execute_flow_task())
+    # print(ac.parse_trigger_tasks())
+    print(ac.execute_flow_task())
