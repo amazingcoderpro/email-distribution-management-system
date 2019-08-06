@@ -229,7 +229,7 @@ class ExpertSender:
         """
         添加收件人http://sms.expertsender.cn/api/v2/methods/subscribers/add-subscriber/
         :param list_id: 收件人列表ID
-        :param email_list: 需要添加的email列表
+        :param email_list: 需要添加的email列表, 每次API调用最多不能超过100个收件人
         :return: invalid_email为未添加成功的邮箱地址列表
         """
         url = f"{self.host}Api/Subscribers"
