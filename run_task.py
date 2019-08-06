@@ -202,7 +202,7 @@ def run():
     tp.create_cron_task(ems.update_customer_group_data, "*", 0, 5)  # 每天00:05:00更新到目前时间用户组最新ems数据
     tp.create_cron_task(ems.update_email_reocrd_data, "*", 0, 5)  # 每天00:05:00更新到目前时间已发送邮件最新ems数据
     tp.create_cron_task(ems.insert_dashboard_data, "*", 1, 0)  # 每天01:00:00更新dashboard最新数据
-    tp.create_periodic_task(ems.update_unsubscriber_and_snoozed_customers, seconds=60*30)  # 每半小时更新一下取消订阅和休眠的收件人
+    tp.create_periodic_task(ems.update_unsubscriber_and_snoozed_customers, seconds=60)  # 每一分钟更新一下取消订阅和休眠的收件人，因为flow是两分钟检测一次customer
     while 1:
         time.sleep(1)
 

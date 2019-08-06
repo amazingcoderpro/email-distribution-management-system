@@ -612,7 +612,7 @@ if __name__ == '__main__':
     # print(ems.create_subscribers_list("Test001"))
     # print(ems.add_subscriber(25, ["fatty091@gmail.com","yacineh1604@mail.ru", "aaaaesd"]))
     # html = open("index.html")
-    # print(ems.create_and_send_newsletter([86], "取消订阅测试", html="<a href='*[link_unsubscribe]*'>Unsubscribe</a>")) # ,"2019-07-09 21:09:00"
+    print(ems.create_and_send_newsletter([86], "取消订阅完测试", html="<a href='https://baidu.com'>Unsubscribe</a>")) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))
     # print(ems.get_subscriber_information("twobercancan@126.com"))
     # print(ems.get_subscriber_activity())
@@ -631,11 +631,11 @@ if __name__ == '__main__':
     # print(ems.get_list_or_segment_data(29))  # 11
     # print(ems.get_export_progress(11))  # 11
     # print(ems.clear_subscriber(25, ""))  # 11
-    # print(ems.add_subscriber(25, ["limengqiAliase@163.com", "leemon.li@orderplus.com"]))
+    # print(ems.add_subscriber(86, ["leemon.li@orderplus.com"]))
     # print(ems.create_transactional_message("transactional message test1", html="<a href='*[link_unsubscribe]*'>Unsubscribe</a>"))  # 350
     # print(ems.send_transactional_messages(400, "leemon.li@orderplus.com", 25))  # 350
     # print(ems.update_transactional_message(350, "Aliase", "limengqiAliase@163.com", "transactional message test 11", html=html_b))  # 350
     # print(ems.delete_message(349))
-    print(ems.get_opt_out_link_subscribers(86))
+    # print(ems.get_opt_out_link_subscribers(86))
     # print(ems.get_snoozed_subscribers(86))
 
