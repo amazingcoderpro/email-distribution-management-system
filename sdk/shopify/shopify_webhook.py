@@ -50,10 +50,8 @@ class ProductsApi:
             if result.status_code in [200, 201]:
                 logger.info("create shopify webhook info is success")
                 res_dict = json.loads(result.text)
-                print(res_dict)
                 return {"code": 1, "msg": "", "data": res_dict}
             else:
-                logger.info("create shopify webhook info is failed")
                 return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
         except Exception as e:
             logger.error("create shopify webhook info is failed info={}".format(str(e)))
