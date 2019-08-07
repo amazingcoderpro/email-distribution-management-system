@@ -741,7 +741,7 @@ class ShopifyDataProcessor:
             self.update_shopify_order_customer()
 
             # TODO 新店铺创建模版
-            #self.create_template(store)
+            self.create_template(store)
 
             self.update_store_webhook(store)
 
