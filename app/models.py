@@ -241,52 +241,52 @@ class CustomerGroup(models.Model):
         db_table = 'customer_group'
 
 
-class Customer(models.Model):
-    """客户表"""
-    uuid = models.CharField(max_length=255, db_index=True, verbose_name="客户的唯一id")
-    first_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="first_name")
-    last_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_name")
-    customer_email = models.EmailField(max_length=255, blank=True, null=True, verbose_name="客户邮箱")
-    subscribe_time = models.DateTimeField(blank=True, null=True, verbose_name="最近购物时间")
-    sign_up_time = models.DateTimeField(blank=True, null=True, db_index=True, verbose_name="客户登陆时间")
-    last_cart_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后一次购物时间")
-    last_order_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后一次订单时间")
-    last_order_status_choices = ((0, 'is paid'), (1, 'is unpaid'))
-    last_order_status = models.SmallIntegerField(db_index=True, choices=last_order_status_choices, blank=True, null=True, verbose_name="客户最后一次订单状态")
-    last_cart_status_choices = ((0, 'is empty'), (1, 'is not empty'))
-    last_cart_status = models.SmallIntegerField(db_index=True, choices=last_cart_status_choices, blank=True,
-                                                 null=True, verbose_name="客户最后一次购物车状态")
-
-    accept_marketing_choices = ((0, 'is true'), (1, 'is false'))
-    accept_marketing_status = models.SmallIntegerField(db_index=True, choices=accept_marketing_choices, blank=True,null=True, verbose_name="")
-
-    unsubscribe_choices = ((0, 'is false'), (1, 'is true'), (2, 'is sleep'))
-    unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅或者休眠")
-    unsubscribe_date = models.DateTimeField(blank=True, null=True, verbose_name="取消订阅时间/休眠的截止时间")  # unsubscribe_status=1时为取消订阅时间，unsubscribe_status=2时为休眠的截止时间
-
-    payment_amount = models.CharField(blank=True, null=True, max_length=255, verbose_name="客户付款金额")
-
-    # last_opened_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后打开邮箱时间")
-    # opened_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户打开邮箱次数")
-    #
-    # last_click_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后单击邮箱时间")
-    # clicked_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户单击邮箱次数")
-    orders_count = models.IntegerField(blank=True, null=True, verbose_name="订单数量")
-    last_order_id = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_order_id")
-    if ENABLE_MIGRATE:
-        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
-    else:
-        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
-    update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
-
-    class Meta:
-        managed = ENABLE_MIGRATE
-        if ENABLE_MIGRATE:
-            unique_together = ("store_id", "uuid")
-        else:
-            unique_together = ("store", "uuid")
-        db_table = 'customer'
+# class Customer(models.Model):
+#     """客户表"""
+#     uuid = models.CharField(max_length=255, db_index=True, verbose_name="客户的唯一id")
+#     first_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="first_name")
+#     last_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_name")
+#     customer_email = models.EmailField(max_length=255, blank=True, null=True, verbose_name="客户邮箱")
+#     subscribe_time = models.DateTimeField(blank=True, null=True, verbose_name="最近购物时间")
+#     sign_up_time = models.DateTimeField(blank=True, null=True, db_index=True, verbose_name="客户登陆时间")
+#     last_cart_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后一次购物时间")
+#     last_order_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后一次订单时间")
+#     last_order_status_choices = ((0, 'is paid'), (1, 'is unpaid'))
+#     last_order_status = models.SmallIntegerField(db_index=True, choices=last_order_status_choices, blank=True, null=True, verbose_name="客户最后一次订单状态")
+#     last_cart_status_choices = ((0, 'is empty'), (1, 'is not empty'))
+#     last_cart_status = models.SmallIntegerField(db_index=True, choices=last_cart_status_choices, blank=True,
+#                                                  null=True, verbose_name="客户最后一次购物车状态")
+#
+#     accept_marketing_choices = ((0, 'is true'), (1, 'is false'))
+#     accept_marketing_status = models.SmallIntegerField(db_index=True, choices=accept_marketing_choices, blank=True,null=True, verbose_name="")
+#
+#     unsubscribe_choices = ((0, 'is false'), (1, 'is true'), (2, 'is sleep'))
+#     unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅或者休眠")
+#     unsubscribe_date = models.DateTimeField(blank=True, null=True, verbose_name="取消订阅时间/休眠的截止时间")  # unsubscribe_status=1时为取消订阅时间，unsubscribe_status=2时为休眠的截止时间
+#
+#     payment_amount = models.CharField(blank=True, null=True, max_length=255, verbose_name="客户付款金额")
+#
+#     # last_opened_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后打开邮箱时间")
+#     # opened_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户打开邮箱次数")
+#     #
+#     # last_click_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后单击邮箱时间")
+#     # clicked_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户单击邮箱次数")
+#     orders_count = models.IntegerField(blank=True, null=True, verbose_name="订单数量")
+#     last_order_id = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_order_id")
+#     if ENABLE_MIGRATE:
+#         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+#     else:
+#         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+#     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
+#     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
+#
+#     class Meta:
+#         managed = ENABLE_MIGRATE
+#         if ENABLE_MIGRATE:
+#             unique_together = ("store_id", "uuid")
+#         else:
+#             unique_together = ("store", "uuid")
+#         db_table = 'customer'
 
 
 class SubscriberActivity(models.Model):
@@ -308,48 +308,48 @@ class SubscriberActivity(models.Model):
         db_table = 'subscriber_activity'
 
 
-class ProductCategory(models.Model):
-    """产品类目表"""
-    title = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品类目标题")
-    url = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品类目标题url")
-    category_id = models.CharField(db_index=True, max_length=255,blank=True, null=True, verbose_name="产品类目id")
-    if ENABLE_MIGRATE:
-        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
-    else:
-        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING, blank=True)
-    create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
-    update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
-
-    class Meta:
-        managed = ENABLE_MIGRATE
-        if ENABLE_MIGRATE:
-            unique_together = ("category_id", "store_id")
-        else:
-            unique_together = ("category_id", "store")
-        db_table = 'product_category'
-
-
-class Product(models.Model):
-    """产品表"""
-    # sku = models.CharField(db_index=True, max_length=255, verbose_name="产品标识符")
-    url = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品URL")
-    uuid = models.CharField(max_length=64, verbose_name="产品唯一标识")
-    name = models.CharField(db_index=True, max_length=255, verbose_name="产品名称")
-    image_url = models.CharField(max_length=255, verbose_name="图片URL")
-    price = models.CharField(blank=True, null=True, max_length=255, verbose_name="产品价格")
-    product_category = models.ForeignKey(ProductCategory, on_delete=models.DO_NOTHING,blank=True, null=True)
-    state = models.SmallIntegerField(default=0, verbose_name="前端判断是否勾选状态")
-    if ENABLE_MIGRATE:
-        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
-    else:
-        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-    update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
-
-    class Meta:
-        managed = ENABLE_MIGRATE
-        unique_together = ("product_category", "uuid")
-        db_table = 'product'
+# class ProductCategory(models.Model):
+#     """产品类目表"""
+#     title = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品类目标题")
+#     url = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品类目标题url")
+#     category_id = models.CharField(db_index=True, max_length=255,blank=True, null=True, verbose_name="产品类目id")
+#     if ENABLE_MIGRATE:
+#         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+#     else:
+#         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING, blank=True)
+#     create_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
+#     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
+#
+#     class Meta:
+#         managed = ENABLE_MIGRATE
+#         if ENABLE_MIGRATE:
+#             unique_together = ("category_id", "store_id")
+#         else:
+#             unique_together = ("category_id", "store")
+#         db_table = 'product_category'
+#
+#
+# class Product(models.Model):
+#     """产品表"""
+#     # sku = models.CharField(db_index=True, max_length=255, verbose_name="产品标识符")
+#     url = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品URL")
+#     uuid = models.CharField(max_length=64, verbose_name="产品唯一标识")
+#     name = models.CharField(db_index=True, max_length=255, verbose_name="产品名称")
+#     image_url = models.CharField(max_length=255, verbose_name="图片URL")
+#     price = models.CharField(blank=True, null=True, max_length=255, verbose_name="产品价格")
+#     product_category = models.ForeignKey(ProductCategory, on_delete=models.DO_NOTHING,blank=True, null=True)
+#     state = models.SmallIntegerField(default=0, verbose_name="前端判断是否勾选状态")
+#     if ENABLE_MIGRATE:
+#         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+#     else:
+#         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+#     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+#     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
+#
+#     class Meta:
+#         managed = ENABLE_MIGRATE
+#         unique_together = ("product_category", "uuid")
+#         db_table = 'product'
 
 
 class OrderEvent(models.Model):
