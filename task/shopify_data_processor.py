@@ -732,13 +732,13 @@ class ShopifyDataProcessor:
             logger.info("update_new_shopify begin update data store_id={}".format(store[0]))
             store = (store,)
             store_id = store[0][0]
-            # self.update_shopify_collections(store)
-            # self.update_shopify_orders(store)
-            # self.update_shopify_product(store)
-            # self.update_top_product(store)
-            #
-            # # 新店铺拉客户, 初始拉取一次，以后由webhook推送新顾客的创建事件
-            # self.update_shopify_customers(store=store)
+            self.update_shopify_collections(store)
+            self.update_shopify_orders(store)
+            self.update_shopify_product(store)
+            self.update_top_product(store)
+
+            # 新店铺拉客户, 初始拉取一次，以后由webhook推送新顾客的创建事件
+            self.update_shopify_customers(store=store)
             self.update_shopify_order_customer(store_id)
             self.update_store_webhook(store)
 
