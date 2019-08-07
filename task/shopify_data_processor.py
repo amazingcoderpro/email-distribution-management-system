@@ -731,6 +731,10 @@ class ShopifyDataProcessor:
             conn.commit()
             logger.info("update_new_shopify begin update data store_id={}".format(store[0]))
             store = (store,)
+
+            # TODO 新店铺创建模版
+            self.create_template(store)
+
             self.update_shopify_collections(store)
             self.update_shopify_orders(store)
             self.update_shopify_product(store)
@@ -740,8 +744,6 @@ class ShopifyDataProcessor:
             self.update_shopify_customers(store=store)
             self.update_shopify_order_customer()
 
-            # TODO 新店铺创建模版
-            self.create_template(store)
 
             self.update_store_webhook(store)
 
