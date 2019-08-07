@@ -34,7 +34,7 @@ class ProductsApi:
                 "address": address,
                 "format": "json"
             }}
-        if shop_uri:
+        if self.shop_uri:
             self.headers['X_Shopify_Shop_Domain'] = self.shop_uri
             self.headers['X_Shopify_Shop_Id'] = str(3)
         if topic:

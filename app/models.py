@@ -239,6 +239,24 @@ class CustomerGroup(models.Model):
         db_table = 'customer_group'
 
 
+class CustomerUnsubscribe(models.Model):
+    """客户表"""
+    customer_uuid = models.CharField(max_length=255, db_index=True, verbose_name="客户的唯一id")
+    unsubscribe_choices = ((0, 'is false'), (1, 'is true'), (2, 'is sleep'))
+    unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅或者休眠")
+    unsubscribe_date = models.DateTimeField(blank=True, null=True, verbose_name="取消订阅时间/休眠的截止时间")  # unsubscribe_status
+    if True:
+        store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
+    else:
+        store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    class Meta:
+        managed = True
+        db_table = 'customer_unsubscribe'
+
+
 class Customer(models.Model):
     """客户表"""
     uuid = models.CharField(max_length=255, db_index=True, verbose_name="客户的唯一id")
@@ -258,10 +276,6 @@ class Customer(models.Model):
     accept_marketing_choices = ((0, 'is true'), (1, 'is false'))
     accept_marketing_status = models.SmallIntegerField(db_index=True, choices=accept_marketing_choices, blank=True,null=True, verbose_name="")
 
-    unsubscribe_choices = ((0, 'is false'), (1, 'is true'), (2, 'is sleep'))
-    unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅或者休眠")
-    unsubscribe_date = models.DateTimeField(blank=True, null=True, verbose_name="取消订阅时间/休眠的截止时间")  # unsubscribe_status=1时为取消订阅时间，unsubscribe_status=2时为休眠的截止时间
-
     payment_amount = models.CharField(blank=True, null=True, max_length=255, verbose_name="客户付款金额")
 
     # last_opened_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后打开邮箱时间")
@@ -271,7 +285,7 @@ class Customer(models.Model):
     # clicked_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户单击邮箱次数")
     orders_count = models.IntegerField(blank=True, null=True, verbose_name="订单数量")
     last_order_id = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_order_id")
-    if ENABLE_MIGRATE:
+    if True:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
@@ -279,8 +293,8 @@ class Customer(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = ENABLE_MIGRATE
-        if ENABLE_MIGRATE:
+        managed = True
+        if True:
             unique_together = ("store_id", "uuid")
         else:
             unique_together = ("store", "uuid")
@@ -336,7 +350,7 @@ class Product(models.Model):
     image_url = models.CharField(max_length=255, verbose_name="图片URL")
     price = models.CharField(blank=True, null=True, max_length=255, verbose_name="产品价格")
     product_category = models.ForeignKey(ProductCategory, on_delete=models.DO_NOTHING,blank=True, null=True)
-    state = models.SmallIntegerField(default=0, verbose_name="前端判断是否勾选状态")
+    # state = models.SmallIntegerField(default=0, verbose_name="前端判断是否勾选状态")
     if ENABLE_MIGRATE:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
