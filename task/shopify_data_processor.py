@@ -650,7 +650,7 @@ class ShopifyDataProcessor:
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/checkouts/update/','topic': 'checkouts/update'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/checkouts/delete/','topic': 'checkouts/delete'},
         ]
-        webhook_info = shopify_webhook.products_api(shop_uri=store[0][1], access_token=store[0][2])
+        webhook_info = shopify_webhook.ProductsApi(shop_uri=store[0][1], access_token=store[0][2])
         for webhook in webhooks:
             webhook_info.create_webhook(topic=webhook.get("topic", ""), address=webhook.get("address", ""))
 
