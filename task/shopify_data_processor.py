@@ -773,6 +773,7 @@ class ShopifyDataProcessor:
                     """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
                 stores = cursor.fetchall()
 
+            logger.info("update_shopify_customers checking... sotres={}".format(stores))
             for store in stores:
                 customer_insert_list = []
                 customer_update_list = []
@@ -800,12 +801,14 @@ class ShopifyDataProcessor:
                 else:
                     store_create_time = datetime.datetime.now() - datetime.timedelta(days=1000)
 
+                logger.info("start get store customers, store id={}, store create time={}".format(store_id, store_create_time))
                 need_update_orders = []
                 while times < 10000:
                     create_at_max = create_at_max.strftime(time_format) if isinstance(create_at_max, datetime.datetime) else create_at_max[0:19]
                     create_at_min = create_at_min.strftime(time_format) if isinstance(create_at_min, datetime.datetime) else create_at_min[0:19]
                     # 已经超过店铺的创建时间
                     if create_at_max < store_create_time.strftime(time_format):
+                        logger.warning("customer create time max({}) < store create time({}), break.".format(create_at_max, store_create_time))
                         break
 
                     ret = papi.get_all_customers(limit=250, created_at_min=create_at_min+"+08:00", created_at_max=create_at_max+"+08:00")
