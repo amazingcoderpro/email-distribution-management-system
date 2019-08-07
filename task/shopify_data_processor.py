@@ -770,7 +770,7 @@ class ShopifyDataProcessor:
                 stores = store
             else:
                 cursor.execute(
-                    """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
+                    """select store.id, store.url, store.token, store_create_time from store left join user on store.user_id = user.id where user.is_active = 1""")
                 stores = cursor.fetchall()
 
             logger.info("update_shopify_customers checking... sotres={}".format(stores))
@@ -779,7 +779,7 @@ class ShopifyDataProcessor:
                 customer_update_list = []
                 total_insert_ids = []
 
-                store_id, store_url, store_token = store
+                store_id, store_url, store_token, store_create_time = store
                 if not all([store_url, store_token]):
                     logger.warning("the store have not url or token, store id={}".format(store_id))
                     continue
@@ -793,13 +793,6 @@ class ShopifyDataProcessor:
                 create_at_max = datetime.datetime.now() #- datetime.timedelta(days=262)
                 create_at_min = create_at_max - datetime.timedelta(days=30)
                 time_format = "%Y-%m-%dT%H:%M:%S"
-                # store_create_time = datetime.datetime.now()-datetime.timedelta(days=400)    ##临时的
-                cursor.execute("select `store_create_time` from `store` where 'id'=%s", (store_id, ))
-                ret = cursor.fetchone()
-                if ret and ret[0]:
-                    store_create_time = ret[0]
-                else:
-                    store_create_time = datetime.datetime.now() - datetime.timedelta(days=1000)
 
                 logger.info("start get store customers, store id={}, store create time={}".format(store_id, store_create_time))
                 need_update_orders = []
