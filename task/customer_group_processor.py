@@ -37,7 +37,7 @@ class AnalyzeCondition:
                         }
         self.mongo_config = mongo_config
 
-    def get_store_from_type(self, store_id):
+    def get_store_type(self, store_id):
         """
         获取某一店铺的from_type和name
         :param store_id: 店铺id
@@ -55,7 +55,7 @@ class AnalyzeCondition:
 
             return store
         except Exception as e:
-            logger.exception("get_store_from_type exception={}".format(e))
+            logger.exception("get_store_type exception={}".format(e))
             return (0, None)
         finally:
             cursor.close() if cursor else 0
@@ -120,7 +120,7 @@ class AnalyzeCondition:
             conn.close() if conn else 0
 
     def adapt_sign_up_time(self, store_id, relations):
-        from_type, store_name = self.get_store_from_type(store_id)
+        from_type, store_name = self.get_store_type(store_id)
         if from_type == 0:
             return self.adapt_all_order_mongo(store_id, relations, store_name)
         else:
