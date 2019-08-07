@@ -245,7 +245,7 @@ class CustomerUnsubscribe(models.Model):
     unsubscribe_choices = ((0, 'is false'), (1, 'is true'), (2, 'is sleep'))
     unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅或者休眠")
     unsubscribe_date = models.DateTimeField(blank=True, null=True, verbose_name="取消订阅时间/休眠的截止时间")  # unsubscribe_status
-    if True:
+    if ENABLE_MIGRATE:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
@@ -253,7 +253,7 @@ class CustomerUnsubscribe(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = True
+        managed = ENABLE_MIGRATE
         db_table = 'customer_unsubscribe'
 
 
@@ -285,7 +285,7 @@ class Customer(models.Model):
     # clicked_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户单击邮箱次数")
     orders_count = models.IntegerField(blank=True, null=True, verbose_name="订单数量")
     last_order_id = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_order_id")
-    if True:
+    if ENABLE_MIGRATE:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
@@ -293,8 +293,8 @@ class Customer(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = True
-        if True:
+        managed = ENABLE_MIGRATE
+        if ENABLE_MIGRATE:
             unique_together = ("store_id", "uuid")
         else:
             unique_together = ("store", "uuid")

@@ -731,6 +731,7 @@ class ShopifyDataProcessor:
             conn.commit()
             logger.info("update_new_shopify begin update data store_id={}".format(store[0]))
             store = (store,)
+            store_id = store[0][0]
             self.update_shopify_collections(store)
             self.update_shopify_orders(store)
             self.update_shopify_product(store)
@@ -738,11 +739,7 @@ class ShopifyDataProcessor:
 
             # 新店铺拉客户, 初始拉取一次，以后由webhook推送新顾客的创建事件
             self.update_shopify_customers(store=store)
-            self.update_shopify_order_customer()
-
-            # TODO 新店铺创建模版
-            self.create_template(store)
-
+            self.update_shopify_order_customer(store_id)
             self.update_store_webhook(store)
 
             logger.info("update_new_shopify end init data store_id={}".format(store[0]))
@@ -886,7 +883,7 @@ class ShopifyDataProcessor:
             conn.close() if conn else 0
         return True
 
-    def update_shopify_order_customer(self):
+    def update_shopify_order_customer(self, store_id):
         """
         # 用户的订单表 和  用户的信息表同步
         :return:
@@ -898,7 +895,7 @@ class ShopifyDataProcessor:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
-            cursor.execute("""select `status`, `order_update_time`, `order_uuid`, `store_id` from `order_event` """,)
+            cursor.execute("""select `status`, `order_update_time`, `order_uuid`, `store_id` from `order_event` where store_id """,)
             ret = cursor.fetchall()
             if ret:
                 cursor.executemany(
@@ -917,7 +914,7 @@ if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
-    ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
+    # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_product()
     # 拉取shopify GA 数据
     #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
@@ -925,6 +922,6 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
 
-    #ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    ShopifyDataProcessor(db_info=db_info).update_new_shopify()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
 
