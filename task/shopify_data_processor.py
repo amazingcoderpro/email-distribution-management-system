@@ -371,7 +371,7 @@ class ShopifyDataProcessor:
                 stores = store
 
             for store in stores:
-                store_id, store_url, store_token = store
+                store_id, store_url, store_token, *_ = store
                 top_three_product_list,top_seven_product_list,top_fifteen_product_list,top_thirty_product_list = [],[],[],[]
                 top_three_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=3),datetime.time.min)
                 top_seven_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=7),datetime.time.min)
