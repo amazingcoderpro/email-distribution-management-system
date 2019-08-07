@@ -6,18 +6,18 @@ import pymysql
 import datetime
 import json
 from dateutil.relativedelta import relativedelta
-from config import logger, MONGO_CONFIG
+from config import logger, MONGO_CONFIG, MYSQL_CONFIG
 from task.db_util import DBUtil, MongoDBUtil
 from sdk.ems import ems_api
 
 
 class AnalyzeCondition:
-    def __init__(self, db_info, mongo_config):
-        self.db_host = db_info.get("host", "")
-        self.db_port = db_info.get("port", 3306)
-        self.db_name = db_info.get("db", "")
-        self.db_user = db_info.get("user", "")
-        self.db_password = db_info.get("password", "")
+    def __init__(self, mysql_config, mongo_config):
+        self.db_host = mysql_config.get("host", "")
+        self.db_port = mysql_config.get("port", 3306)
+        self.db_name = mysql_config.get("db", "")
+        self.db_user = mysql_config.get("user", "")
+        self.db_password = mysql_config.get("password", "")
         self.condition_dict = {"Customer sign up time": self.adapt_sign_up_time,
                               "Customer last order created time": self.adapt_last_order_created_time,
                               "Customer last opened email time": self.adapt_last_opened_email_time,
@@ -1453,7 +1453,7 @@ if __name__ == '__main__':
     #           "relations": [{"relation": "is in the past", "values": [333, 0], "unit": "days"}]}]}]
     #              }
 
-    ac = AnalyzeCondition(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}, mongo_config=MONGO_CONFIG)
+    ac = AnalyzeCondition(mysql_config=MYSQL_CONFIG, mongo_config=MONGO_CONFIG)
     ac.update_customer_group_list()
     # conditions = ac.get_conditions()
     # for cond in conditions:

@@ -170,7 +170,7 @@ def run():
     # 所有定时任务在此创建
 
     # 定期更新customer group
-    ac = AnalyzeCondition(db_info=db_info)
+    ac = AnalyzeCondition(mysql_config=db_info)
     tp.create_periodic_task(ac.update_customer_group_list, seconds=7200)
     tp.create_periodic_task(ac.parse_trigger_tasks, seconds=120, max_instances=50)  # 间隔2分钟扫描一遍email_trigger表
     tp.create_periodic_task(ac.execute_flow_task, seconds=118, max_instances=50)  # 每隔2分钟扫描email_task表，为避免与定时任务重复，故取时间间隔118秒
