@@ -84,9 +84,9 @@ WSGI_APPLICATION = 'edm.wsgi.application'
 DATABASES = {
     'default': {
     'ENGINE': 'django.db.backends.mysql',
-    'NAME': 'edm_opstores',
-    'USER': 'edm_opstores',
-    'PASSWORD': "edm_opstores@orderplus.com",
+    'NAME': 'edm',
+    'USER': 'edm',
+    'PASSWORD': "edm@orderplus.com",
     'HOST': "47.244.107.240",
     'PORT': '3306',
     'OPTIONS': {"init_command": "SET foreign_key_checks = 0;",}
