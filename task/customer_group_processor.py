@@ -939,7 +939,21 @@ class AnalyzeCondition:
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
                 return result
-
+            # 更新休眠收件人的状态
+            cursor.execute(
+                """select id,unsubscribe_date from `customer` where store_id=%s and unsubscribe_status=2""", (store_id,))
+            snoozed = cursor.fetchall()
+            if snoozed:
+                update_ids = []
+                for customer in snoozed:
+                    if customer["unsubscribe_date"] < datetime.datetime.now():
+                        update_ids.append(customer["id"])
+                if update_ids:
+                    cursor.execute(
+                        """update `customer` set unsubscribe_date=null, unsubscribe_status=0 where id in %s""",
+                        (tuple(update_ids),))
+                    conn.commit()
+                    logger.info("update snoozed customers status success.")
             cursor.execute(
                 """select `uuid` from `customer` where store_id=%s and unsubscribe_status in (1,2)""", (store_id,))
             res = cursor.fetchall()
@@ -1448,5 +1462,6 @@ if __name__ == '__main__':
     # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
     # print(ac.filter_received_customer(1, 346))
-    print(ac.parse_trigger_tasks())
+    # print(ac.parse_trigger_tasks())
     # print(ac.execute_flow_task())
+    print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(4))
