@@ -241,7 +241,7 @@ class CustomerGroup(models.Model):
 
 class CustomerUnsubscribe(models.Model):
     """客户表"""
-    customer_uuid = models.CharField(max_length=255, db_index=True, verbose_name="客户的唯一id")
+    email = models.CharField(max_length=255, db_index=True, blank=True, null=True, verbose_name="客户的email")
     unsubscribe_choices = ((0, 'is false'), (1, 'is true'), (2, 'is sleep'))
     unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅或者休眠")
     unsubscribe_date = models.DateTimeField(blank=True, null=True, verbose_name="取消订阅时间/休眠的截止时间")  # unsubscribe_status
