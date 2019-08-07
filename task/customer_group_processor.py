@@ -140,13 +140,6 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
-    def adapt_sign_up_time(self, store_id, relations):
-        from_type, store_name = self.get_store_source(store_id)
-        if from_type == 0:
-            return self.adapt_all_order_mongo(store_id, relations, store_name)
-        else:
-            return self.adapt_all_order_mysql(store_id, relations)
-
     def adapt_sign_up_time_mongo(self, store_id, relations, store_name):
         try:
             customers = []
@@ -161,7 +154,7 @@ class AnalyzeCondition:
         finally:
             mdb.close()
 
-    def adapt_sign_up_time_mysql(self, store_id, relations):
+    def adapt_sign_up_time(self, store_id, relations):
         """
         适配出所有符合注册条件的客户id
         :param store_id: 店铺id
