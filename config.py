@@ -40,6 +40,7 @@ EMS_CONFIG = {
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST", "47.244.107.240"),
     "port": 3306,
+    "db": "edm",
     "user": "edm",
     "password": os.getenv("MYSQL_PASSWD", "edm@orderplus.com")
 }
