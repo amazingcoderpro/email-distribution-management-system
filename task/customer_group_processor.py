@@ -37,7 +37,28 @@ class AnalyzeCondition:
                         }
         self.mongo_config = mongo_config
 
-    def get_store_type(self, store_id):
+    def common_adapter(self, condition, store_id, relations):
+        from_type, store_name = self.get_store_source(store_id)
+        function_name = self.condition_dict.get(condition, "")
+        if not function_name:
+            logger.warning("Condition have no adapter, condition name={}".format(condition))
+            return None
+
+        if from_type == 0:
+            # 来自opstores
+            function_name += "_mongo"
+
+        adapter = getattr(self, function_name)
+        if not adapter:
+            logger.warning("Adapter have not implement, condition name={}, adapter name={}".format(condition, function_name))
+            return None
+
+        if from_type == 0:
+            return adapter(store_id, relations, store_name)
+        else:
+            return adapter(store_id, relations)
+
+    def get_store_source(self, store_id):
         """
         获取某一店铺的from_type和name
         :param store_id: 店铺id
@@ -48,15 +69,15 @@ class AnalyzeCondition:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return 0, None
-            cursor.execute("select `from_type`, `name` from `store` where id=%s", (store_id, ))
+            cursor.execute("select `source`, `name` from `store` where id=%s", (store_id, ))
             store = cursor.fetchone()
             if not store:
                 return 0, None
 
             return store
         except Exception as e:
-            logger.exception("get_store_type exception={}".format(e))
-            return (0, None)
+            logger.exception("get_store_source exception={}".format(e))
+            return 0, None
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
@@ -120,7 +141,7 @@ class AnalyzeCondition:
             conn.close() if conn else 0
 
     def adapt_sign_up_time(self, store_id, relations):
-        from_type, store_name = self.get_store_type(store_id)
+        from_type, store_name = self.get_store_source(store_id)
         if from_type == 0:
             return self.adapt_all_order_mongo(store_id, relations, store_name)
         else:
@@ -676,10 +697,8 @@ class AnalyzeCondition:
                 child_relation = gc.get("relation", "&&")
                 for child in children:
                     condition_name = child.get("condition", "")
-                    adapter = self.condition_dict.get(condition_name, None)
-                    if adapter:
-                        customers = adapter(store_id=store_id, relations=child.get("relations", []))
-    
+                    customers = self.common_adapter(condition=condition_name, store_id=store_id, relations=child.get("relations", []))
+                    if customers is not None:
                         # 当条件为且时，　任一条件的结果为空时，则break, 且置总结果为空
                         if child_relation == "&&":
                             if not customers:
