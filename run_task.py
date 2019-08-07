@@ -177,7 +177,7 @@ def run():
     # 定期更新customer group
     ac = AnalyzeCondition(db_info=db_info)
     tp.create_periodic_task(ac.update_customer_group_list, seconds=7200)
-    tp.create_periodic_task(ac.parse_trigger_tasks, seconds=300, max_instances=50)  # 间隔5分钟扫描一遍email_trigger表
+    tp.create_periodic_task(ac.parse_trigger_tasks, seconds=120, max_instances=50)  # 间隔2分钟扫描一遍email_trigger表
     tp.create_periodic_task(ac.execute_flow_task, seconds=118, max_instances=50)  # 每隔2分钟扫描email_task表，为避免与定时任务重复，故取时间间隔118秒
 
     # 模板解析定时任务
@@ -202,9 +202,11 @@ def run():
     tp.create_cron_task(ems.update_customer_group_data, "*", 0, 5)  # 每天00:05:00更新到目前时间用户组最新ems数据
     tp.create_cron_task(ems.update_email_reocrd_data, "*", 0, 5)  # 每天00:05:00更新到目前时间已发送邮件最新ems数据
     tp.create_cron_task(ems.insert_dashboard_data, "*", 1, 0)  # 每天01:00:00更新dashboard最新数据
-    tp.create_periodic_task(ems.update_unsubscriber_and_snoozed_customers, seconds=60*30)  # 每半小时更新一下取消订阅和休眠的收件人
+    tp.create_periodic_task(ems.update_unsubscriber_and_snoozed_customers, seconds=60)  # 每一分钟更新一下取消订阅和休眠的收件人，因为flow是两分钟检测一次customer
     while 1:
         time.sleep(1)
+
+
 
 
 if __name__ == '__main__':

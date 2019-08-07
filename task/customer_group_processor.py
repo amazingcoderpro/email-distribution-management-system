@@ -92,7 +92,7 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
         return customers
-    
+
     def adapt_sign_up_time(self, store_id, relations):
         """
         适配出所有符合注册条件的客户id
@@ -587,16 +587,20 @@ class AnalyzeCondition:
         try:
             min_time = None
             max_time = None
+            # 兼容一下时间格式
+            format_str_0 = format_str_1 = "%Y-%m-%d %H:%M:%S" if len(values[0]) > 11 else "%Y-%m-%d"
+            if len(values) == 2:
+                format_str_1 = "%Y-%m-%d %H:%M:%S" if len(values[1]) > 11 else "%Y-%m-%d"
             time_now = datetime.datetime.now()
             if relation.lower() in "is in the past":
                 min_time = time_now - unit_convert(unit_=unit, value=values[0])
             elif relation.lower() in "is before":
-                max_time = datetime.datetime.strptime(values[0], "%Y-%m-%d %H:%M:%S")
+                max_time = datetime.datetime.strptime(values[0], format_str_0)
             elif relation.lower() in "is after":
-                min_time = datetime.datetime.strptime(values[0], "%Y-%m-%d %H:%M:%S")
+                min_time = datetime.datetime.strptime(values[0], format_str_0)
             elif relation.lower() == "is between date" or relation.lower() == "between date":
-                min_time = datetime.datetime.strptime(values[0], "%Y-%m-%d %H:%M:%S")
-                max_time = datetime.datetime.strptime(values[1], "%Y-%m-%d %H:%M:%S")
+                min_time = datetime.datetime.strptime(values[0], format_str_0)
+                max_time = datetime.datetime.strptime(values[1], format_str_1)
             elif relation.lower() == "is between" or relation.lower() == "between":
                 max_time = time_now - unit_convert(unit_=unit, value=values[0])
                 min_time = time_now - unit_convert(unit_=unit, value=values[1])
@@ -874,12 +878,42 @@ class AnalyzeCondition:
                                             value=0, min_time=start_time, max_time=end_time)
         return adapt_customers
 
+    def filter_unsubscribed_and_snoozed_in_the_customer_list(self, store_id):
+        """
+        获取当前店铺取消订阅或正在休眠的收件人
+        :param store_id: 店铺ID
+        :return: 满足条件的收件人uuid列表
+        """
+        logger.info(
+            "get unsubscribed and snoozed in the customer list, store_id={}".format(store_id))
+        result = []
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return result
+
+            cursor.execute(
+                """select `uuid` from `customer` where store_id=%s and unsubscribe_status in (1,2)""", (store_id,))
+            res = cursor.fetchall()
+            if res:
+                for ret in res:
+                    result.append(ret.get('uuid'))
+        except Exception as e:
+            logger.exception("get unsubscribed and snoozed exception: e = {}".format(e))
+            return result
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return result
+
     def filter_received_customer(self, store_id, email_id):
 
         """
         7天之内收到过此邮件的用户
         :param store_id: 用户所属的店铺
-        :return: 满足条件的用户email列表
+        :return: 满足条件的用户uuid列表
         """
         logger.info(" the customer received an email from this campaign in the last 7 days, store_id={}".format(store_id))
         result = []
@@ -891,14 +925,15 @@ class AnalyzeCondition:
                 return result
 
             cursor.execute(
-                """select `email` from `subscriber_activity` where store_id=%s and message_uuid=%s and type=2 and opt_time > %s""",
+                """select c.uuid from `subscriber_activity`as s join `customer` as c on s.email=c.customer_email 
+                where s.store_id=%s and s.message_uuid=%s and s.type=2 and s.opt_time > %s""",
                 (store_id, email_id, datetime.datetime.now()-datetime.timedelta(days=7)))
             res = cursor.fetchall()
             if res:
                 for ret in res:
-                    result.append(ret.get('email'))
+                    result.append(ret.get('uuid'))
         except Exception as e:
-            logger.exception("adapt_last_order_created_time e={}".format(e))
+            logger.exception("the customer received an email from this campaign in the last 7 days exceptions: e = {}".format(e))
             return result
         finally:
             cursor.close() if cursor else 0
@@ -1038,12 +1073,15 @@ class AnalyzeCondition:
             store_id, t_id, title, relation_info, email_delay, note, old_customer_list, customer_list_id = cond.values()
             customer_list = self.get_customers_by_condition(condition=json.loads(cond["relation_info"]),
                                                           store_id=cond["store_id"])
+            logger.info("search customers by trigger conditions success. trigger_id = %s" % t_id)
             if not customer_list:
                 # 无符合触发条件的用户
                 logger.warning("Not found customers matching the search relation_info: %s"% json.loads(cond["relation_info"]))
                 continue
             # 计算新增用户，创建新的任务，第一次应全是新增用户
-            if not eval(str(old_customer_list)):
+            if not old_customer_list:
+                old_customer_list = []
+            elif not eval(str(old_customer_list)):
                 old_customer_list = []
             else:
                 old_customer_list = eval(old_customer_list)
@@ -1052,6 +1090,7 @@ class AnalyzeCondition:
                 # 无新增符合触发条件的用户
                 logger.warning("No new customers.")
                 continue
+            logger.info("some new customers into customer_list. trigger_id = %s" % t_id)
             old_customer_list.extend(new_customer_list)
             update_list.append((str(old_customer_list), datetime.datetime.now(), t_id))
 
@@ -1073,16 +1112,26 @@ class AnalyzeCondition:
                 if not r:
                     logger.error("insert_customer_list_id_from_email_trigger failed")
                     return False
-            # 将old_customer_list转换成邮箱地址列表
-            email_list = self.customer_uuid_to_email(old_customer_list)
-            #添加收件人
-            rest = ems.add_subscriber(customer_list_id, email_list)
-            if not rest:
-                logger.error("add subscribers failed")
-                return False
+
+            # 对new_customer_list里的收件人进行取消订阅或休眠过滤
+            unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(store_id)
+            new_customer_list = list(set(new_customer_list) - set(unsubscribed_and_snoozed))
+            logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (store_id, set(unsubscribed_and_snoozed)))
+
+            # 将new_customer_list转换成邮箱地址列表
+            email_list = self.customer_uuid_to_email(new_customer_list)
+            logger.info("new customer list length is %s" % len(email_list))
+            # 添加收件人,每次添加不能超过100个收件人
+            times = int(len(email_list)//99) + 1
+            for t in range(times):
+                rest = ems.add_subscriber(customer_list_id, email_list[99*t:99*(t+1)])
+                if rest["code"]==-1 or rest["code"]==2:
+                    logger.error("add subscribers failed")
+                    return False
+            logger.info("add subscriber success.customer_list_id is %s" % customer_list_id)
 
             # ToDo parse email_delay
-            excute_time = datetime.datetime.now() # flow从此刻开始
+            excute_time = datetime.datetime.now() + datetime.timedelta(minutes=5)  # flow从此刻开始，为了避免程序运行时间耽搁，导致第一封邮件容易过去，自动延后5分钟
             for item in json.loads(email_delay):
                 if item["type"] == "Email":  # 代表是邮件任务
                     template_id, unit = item["value"], item["unit"]
@@ -1105,8 +1154,12 @@ class AnalyzeCondition:
         # 1、将customer_list反填回数据库
         if not self.update_customer_list_from_trigger(update_list):
             return False
+        logger.info("email_trigger table update success.")
         # 2、拆解的任务入库email_task
-        return self.insert_email_task_from_trigger(insert_list)
+        if self.insert_email_task_from_trigger(insert_list):
+            return False
+        logger.info("email_trigger table update success.")
+        return True
 
     def update_customer_list_from_trigger(self, customer_lists):
         """
@@ -1150,7 +1203,7 @@ class AnalyzeCondition:
                 return False
             if datas:
                 cursor.executemany(
-                    """insert into email_task (uuid, template_id,state,remark,execute_time,customer_list,email_trigger_id,type,create_time,update_time) 
+                    """insert into email_task (uuid, template_id,status,remark,execute_time,customer_list,email_trigger_id,type,create_time,update_time) 
                     values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (datas))
                 conn.commit()
                 logger.info("insert email task from trigger success.")
@@ -1257,6 +1310,10 @@ class AnalyzeCondition:
                 if not eval(str(res["customer_list"])):
                     continue
                 customer_list = eval(res["customer_list"])
+                # 对customer_list里的收件人进行取消订阅或休眠过滤
+                unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(res["store_id"])
+                customer_list = list(set(customer_list) - set(unsubscribed_and_snoozed))
+                logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (res["store_id"], set(unsubscribed_and_snoozed)))
                 # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
                 if "customer received an email from this campaign in the last 7 days" in eval(res["note"]):
                     customers_7day = self.filter_received_customer(res["store_id"], res["uuid"])
@@ -1281,12 +1338,13 @@ class AnalyzeCondition:
                     rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
                     if rest["code"] != 1:
                         logger.warning("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
-                        send_error_info += rest["msg"] + "; "
+                        msg = rest["msg"]["Message"] if isinstance(rest["msg"], dict) else str(rest["msg"])
+                        send_error_info += msg + "; "
                     else:
                         status = 1
-                logger.info("send transactional messages {}".format("success" if status==1 else "fialed"))
+                logger.info("send transactional messages {}".format("success" if status == 1 else "fialed"))
                 # 邮件发送完毕，回填数据
-                update_tuple_list.append ((send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
+                update_tuple_list.append((send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
             update_res = self.update_flow_email_task(update_tuple_list)
             logger.info("execute flow task finished.")
         except Exception as e:
@@ -1336,13 +1394,13 @@ if __name__ == '__main__':
     #              }
 
     ac = AnalyzeCondition(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
-    # ac.update_customer_group_list()
+    ac.update_customer_group_list()
     # conditions = ac.get_conditions()
     # for cond in conditions:
     #     cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
     #     print(cus)
     # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
-    # print(ac.filter_received_customer(1, 372))
+    # print(ac.filter_received_customer(1, 346))
     print(ac.parse_trigger_tasks())
     # print(ac.execute_flow_task())
