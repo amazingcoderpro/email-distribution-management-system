@@ -336,7 +336,7 @@ class Product(models.Model):
     image_url = models.CharField(max_length=255, verbose_name="图片URL")
     price = models.CharField(blank=True, null=True, max_length=255, verbose_name="产品价格")
     product_category = models.ForeignKey(ProductCategory, on_delete=models.DO_NOTHING,blank=True, null=True)
-    state = models.SmallIntegerField(default=0, verbose_name="前端判断是否勾选状态")
+    # state = models.SmallIntegerField(default=0, verbose_name="前端判断是否勾选状态")
     if ENABLE_MIGRATE:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:

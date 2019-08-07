@@ -409,7 +409,7 @@ class ShopifyDataProcessor:
 
                 # top_three
                 cursor_dict.execute(
-                    """select id,name,url,uuid,price,image_url,state from product where store_id = %s and uuid in %s""",(store_id, top_three_product_list))
+                    """select id,name,url,uuid,price,image_url from product where store_id = %s and uuid in %s""",(store_id, top_three_product_list))
                 top_three_product = cursor_dict.fetchall()
 
                 top_three_list = []
@@ -921,10 +921,10 @@ if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
-    # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_product()
     # 拉取shopify GA 数据
-    ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
+    #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
