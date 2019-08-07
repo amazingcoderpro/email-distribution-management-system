@@ -8,18 +8,12 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from task.ems_data_processor import EMSDataProcessor
 from task.shopify_data_processor import ShopifyDataProcessor
-from config import logger
+from config import logger, MYSQL_CONFIG
 from task.customer_group_processor import AnalyzeCondition
 from task.template_task_processor import TemplateProcessor
 
 MYSQL_PASSWD = os.getenv('MYSQL_PASSWD', None)
 MYSQL_HOST = os.getenv('MYSQL_HOST', None)
-
-# just for test, delete it in product environment
-MYSQL_HOST = "47.244.107.240"
-MYSQL_PASSWD = "edm@orderplus.com"
-
-db_info = {"host": MYSQL_HOST, "port": 3306, "db": "edm", "user": "edm", "password": MYSQL_PASSWD}
 
 
 class TaskProcessor:
@@ -170,12 +164,13 @@ def test_task_processor():
 
 
 def run():
+    db_info = MYSQL_CONFIG
     tp = TaskProcessor()
 
     # 所有定时任务在此创建
 
     # 定期更新customer group
-    ac = AnalyzeCondition(db_info=db_info)
+    ac = AnalyzeCondition(mysql_config=db_info)
     tp.create_periodic_task(ac.update_customer_group_list, seconds=7200)
     tp.create_periodic_task(ac.parse_trigger_tasks, seconds=120, max_instances=50)  # 间隔2分钟扫描一遍email_trigger表
     tp.create_periodic_task(ac.execute_flow_task, seconds=118, max_instances=50)  # 每隔2分钟扫描email_task表，为避免与定时任务重复，故取时间间隔118秒

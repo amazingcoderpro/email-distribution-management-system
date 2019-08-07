@@ -36,9 +36,15 @@ EMS_CONFIG = {
     "api_key": "0x53WuKGWlbq2MQlLhLk"
 }
 
-# MYSQL_PASSWD = os.getenv('MYSQL_PASSWD', None)
-# MYSQL_HOST = os.getenv('MYSQL_HOST', None)
-MONGO_CONFIG ={
+
+MYSQL_CONFIG = {
+    "host": os.getenv("MYSQL_HOST", "47.244.107.240"),
+    "port": 3306,
+    "user": "edm",
+    "password": os.getenv("MYSQL_PASSWD", "edm@orderplus.com")
+}
+
+MONGO_CONFIG = {
     "host": "dds-j6cd6095509954a41.mongodb.rds.aliyuncs.com",
     "port": 3717,
     "db": "looklook",
@@ -52,11 +58,4 @@ MONGO_CONFIG ={
     "ssh_password": "ZBzZehr+WLonFxax"
 }
 
-MYSQL_CONFIG = {
-    'db': 'edm_opstores',
-    'user': 'edm_opstores',
-    'password': "edm_opstores@orderplus.com",
-    'host': "47.244.107.240",
-    'port': 3306,
-}
 ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
