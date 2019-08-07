@@ -641,7 +641,7 @@ class ShopifyDataProcessor:
         return True
 
     def update_store_webhook(self, store=None):
-        store_id, store_url, store_token, store_create_time = store
+        store_id, store_url, store_token, store_create_time = store[0]
         logger.info("update_store_webhook is checking... store_id={}".format(store_id))
         webhooks = [
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/cart/update/', 'topic': 'carts/update'},
@@ -892,7 +892,7 @@ class ShopifyDataProcessor:
         # 用户的订单表 和  用户的信息表同步
         :return:
         """
-        store_id, *_ = store
+        store_id, *_ = store[0]
         logger.info("update_shopify_order_customer is cheking... store_id={}".format(store_id))
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
