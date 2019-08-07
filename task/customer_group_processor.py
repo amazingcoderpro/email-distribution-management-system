@@ -6,12 +6,13 @@ import pymysql
 import datetime
 import json
 from dateutil.relativedelta import relativedelta
-from config import logger
-from task.shopify_data_processor import DBUtil
+from config import logger, MONGO_CONFIG
+from task.db_util import DBUtil, MongoDBUtil
 from sdk.ems import ems_api
 
+
 class AnalyzeCondition:
-    def __init__(self, db_info):        
+    def __init__(self, db_info, mongo_config):
         self.db_host = db_info.get("host", "")
         self.db_port = db_info.get("port", 3306)
         self.db_name = db_info.get("db", "")
@@ -34,6 +35,31 @@ class AnalyzeCondition:
         self.note_dict = {"customer makes a purchase": self.filter_purchase_customer,
                           "customer received an email from this campaign in the last 7 days": self.filter_received_customer,
                         }
+        self.mongo_config = mongo_config
+
+    def get_store_from_type(self, store_id):
+        """
+        获取某一店铺的from_type和name
+        :param store_id: 店铺id
+        :return: 元组(from_type, name)
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return 0, None
+            cursor.execute("select `from_type`, `name` from `store` where id=%s", (store_id, ))
+            store = cursor.fetchone()
+            if not store:
+                return 0, None
+
+            return store
+        except Exception as e:
+            logger.exception("get_store_from_type exception={}".format(e))
+            return (0, None)
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
 
     def order_filter(self, store_id, status, relation, value, min_time=None, max_time=None):
         """
@@ -85,15 +111,36 @@ class AnalyzeCondition:
                 just_str = "{} {} {}".format(count, relation_dict.get(relation), value)
                 if eval(just_str):
                     customers.append(uuid)
+            return customers
         except Exception as e:
             logger.exception("order_filter e={}".format(e))
             return customers
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return customers
 
     def adapt_sign_up_time(self, store_id, relations):
+        from_type, store_name = self.get_store_from_type(store_id)
+        if from_type == 0:
+            return self.adapt_all_order_mongo(store_id, relations, store_name)
+        else:
+            return self.adapt_all_order_mysql(store_id, relations)
+
+    def adapt_sign_up_time_mongo(self, store_id, relations, store_name):
+        try:
+            customers = []
+            mdb = MongoDBUtil(mongo_config=self.mongo_config)
+            db = mdb.get_instance()
+            #TODO
+
+            return customers
+        except Exception as e:
+            logger.exception("adapt_sign_up_time_mongo catch exception={}".format(e))
+            return customers
+        finally:
+            mdb.close()
+
+    def adapt_sign_up_time_mysql(self, store_id, relations):
         """
         适配出所有符合注册条件的客户id
         :param store_id: 店铺id
@@ -128,14 +175,14 @@ class AnalyzeCondition:
             res = cursor.fetchall()
             for uuid in res:
                 customers.append(uuid[0])
+            return customers
         except Exception as e:
             logger.exception("adapt_sign_up_time e={}".format(e))
             return customers
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return customers
-    
+
     def adapt_last_order_created_time(self, store_id, relations):
         """
         适配出所有上次订单时间符合条件的客户id
@@ -172,13 +219,14 @@ class AnalyzeCondition:
             res = cursor.fetchall()
             for uuid in res:
                 customers.append(uuid[0])
+            return customers
         except Exception as e:
             logger.exception("adapt_last_order_created_time e={}".format(e))
             return customers
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return customers
+
 
     def adapt_last_opened_email_time(self, store_id, relations):
         """
@@ -233,15 +281,14 @@ class AnalyzeCondition:
                 if res:
                     for uuid in res:
                         customers.append(uuid[0])
-    
+            return customers
         except Exception as e:
             logger.exception("adapt_last_opened_email_time e={}".format(e))
             return customers
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return customers
-    
+
     def adapt_last_click_email_time(self, store_id, relations):
         """
             适配出所有打开过邮件的时间符合条件的客户ids
@@ -296,15 +343,14 @@ class AnalyzeCondition:
                 if res:
                     for uuid in res:
                         customers.append(uuid[0])
-    
+            return customers
         except Exception as e:
             logger.exception("adapt_last_click_email_time e={}".format(e))
             return customers
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return customers
-    
+
     def adapt_placed_order(self, store_id, relations):
         """
         适配出所有待支付的订单符合条件的客户id
@@ -405,14 +451,13 @@ class AnalyzeCondition:
                 if res:
                     for uuid in res:
                         customers.append(uuid[0])
-    
+            return customers
         except Exception as e:
             logger.exception("email_opt_filter e={}".format(e))
             return customers
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return customers
 
     def adapt_opened_email(self, store_id, relations):
         """
@@ -464,14 +509,15 @@ class AnalyzeCondition:
             res = cursor.fetchall()
             for uuid in res:
                 customers.append(uuid[0])
+
+            return customers
         except Exception as e:
             logger.exception("adapt_last_order_status e={}".format(e))
             return customers
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return customers
-    
+
     def adapt_is_accept_marketing(self, store_id, relations):
         """
         适配出是否接受市场推销符合条件的客户id
@@ -495,13 +541,13 @@ class AnalyzeCondition:
             res = cursor.fetchall()
             for uuid in res:
                 customers.append(uuid[0])
+            return customers
         except Exception as e:
             logger.exception("adapt_is_accept_marketing e={}".format(e))
             return customers
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return customers
     
     def adapt_customer_email(self, store_id, relations):
         """
@@ -529,14 +575,14 @@ class AnalyzeCondition:
             res = cursor.fetchall()
             for uuid in res:
                 customers.append(uuid[0])
+            return customers
         except Exception as e:
             logger.exception("adapt_customer_email e={}".format(e))
             return customers
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return customers
-    
+
     def adapt_total_order_amount(self, store_id, relations):
         """
         适配出总订单金额符合条件的客户id
@@ -560,13 +606,13 @@ class AnalyzeCondition:
             res = cursor.fetchall()
             for uuid in res:
                 customers.append(uuid[0])
+            return customers
         except Exception as e:
             logger.exception("adapt_total_order_amount e={}".format(e))
             return customers
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return customers
     
     def date_relation_convert(self, relation, values, unit="days"):
         """
@@ -1393,7 +1439,7 @@ if __name__ == '__main__':
     #           "relations": [{"relation": "is in the past", "values": [333, 0], "unit": "days"}]}]}]
     #              }
 
-    ac = AnalyzeCondition(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
+    ac = AnalyzeCondition(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}, mongo_config=MONGO_CONFIG)
     ac.update_customer_group_list()
     # conditions = ac.get_conditions()
     # for cond in conditions:

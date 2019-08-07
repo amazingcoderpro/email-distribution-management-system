@@ -8,18 +8,12 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from task.ems_data_processor import EMSDataProcessor
 from task.shopify_data_processor import ShopifyDataProcessor
-from config import logger
+from config import logger, MYSQL_CONFIG
 from task.customer_group_processor import AnalyzeCondition
 from task.template_task_processor import TemplateProcessor
 
 MYSQL_PASSWD = os.getenv('MYSQL_PASSWD', None)
 MYSQL_HOST = os.getenv('MYSQL_HOST', None)
-
-# just for test, delete it in product environment
-MYSQL_HOST = "47.244.107.240"
-MYSQL_PASSWD = "edm@orderplus.com"
-
-db_info = {"host": MYSQL_HOST, "port": 3306, "db": "edm", "user": "edm", "password": MYSQL_PASSWD}
 
 
 class TaskProcessor:
@@ -170,6 +164,7 @@ def test_task_processor():
 
 
 def run():
+    db_info = MYSQL_CONFIG
     tp = TaskProcessor()
 
     # 所有定时任务在此创建
