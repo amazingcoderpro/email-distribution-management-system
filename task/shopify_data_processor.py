@@ -409,7 +409,7 @@ class ShopifyDataProcessor:
 
                 # top_three
                 cursor_dict.execute(
-                    """select id,name,url,uuid,price,image_url,state from product where store_id = %s and uuid in %s""",(store_id, top_three_product_list))
+                    """select id,name,url,uuid,price,image_url from product where store_id = %s and uuid in %s""",(store_id, top_three_product_list))
                 top_three_product = cursor_dict.fetchall()
 
                 top_three_list = []
@@ -650,7 +650,7 @@ class ShopifyDataProcessor:
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/checkouts/update/','topic': 'checkouts/update'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/checkouts/delete/','topic': 'checkouts/delete'},
         ]
-        webhook_info = shopify_webhook.products_api(shop_uri=store[0][1], access_token=store[0][2])
+        webhook_info = shopify_webhook.ProductsApi(shop_uri=store[0][1], access_token=store[0][2])
         for webhook in webhooks:
             webhook_info.create_webhook(topic=webhook.get("topic", ""), address=webhook.get("address", ""))
 
@@ -770,15 +770,16 @@ class ShopifyDataProcessor:
                 stores = store
             else:
                 cursor.execute(
-                    """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
+                    """select store.id, store.url, store.token, store_create_time from store left join user on store.user_id = user.id where user.is_active = 1""")
                 stores = cursor.fetchall()
 
+            logger.info("update_shopify_customers checking... sotres={}".format(stores))
             for store in stores:
                 customer_insert_list = []
                 customer_update_list = []
                 total_insert_ids = []
 
-                store_id, store_url, store_token = store
+                store_id, store_url, store_token, store_create_time = store
                 if not all([store_url, store_token]):
                     logger.warning("the store have not url or token, store id={}".format(store_id))
                     continue
@@ -792,20 +793,15 @@ class ShopifyDataProcessor:
                 create_at_max = datetime.datetime.now() #- datetime.timedelta(days=262)
                 create_at_min = create_at_max - datetime.timedelta(days=30)
                 time_format = "%Y-%m-%dT%H:%M:%S"
-                # store_create_time = datetime.datetime.now()-datetime.timedelta(days=400)    ##临时的
-                cursor.execute("select `store_create_time` from `store` where 'id'=%s", (store_id, ))
-                ret = cursor.fetchone()
-                if ret and ret[0]:
-                    store_create_time = ret[0]
-                else:
-                    store_create_time = datetime.datetime.now() - datetime.timedelta(days=1000)
 
+                logger.info("start get store customers, store id={}, store create time={}".format(store_id, store_create_time))
                 need_update_orders = []
                 while times < 10000:
                     create_at_max = create_at_max.strftime(time_format) if isinstance(create_at_max, datetime.datetime) else create_at_max[0:19]
                     create_at_min = create_at_min.strftime(time_format) if isinstance(create_at_min, datetime.datetime) else create_at_min[0:19]
                     # 已经超过店铺的创建时间
                     if create_at_max < store_create_time.strftime(time_format):
+                        logger.warning("customer create time max({}) < store create time({}), break.".format(create_at_max, store_create_time))
                         break
 
                     ret = papi.get_all_customers(limit=250, created_at_min=create_at_min+"+08:00", created_at_max=create_at_max+"+08:00")
@@ -921,10 +917,10 @@ if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
-    # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_product()
     # 拉取shopify GA 数据
-    ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
+    #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()

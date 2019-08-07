@@ -10,7 +10,7 @@ from pymongo import MongoClient
 from sshtunnel import SSHTunnelForwarder
 
 from config import MONGO_CONFIG, MYSQL_CONFIG, logger
-from task.db_util import DBUtil
+from task.db_util import DBUtil, MongoDBUtil
 
 
 class DataMigrate:
@@ -103,6 +103,9 @@ class DataMigrate:
         if not stores:
             logger.warning("There have not stores to update top products")
 
+        mdb = MongoDBUtil(mongo_config=MONGO_CONFIG)
+        db = mdb.get_instance()
+
         time_now = datetime.now()
         time_beg = (datetime.now()-timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
         recent_3days_paid_products = []
@@ -112,7 +115,7 @@ class DataMigrate:
         for store in stores:
             store_site = store.get("name", "")
             store_id = store.get("id")
-            order_collection = self.db["shopify_order"]
+            order_collection = db["shopify_order"]
             orders = order_collection.find({"site_name": store_site, "updated_at": {"$gte": time_beg}}, {"line_items": 1, "updated_at": 1})
             for order in orders:
                 line_items = order.get("line_items", [])
@@ -140,7 +143,7 @@ class DataMigrate:
             print(top6_products_recent7days)
             print(top6_products_recent15days)
             print(top6_products_recent30days)
-            product_col = self.db["shopify_product"]
+            product_col = db["shopify_product"]
 
     def close(self):
         logger.info("")
