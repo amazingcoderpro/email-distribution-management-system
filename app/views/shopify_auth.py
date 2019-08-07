@@ -42,6 +42,7 @@ class ShopifyCallback(APIView):
             instance.timezone = info["data"]["shop"]["timezone"]
             instance.domain = info["data"]["shop"]["domain"]
             instance.customer_shop = shop
+            instance.source = 1
             instance.store_create_time = info["data"]["shop"]["created_at"].replace("T"," ")[:-6]
             instance.sender_address = "noreply@lette.r" + ".".join(info["data"]["shop"]["domain"].split(".")[1:])
             email = info["data"]["shop"]["email"]

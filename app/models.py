@@ -5,7 +5,7 @@ from django.utils import timezone
 from django_mysql.models import JSONField
 
 # 迁移之前将期改为True
-ENABLE_MIGRATE = False
+ENABLE_MIGRATE = True
 
 
 class User(AbstractUser):
@@ -44,10 +44,8 @@ class Store(models.Model):
     store_view_id = models.CharField(blank=True, null=True, max_length=100, verbose_name=u"店铺的GA中的view id")
     init_choices = ((0, '新店铺'), (1, '旧店铺'))
     init = models.SmallIntegerField(db_index=True, choices=init_choices, default=0, verbose_name="店铺初始化")
-    # order_init_choices = ((0, '新店铺没有拉过order'), (1, '拉过一次数据'))
-    # order_init = models.SmallIntegerField(db_index=True, choices=order_init_choices, default=0, verbose_name="店铺是否拉过order")
-    # customer_init_choices = ((0, '新店铺没有拉过customer'), (1, '拉过一次数据'))
-    # customer_init = models.SmallIntegerField(db_index=True, choices=customer_init_choices, default=0, verbose_name="店铺是否拉过customer")
+    source_choices = ((0, 'opstores'), (1, 'foreign_store'))
+    source = models.SmallIntegerField(db_index=True, choices=source_choices, default=0, verbose_name="店铺来自")
     user = models.OneToOneField(User, on_delete=models.DO_NOTHING, blank=True, null=True, unique=True)
     store_create_time = models.DateTimeField(blank=True, null=True, verbose_name="店铺创建时间")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
@@ -304,7 +302,7 @@ class SubscriberActivity(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = False
+        managed = ENABLE_MIGRATE
         db_table = 'subscriber_activity'
 
 
