@@ -626,7 +626,34 @@ class AnalyzeCondition:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-    
+
+    def adapt_is_accept_marketing_mongo(self, store_id, relations, store_name):
+        """
+        适配出是否接受市场推销符合条件的客户id
+        :param store_id:
+        :param relations:
+        :param store_name:
+        :return:
+        """
+        status = False
+        if relations[0]["relation"] == "is true":
+            status = True
+        customer_list = []
+        try:
+            mdb = MongoDBUtil(mongo_config=self.mongo_config)
+            db = mdb.get_instance()
+            # 从customer表中查找对应的uuid
+            customer = db["shopify_customer"]
+            customers = customer.find({"accepts_marketing": status, "site_name": store_name}, {"_id": 0, "id": 1, "accepts_marketing": 1})
+            for cus in customers:
+                customer_list.append(cus["id"])
+            return customer_list
+        except Exception as e:
+            logger.exception("adapt_is_accept_marketing_mongo catch exception={}".format(e))
+            return customer_list
+        finally:
+            mdb.close()
+
     def adapt_customer_email(self, store_id, relations):
         """
         适配出邮件地址符合条件的客户id
@@ -660,6 +687,38 @@ class AnalyzeCondition:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
+
+    def adapt_customer_email_mongo(self, store_id, relations, store_name):
+        """
+        适配出邮件地址符合条件的客户id
+        :param store_id:
+        :param relations:
+        :param store_name:
+        :return:
+        """
+        customer_list = []
+        try:
+            mdb = MongoDBUtil(mongo_config=self.mongo_config)
+            db = mdb.get_instance()
+            # 从customer表中查找对应的uuid
+            customer = db["shopify_customer"]
+            if relations[0]["relation"] == "contains":
+                customers = customer.find({"email": {"$regex": relations[0]["values"][0]}, "site_name": store_name},
+                                          {"_id": 0, "id": 1, "email":1})
+            elif relations[0]["relation"] == "is started with":
+                customers = customer.find({"email": {"$regex": "^" + relations[0]["values"][0]}, "site_name": store_name},
+                                          {"_id": 0, "id": 1, "email":1})
+            elif relations[0]["relation"] == "is end with":
+                customers = customer.find({"email": {"$regex": relations[0]["values"][0] + "$"}, "site_name": store_name},
+                                          {"_id": 0, "id": 1, "email":1})
+            for cus in customers:
+                customer_list.append(cus["id"])
+            return customer_list
+        except Exception as e:
+            logger.exception("adapt_customer_email_mongo catch exception={}".format(e))
+            return customer_list
+        finally:
+            mdb.close()
 
     def adapt_total_order_amount(self, store_id, relations):
         """
@@ -1656,4 +1715,6 @@ if __name__ == '__main__':
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
-    print(ac.adapt_total_order_amount_mongo(1, [{"relation":"is less than","values":["1.00",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
+    # print(ac.adapt_total_order_amount_mongo(1, [{"relation":"is less than","values":["1.00",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
+    # print(ac.adapt_customer_email_mongo(1, [{"relation":"is end with","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
+    print(ac.adapt_is_accept_marketing_mongo(1, [{"relation":"is true","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
