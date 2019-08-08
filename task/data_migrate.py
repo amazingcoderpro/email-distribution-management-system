@@ -112,7 +112,6 @@ class DataMigrate:
         recent_7days_paid_products = []
         recent_15days_paid_products = []
         recent_30days_paid_products = []
-        stores.append({"id":99, "name":"Astrotrex"})
         for store in stores:
             store_site = store.get("name", "")
             store_id = store.get("id")

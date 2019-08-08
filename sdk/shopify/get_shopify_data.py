@@ -237,6 +237,22 @@ class ProductsApi:
             logger.error("get shopify all customers info is failed info={}".format(str(e)))
             return {"code": -1, "msg": str(e), "data": ""}
 
+    def get_product_count(self):
+        shop_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}products/count.json"
+        result = requests.get(shop_url)
+        try:
+            if result.status_code == 200:
+                logger.info("get shopify product count info is success")
+                res_dict = json.loads(result.text)
+                return {"code": 1, "msg": "", "data": res_dict}
+            else:
+                logger.info("get shopify product count info is failed")
+                return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
+        except Exception as e:
+            logger.error("get shopify product count is failed info={}".format(str(e)))
+            return {"code": -1, "msg": str(e), "data": ""}
+
+
     def get_customer_bydate(self, updated_at_min, updated_at_max, limit=6):
         shop_url = f"https://{self.client_id}:{self.access_token}@{self.shop_uri}{self.version_url}customers.json?limit={limit}&updated_at_min={updated_at_min}&updated_at_max={updated_at_max}&fields=id"
         result = requests.get(shop_url)
@@ -264,7 +280,7 @@ if __name__ == '__main__':
     # order_num = products_api.get_all_orders()
     # print(order_num["data"])
     # products_api.get_all_orders("2019-05-19T10:02:37+08:00")
-    print(products_api.get_customer_count())
+    print(products_api.get_product_count())
     # products_api.get_orders_id(order_id="503834869833")
     # print(products_api.get_customer_bydate("2019-03-1T00:00:00+08:00","2019-04-30T00:00:00+08:00"))
 
