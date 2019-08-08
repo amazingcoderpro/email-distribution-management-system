@@ -372,6 +372,7 @@ class ShopifyDataProcessor:
 
             for store in stores:
                 store_id, store_url, store_token, *_ = store
+                logger.info("update_top_product is cheking... store_id={}".format(store_id))
                 top_three_product_list,top_seven_product_list,top_fifteen_product_list,top_thirty_product_list = [],[],[],[]
                 top_three_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=3),datetime.time.min)
                 top_seven_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=7),datetime.time.min)
@@ -405,7 +406,7 @@ class ShopifyDataProcessor:
                 top_fifteen_product_list = [item[0] for item in Counter(top_fifteen_product_list).most_common(6)]
                 top_thirty_product_list = [item[0] for item in Counter(top_thirty_product_list).most_common(6)]
                 current_time = datetime.datetime.now()
-
+                logger.info("update_top_product is cheking... store_id={} 3_product_list={}".format(store_id, top_three_product_list))
 
                 # top_three
                 cursor_dict.execute(
@@ -431,8 +432,8 @@ class ShopifyDataProcessor:
                         '''update `top_product` set top_three=%s,update_time=%s where store_id=%s''', (json.dumps(top_three_list),current_time, store_id))
                     conn.commit()
 
-
                 # top_seven
+                logger.info("update_top_product is cheking... store_id={} 7_product_list={}".format(store_id, top_seven_product_list))
                 cursor_dict.execute(
                     """select id,name,url,uuid,price,image_url from product where store_id = %s and uuid in %s""",(store_id, top_seven_product_list))
                 top_seven_product = cursor_dict.fetchall()
@@ -458,6 +459,7 @@ class ShopifyDataProcessor:
 
 
                 # top_fifteen
+                logger.info("update_top_product is cheking... store_id={} 15_product_list={}".format(store_id, top_fifteen_product_list))
                 cursor_dict.execute(
                     """select id,name,url,uuid,price, image_url from product where store_id = %s and uuid in %s""",(store_id, top_fifteen_product_list))
                 top_fifteen_product = cursor_dict.fetchall()
@@ -482,7 +484,8 @@ class ShopifyDataProcessor:
                     conn.commit()
 
 
-                ## top_thirty
+                # top_thirty
+                logger.info("update_top_product is cheking... store_id={} 30_product_list={}".format(store_id, top_thirty_product_list))
                 cursor_dict.execute(
                     """select id,name,url,uuid,price, image_url from product where store_id = %s and uuid in %s""",(store_id, top_thirty_product_list))
                 top_thirty_product = cursor_dict.fetchall()
