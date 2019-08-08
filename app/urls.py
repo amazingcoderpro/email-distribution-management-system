@@ -27,7 +27,7 @@ v1_urlpatterns = [
     # 邮件管理
     url(r'^email_template/$', service.EmailTemplateView.as_view()),                         # 模板列表，创建模板
     url(r'^email_template/trigger/$', service.TriggerEmailTemplateView.as_view()),          # 通过flow创建邮件模板
-    url(r'^email_template/(?P<pk>[0-9]+)/$', service.EmailTemplateRetrieveView.as_view()),  # 模板详情
+    url(r'^email_template/detail/(?P<pk>[0-9]+)/$', service.EmailTemplateRetrieveView.as_view()),  # 模板详情
     url(r'^email_template/(?P<pk>[0-9]+)/$', service.EmailTemplateUpdateView.as_view()),    # 更改状态
 
     url(r'^top_product/$', service.TopProductView.as_view()),
@@ -73,9 +73,13 @@ webhook_urlpatterns = [
 
 
 v2_urlpatterns = [
-    url(r'opstores/store/$', opstores_service.StoreInitViews.as_view()),
-    url(r'^email_trigger/$', opstores_service.EmailTriggerView.as_view()),
-    url(r'^email_trigger/(?P<pk>[0-9]+)/$', service.EmailTriggerOptView.as_view()),
+    url(r'opstores/store/$', opstores_service.StoreInitViews.as_view()),                # 店铺授权
+    url(r'^email_trigger/$', opstores_service.EmailTriggerView.as_view()),              # flow列表
+    url(r'^email_trigger/(?P<pk>[0-9]+)/$', opstores_service.EmailTriggerOptView.as_view()),     # flow状态修改
+
+    url(r'^email_template/$', opstores_service.EmailTemplateView.as_view()),                     # 模板列表
+    url(r'^email_template/(?P<pk>[0-9]+)/$', opstores_service.EmailTemplateUpdateView.as_view()),         # 模板更改状态
+    url(r'^email_template/detail/(?P<pk>[0-9]+)/$', opstores_service.EmailTemplateRetrieveView.as_view()),     # 模板详情
 ]
 
 
