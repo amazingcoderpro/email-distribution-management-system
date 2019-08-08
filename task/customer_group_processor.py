@@ -727,7 +727,7 @@ class AnalyzeCondition:
                 return customers
             elif relations[0]["relation"] == "is unpaid":
                 result_dict = self.unpaid_order_customers_mongo(store_name)
-                return result_dict.keys()
+                return list(result_dict.keys())
         except Exception as e:
             logger.exception("adapt_last_order_status_mongo catch exception={}".format(e))
             return []
