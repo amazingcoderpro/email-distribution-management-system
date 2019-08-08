@@ -140,7 +140,7 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
-    def order_filter_mongo(self, store_id, status, relation, value, min_time=None, max_time=None):
+    def order_filter_mongo(self, store_id, status, relations, value, min_time=None, max_time=None):
         """
         筛选满足订单条件的客户id
         :param store_id: 店铺id
@@ -155,9 +155,33 @@ class AnalyzeCondition:
             customers = []
             mdb = MongoDBUtil(mongo_config=self.mongo_config)
             db = mdb.get_instance()
-            #TODO
+            paid_results= db["shopify_order"]
+            unpaid_result= db["shopify_unpai_order"]
 
-            return customers
+            # 判断需要查询的状态
+            # if status == 2:
+            #     status = (0, 1)
+            #
+            # else:
+            #     status = (status,)
+
+            if min_time and max_time:
+                pass
+
+            # after, in the past
+            elif min_time:
+                pass
+
+            # before
+            elif max_time:
+                pass
+
+            # over all time
+            else:
+                pass
+
+
+            # return customers
         except Exception as e:
             logger.exception("adapt_sign_up_time_mongo catch exception={}".format(e))
             return customers
