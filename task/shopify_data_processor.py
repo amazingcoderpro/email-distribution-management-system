@@ -371,7 +371,7 @@ class ShopifyDataProcessor:
                 stores = store
 
             for store in stores:
-                store_id, store_url, store_token = store
+                store_id, store_url, store_token, *_ = store
                 top_three_product_list,top_seven_product_list,top_fifteen_product_list,top_thirty_product_list = [],[],[],[]
                 top_three_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=3),datetime.time.min)
                 top_seven_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=7),datetime.time.min)
@@ -416,7 +416,6 @@ class ShopifyDataProcessor:
                 exit_top_three_list = []
                 for item in top_three_product:
                     if item["uuid"] not in exit_top_three_list:
-                        item["image_url"] = item["image_url"] + ""
                         exit_top_three_list.append(item["uuid"])
                         top_three_list.append(item)
                 cursor.execute(
@@ -435,7 +434,7 @@ class ShopifyDataProcessor:
 
                 # top_seven
                 cursor_dict.execute(
-                    """select id,name,url,uuid,price,image_url,state from product where store_id = %s and uuid in %s""",(store_id, top_seven_product_list))
+                    """select id,name,url,uuid,price,image_url from product where store_id = %s and uuid in %s""",(store_id, top_seven_product_list))
                 top_seven_product = cursor_dict.fetchall()
 
                 top_seven_list = []
@@ -460,7 +459,7 @@ class ShopifyDataProcessor:
 
                 # top_fifteen
                 cursor_dict.execute(
-                    """select id,name,url,uuid,price, image_url,state from product where store_id = %s and uuid in %s""",(store_id, top_fifteen_product_list))
+                    """select id,name,url,uuid,price, image_url from product where store_id = %s and uuid in %s""",(store_id, top_fifteen_product_list))
                 top_fifteen_product = cursor_dict.fetchall()
 
                 top_fifteen_list = []
@@ -485,7 +484,7 @@ class ShopifyDataProcessor:
 
                 ## top_thirty
                 cursor_dict.execute(
-                    """select id,name,url,uuid,price, image_url,state from product where store_id = %s and uuid in %s""",(store_id, top_thirty_product_list))
+                    """select id,name,url,uuid,price, image_url from product where store_id = %s and uuid in %s""",(store_id, top_thirty_product_list))
                 top_thirty_product = cursor_dict.fetchall()
 
                 top_thirty_list = []
@@ -641,7 +640,7 @@ class ShopifyDataProcessor:
         return True
 
     def update_store_webhook(self, store=None):
-        store_id, store_url, store_token, store_create_time = store
+        store_id, store_url, store_token, store_create_time = store[0]
         logger.info("update_store_webhook is checking... store_id={}".format(store_id))
         webhooks = [
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/cart/update/', 'topic': 'carts/update'},
@@ -892,7 +891,7 @@ class ShopifyDataProcessor:
         # 用户的订单表 和  用户的信息表同步
         :return:
         """
-        store_id, *_ = store
+        store_id, *_ = store[0]
         logger.info("update_shopify_order_customer is cheking... store_id={}".format(store_id))
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
@@ -926,6 +925,8 @@ if __name__ == '__main__':
     # 拉取shopify GA 数据
     #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
+    # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer((4,1))
     ShopifyDataProcessor(db_info=db_info).update_store_webhook((4,"tiptopfree.myshopify.com","84ae42dd2bda781f84d8fd1d199dba88", "iii"))
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
