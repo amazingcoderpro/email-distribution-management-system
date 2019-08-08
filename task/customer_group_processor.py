@@ -25,15 +25,15 @@ class AnalyzeCondition:
                               "Customer placed order": "adapt_placed_order",
                               "Customer paid order": "adapt_paid_order",
                               "Customer order number is": "adapt_all_order",
-                              "Customer opened email": "adapt_opened_email",
-                              "Customer clicked email": "adapt_clicked_email",
-                              "Customer last order status": "adapt_last_order_status",
-                              "Customer who accept marketing": "adapt_is_accept_marketing",
-                              "Customer Email": "adapt_customer_email",
-                              "Customer total order payment amount": "adapt_total_order_amount",
+                              "Customer opened email": "adapt_opened_email",  # 已完成
+                              "Customer clicked email": "adapt_clicked_email",  # 已完成
+                              "Customer last order status": "adapt_last_order_status",  # 已完成
+                              "Customer who accept marketing": "adapt_is_accept_marketing",  # 已完成
+                              "Customer Email": "adapt_customer_email",  # 已完成
+                              "Customer total order payment amount": "adapt_total_order_amount",  # 已完成
                             }
         self.note_dict = {"customer makes a purchase": self.filter_purchase_customer,
-                          "customer received an email from this campaign in the last 7 days": self.filter_received_customer,
+                          "customer received an email from this campaign in the last 7 days": self.filter_received_customer,  # 已完成
                         }
         self.mongo_config = mongo_config
 
@@ -124,10 +124,10 @@ class AnalyzeCondition:
                 cursor.execute(
                     """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
                     group by `customer_uuid`""", (store_id, status))
-    
+
             res = cursor.fetchall()
             relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
-    
+
             for uuid, count in res:
                 just_str = "{} {} {}".format(count, relation_dict.get(relation), value)
                 if eval(just_str):
@@ -234,7 +234,7 @@ class AnalyzeCondition:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return customers
-    
+
             # between date
             if min_time and max_time:
                 cursor.execute(
@@ -250,7 +250,7 @@ class AnalyzeCondition:
             # over all time
             else:
                 cursor.execute("""select `uuid` from `customer` where store_id=%s""", (store_id, ))
-    
+
             res = cursor.fetchall()
             for uuid in res:
                 customers.append(uuid[0])
@@ -277,7 +277,7 @@ class AnalyzeCondition:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return customers
-    
+
             # between date
             if min_time and max_time:
                 cursor.execute(
@@ -294,7 +294,7 @@ class AnalyzeCondition:
             # over all time
             else:
                 cursor.execute("""select `uuid` from `customer` where store_id=%s""", (store_id, ))
-    
+
             res = cursor.fetchall()
             for uuid in res:
                 customers.append(uuid[0])
@@ -323,7 +323,7 @@ class AnalyzeCondition:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return customers
-    
+
             # between date
             if min_time and max_time:
                 cursor.execute(
@@ -345,11 +345,11 @@ class AnalyzeCondition:
                 cursor.execute(
                     """select `email`, count from `subscriber_activity` where store_id=%s and type=%s""",
                     (store_id, opt_type))
-    
+
             res = cursor.fetchall()
             for email in res:
                 customer_emails.append(email[0])
-    
+
             # 去重
             customer_emails = list(set(customer_emails))
             if customer_emails:
@@ -384,7 +384,7 @@ class AnalyzeCondition:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return customers
-    
+
             # between date
             if min_time and max_time:
                 cursor.execute(
@@ -406,11 +406,11 @@ class AnalyzeCondition:
                 cursor.execute(
                     """select `email` from `subscriber_activity` where store_id=%s and type=%s""",
                     (store_id, opt_type))
-    
+
             res = cursor.fetchall()
             for email in res:
                 customer_emails.append(email[0])
-    
+
             # 去重
             customer_emails = list(set(customer_emails))
             if customer_emails:
@@ -470,7 +470,7 @@ class AnalyzeCondition:
         adapt_customers = self.order_filter(store_id=store_id, status=2, relation=relations[0]["relation"],
                                             value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
         return adapt_customers
-        
+
     def email_opt_filter(self, store_id, opt_type, relation, value, min_time, max_time):
         """
         筛选满足邮件操作条件的客户的id
@@ -489,7 +489,7 @@ class AnalyzeCondition:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return customers
-    
+
             # between date
             if min_time and max_time:
                 cursor.execute(
@@ -511,15 +511,15 @@ class AnalyzeCondition:
                 cursor.execute(
                     """select `email`, count from `subscriber_activity` where store_id=%s and type=%s 
                     group by `email`""", (store_id, opt_type))
-    
+
             res = cursor.fetchall()
             relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
-    
+
             for email, count in res:
                 just_str = "{} {} {}".format(count, relation_dict.get(relation), value)
                 if eval(just_str):
                     customer_emails.append(email[0])
-    
+
             # 去重
             customer_emails = list(set(customer_emails))
             if customer_emails:
@@ -529,6 +529,68 @@ class AnalyzeCondition:
                 if res:
                     for uuid in res:
                         customers.append(uuid[0])
+            return customers
+        except Exception as e:
+            logger.exception("email_opt_filter e={}".format(e))
+            return customers
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
+    def email_opt_filter_mongo(self, store_id, opt_type, relation, value, min_time, max_time, site_name):
+        """
+        筛选满足邮件操作条件的客户的id
+        :param store_id: 店铺id
+        :param opt_type: 邮件的操作类型, open－0，　click－1, send-3
+        :param relation: 条件关系，　大于，小于，等于
+        :param value: 条件值
+        :param min_time: 时间筛选范围起点
+        :param max_time: 时间筛选范围终点
+        :return: list 满足条件的客户列表
+        """
+        customer_emails = []
+        customers = []
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return customers
+
+            # between date
+            if min_time and max_time:
+                cursor.execute(
+                    """select `email`, count(1) from `subscriber_activity` where store_id=%s and type=%s 
+                    and `opt_time`>=%s and `opt_time`<=%s group by `email`""",
+                    (store_id, opt_type, min_time, max_time))
+            # after, in the past
+            elif min_time:
+                cursor.execute(
+                    """select `email`, count from `subscriber_activity` where store_id=%s and type=%s 
+                    and `opt_time`>=%s group by `email`""", (store_id, opt_type, min_time))
+            # before
+            elif max_time:
+                cursor.execute(
+                    """select `email`, count from `subscriber_activity` where store_id=%s and type=%s 
+                    and `opt_time`<=%s group by `email`""", (store_id, opt_type, max_time))
+            # over all time
+            else:
+                cursor.execute(
+                    """select `email`, count from `subscriber_activity` where store_id=%s and type=%s 
+                    group by `email`""", (store_id, opt_type))
+
+            res = cursor.fetchall()
+            relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
+
+            for email, count in res:
+                just_str = "{} {} {}".format(count, relation_dict.get(relation), value)
+                if eval(just_str):
+                    customer_emails.append(email[0])
+
+            # 去重
+            customer_emails = list(set(customer_emails))
+            if customer_emails:
+                # 通过邮箱查出所有的uuid
+                customers = self.customer_email_to_uuid_mongo(customer_emails, site_name)
             return customers
         except Exception as e:
             logger.exception("email_opt_filter e={}".format(e))
@@ -550,7 +612,21 @@ class AnalyzeCondition:
         customers = self.email_opt_filter(store_id=store_id, opt_type=0, relation=relations[0]["relation"], value=relations[0]["values"][0],
                          min_time=min_time, max_time=max_time)
         return customers
-    
+
+    def adapt_opened_email_mongo(self, store_id, relations, store_name):
+        """
+        适配出所有符合邮件打开筛选条件的customer uuids
+        :param store_id: 店铺id
+        :param relations: 筛选条件列表
+        :return: 客户的id列表
+        """
+        # relations 两个, 第一个是数量，第二个是时间范围
+        min_time, max_time = self.date_relation_convert(relation=relations[1]["relation"], values=relations[1]["values"],
+                                                   unit=relations[1].get("unit", "days"))
+        customers = self.email_opt_filter_mongo(store_id=store_id, opt_type=0, relation=relations[0]["relation"], value=relations[0]["values"][0],
+                         min_time=min_time, max_time=max_time, site_name=store_name)
+        return customers
+
     def adapt_clicked_email(self, store_id, relations):
         """
         适配出所有符合邮件点击筛选条件的customer uuids
@@ -564,7 +640,21 @@ class AnalyzeCondition:
         customers = self.email_opt_filter(store_id=store_id, opt_type=1, relation=relations[0]["relation"], value=relations[0]["values"][0],
                          min_time=min_time, max_time=max_time)
         return customers
-    
+
+    def adapt_clicked_email_mongo(self, store_id, relations, store_name):
+        """
+        适配出所有符合邮件点击筛选条件的customer uuids
+        :param store_id: 店铺id
+        :param relations: 筛选条件列表
+        :return: 客户的id列表
+        """
+        # relations 两个, 第一个是数量，第二个是时间范围
+        min_time, max_time = self.date_relation_convert(relation=relations[1]["relation"], values=relations[1]["values"],
+                                                   unit=relations[1].get("unit", "days"))
+        customers = self.email_opt_filter_mongo(store_id=store_id, opt_type=1, relation=relations[0]["relation"], value=relations[0]["values"][0],
+                         min_time=min_time, max_time=max_time, site_name=store_name)
+        return customers
+
     def adapt_last_order_status(self, store_id, relations):
         """
         适配出所有最后一次订单状态符合条件的客户id
@@ -575,14 +665,14 @@ class AnalyzeCondition:
         status = 0
         if relations[0]["relation"] == "is paid":
             status = 1
-    
+
         customers = []
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return customers
-    
+
             cursor.execute("""select `uuid` from `customer` where store_id=%s and last_order_status=%s""", (store_id, status))
             res = cursor.fetchall()
             for uuid in res:
@@ -596,6 +686,40 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
+    def adapt_last_order_status_mongo(self, store_id, relations, store_name):
+        """
+        适配出所有最后一次订单状态符合条件的客户id
+        :param store_id:
+        :param relations:
+        :param store_name:
+        :return: 符合条件的ids
+        """
+        logger.info("adapt_last_order_status_mongo start")
+        try:
+            mdb = MongoDBUtil(mongo_config=self.mongo_config)
+            db = mdb.get_instance()
+            # 从customer表中查找对应的uuid
+            customer = db["shopify_customer"]
+            if relations[0]["relation"] == "is null":  # 没有任何订单的用户
+                customers = customer.find({"last_order_id": None, "site_name": store_name},
+                                      {"_id": 0, "id": 1, "last_order_id": 1})
+                return [cus["id"] for cus in customers]
+
+            customers = [(item["last_order_id"], item["id"]) for item in customer.find({"last_order_id": {"$ne": None}, "site_name": store_name},
+                                      {"_id": 0, "id": 1, "last_order_id": 1})]
+            if relations[0]["relation"] == "is paid":  # 最后一笔订单已支付
+                paid_order_ids =[item["id"] for item in db.shopify_order.find({"site_name": store_name}, {"_id": 0, "id": 1})]
+                return [id for order_id, id in customers if order_id in paid_order_ids]
+
+            elif relations[0]["relation"] == "is unpaid":  # 最后一笔订单未支付
+                unpaid_order_ids =[item["id"] for item in db.shopify_unpaid_order.find({"site_name": store_name}, {"_id": 0, "id": 1})]
+                return [id for order_id, id in customers if order_id in unpaid_order_ids]
+        except Exception as e:
+            logger.exception("adapt_last_order_status_mongo catch exception={}".format(e))
+            return []
+        finally:
+            mdb.close()
+
     def adapt_is_accept_marketing(self, store_id, relations):
         """
         适配出是否接受市场推销符合条件的客户id
@@ -606,14 +730,14 @@ class AnalyzeCondition:
         status = 0
         if relations[0]["relation"] == "is true":
             status = 1
-    
+
         customers = []
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return customers
-    
+
             cursor.execute("""select `uuid` from `customer` where store_id=%s and accept_marketing_status=%s""",
                            (store_id, status))
             res = cursor.fetchall()
@@ -667,7 +791,7 @@ class AnalyzeCondition:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return customers
-    
+
             if relations[0]["relation"] == "contains":
                 cursor.execute("""select `uuid` from `customer` where store_id=%s and customer_email like \"%{}%\"""".
                                format(relations[0]["values"][0]), (store_id, ))
@@ -733,7 +857,7 @@ class AnalyzeCondition:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return customers
-    
+
             if relations[0]["relation"] == "is":
                 cursor.execute("""select `uuid` from `customer` where store_id=%s and payment_amount=%s""", (store_id, relations[0]["values"][0]))
             elif relations[0]["relation"] == "is more than":
@@ -779,7 +903,7 @@ class AnalyzeCondition:
             return customer_list
         finally:
             mdb.close()
-    
+
     def date_relation_convert(self, relation, values, unit="days"):
         """
         转换日期条件为起\止时间点
@@ -793,9 +917,9 @@ class AnalyzeCondition:
                 str_delta = "datetime.timedelta({}={})".format(unit_, value)
             else:
                 str_delta = "relativedelta({}={})".format(unit_, value)
-    
+
             return eval(str_delta)
-    
+
         try:
             min_time = None
             max_time = None
@@ -822,7 +946,7 @@ class AnalyzeCondition:
                 max_time = None
         except Exception as e:
             logger.exception("date_relation_convert catch exception: {}".format(e))
-    
+
         return min_time, max_time
 
     def get_customers_by_condition(self, condition, store_id):
@@ -849,7 +973,7 @@ class AnalyzeCondition:
                             if not customers:
                                 children_final_customers = []
                                 break
-    
+
                             if children_final_customers is None:
                                 children_final_customers = customers
                             else:
@@ -859,24 +983,24 @@ class AnalyzeCondition:
                                 children_final_customers = customers
                             else:
                                 children_final_customers = list(set(children_final_customers).union(set(customers)))
-    
+
                     else:
                         # 如果某个条件的处理还未实现，则跳过
                         logger.error("This condition have no processor!! condition name={}".format(condition_name))
                         continue
-    
+
                 # logger.info("adapt group condition, name={}, relation={}, children={}, customers={}".format(
                 #     gc.get("group_name", "unknown"), gc.get("relation", "unknown"), gc.get("children", []), children_final_customers))
                 group_customers.append(children_final_customers)
-    
+
             gp_relations = condition.get("relation", "").split(",")
-    
+
             i = 0
             for child_customers in group_customers:
                 if final_customers is None:
                     final_customers = child_customers
                     continue
-    
+
                 if child_customers is not None:
                     if gp_relations[i] == "&&":
                         final_customers = list(set(final_customers).intersection(set(child_customers)))
@@ -885,7 +1009,7 @@ class AnalyzeCondition:
                 i += 1
         except Exception as e:
             logger.exception("get_customers_by_condition catch exception: {}, condition={}".format(e, condition))
-    
+
         logger.debug("get_customers_by_condition succeed: \nstore_id={}, \ncondition={}, \nfinal_customers={}".format(store_id, condition, final_customers))
         return final_customers
 
@@ -902,7 +1026,7 @@ class AnalyzeCondition:
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
                 return result
-    
+
             # between date
             if store_id and condition_id:
                 cursor.execute(
@@ -920,7 +1044,7 @@ class AnalyzeCondition:
                 # 未删除的才取出来
                 cursor.execute(
                     """select `store_id`, `id`, `title`, `relation_info` from `customer_group` where id>=0 and state!=2""")
-    
+
             res = cursor.fetchall()
             if res:
                 for ret in res:
@@ -1717,4 +1841,5 @@ if __name__ == '__main__':
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
     # print(ac.adapt_total_order_amount_mongo(1, [{"relation":"is less than","values":["1.00",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
     # print(ac.adapt_customer_email_mongo(1, [{"relation":"is end with","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
-    print(ac.adapt_is_accept_marketing_mongo(1, [{"relation":"is true","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
+    # print(ac.adapt_is_accept_marketing_mongo(1, [{"relation":"is true","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
+    print(ac.adapt_last_order_status_mongo(1, [{"relation":"is null","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
