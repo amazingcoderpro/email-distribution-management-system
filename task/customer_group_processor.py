@@ -691,6 +691,35 @@ class AnalyzeCondition:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
+
+    def adapt_total_order_amount_mongo(self, store_id, relations, store_name):
+        """
+        适配出总订单金额符合条件的客户id
+        :param store_id:
+        :param relations: 条件
+        :param store_name: 店铺名称
+        :return: 符合条件的uuid列表
+        """
+        customer_list = []
+        try:
+            mdb = MongoDBUtil(mongo_config=self.mongo_config)
+            db = mdb.get_instance()
+            # 从customer表中查找对应的uuid
+            customer = db["shopify_customer"]
+            if relations[0]["relation"] == "is":
+                customers = customer.find({"total_spent": relations[0]["values"][0], "site_name": store_name}, {"_id": 0, "id": 1})
+            elif relations[0]["relation"] == "is more than":
+                customers = customer.find({"total_spent": {"$gt": relations[0]["values"][0]}, "site_name": store_name}, {"_id": 0, "id": 1})
+            elif relations[0]["relation"] == "is less than":
+                customers = customer.find({"total_spent": {"$lt": relations[0]["values"][0]}, "site_name": store_name}, {"_id": 0, "id": 1})
+            for cus in customers:
+                customer_list.append(cus["id"])
+            return customer_list
+        except Exception as e:
+            logger.exception("adapt_total_order_amount_mongo catch exception={}".format(e))
+            return customer_list
+        finally:
+            mdb.close()
     
     def date_relation_convert(self, relation, values, unit="days"):
         """
@@ -1626,4 +1655,5 @@ if __name__ == '__main__':
     # print(ac.execute_flow_task())
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
-    print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
+    # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
+    print(ac.adapt_total_order_amount_mongo(1, [{"relation":"is less than","values":["1.00",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
