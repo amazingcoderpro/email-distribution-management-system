@@ -96,3 +96,95 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
         data["click_rate"] = float(instance.click_rate)
         data["revenue"] = float(instance.revenue)
         return data
+
+
+class EmailTriggerOptSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmailTrigger
+        fields = (
+            "status",     # 0--disable, 1-enable
+        )
+
+    def update(self, instance, validated_data):
+        if instance.status == 2:
+            return instance
+
+        task_status = 0
+        if validated_data["status"] == 0:
+            task_status = 3
+        elif validated_data["status"] == 1:
+            task_status = 0
+        elif validated_data["status"] == 2:
+            task_status = 4
+        else:
+            raise serializers.ValidationError("Trigger status must be in options [0, 1, 2]")
+
+        instance = super(EmailTriggerOptSerializer, self).update(instance, validated_data)
+        models.EmailTask.objects.filter(email_trigger_id=instance.id, status__in=[0, 3]).update(status=task_status)
+        return instance
+
+
+class EmailTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmailTemplate
+        fields = ("id",
+                  "title",
+                  "description",
+                  "subject",
+                  "heading_text",
+                  "logo",
+                  "banner",
+                  "headline",
+                  "body_text",
+                  "product_list",
+                  "send_rule",
+                  "customer_group_list",
+                  "status",
+                  "enable",
+                  "html",
+                  # "send_type",
+                  "revenue",
+                  "create_time",
+                  "update_time",
+        )
+
+    def to_representation(self, instance):
+        data = super(EmailTemplateSerializer, self).to_representation(instance)
+        records = models.EmailRecord.objects.filter(email_template_id=instance.id, store_id=instance.store.id).all()
+        sents = clicks = opens = 0
+        if records:
+            for r in records:
+                sents += r.sents if isinstance(r.sents, int) else 0
+                clicks += r.clicks if isinstance(r.clicks, int) else 0
+                opens += r.opens if isinstance(r.opens, int) else 0
+
+        data["revenue"] = float(data["revenue"])
+        data["click_rate"] = 0
+        data["open_rate"] = 0
+        if sents > 0:
+            data["click_rate"] = clicks/sents
+            data["open_rate"] = opens/sents
+
+        return data
+
+
+class EmailTemplateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmailTemplate
+        fields = (
+                "enable",
+                "status",
+        )
+
+    def update(self, instance, validated_data):
+        if instance.status == 2:
+            return instance
+
+        instance = super(EmailTemplateUpdateSerializer, self).update(instance, validated_data)
+        if "enable" in validated_data.keys():
+            # 如果是禁用或启用，则将task中状态为待发送和已禁用的同步修改成禁用或待发送
+            models.EmailTask.objects.filter(template_id=instance.id, status__in=[0, 3]).update(status=(0 if instance.enable==1 else 3))
+        else:
+            # 如果是删除模板，则将对应的task中状态为待发送和已禁用的，改成删除状态
+            models.EmailTask.objects.filter(template_id=instance.id, status__in=[0, 3]).update(status=4)
+        return instance

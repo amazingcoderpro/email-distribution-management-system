@@ -60,15 +60,14 @@ class ShopifyDataProcessor:
             # 如果store为None，证明任务是周期性任务，否则为 新店铺
             if not input_store:
                 cursor.execute(
-                        """select store.id, store.url, store.token, store.name from store left join user on store.user_id = user.id where user.is_active = 1""")
+                        """select store.id, store.url, store.token, store.name from store left join user on store.user_id = user.id where user.is_active = 1 and store.id != 1 and store.source != 0""")
                 stores = cursor.fetchall()
             else:
                 stores = input_store
 
             # 组装store和collection和product数据，之后放入redis中
-            store_collections_dict = {}
-            store_product_dict = {}
             for store in stores:
+                product_store_uuid_dict = {}
                 store_id, store_url, store_token, *_ = store
 
                 if not input_store:
@@ -88,26 +87,20 @@ class ShopifyDataProcessor:
                 if "shopify" not in store_url:
                     logger.error("[update_shopify_product] store_url not illegal, store id={}".format(store_id))
                     continue
-                # 组装 store
-                store_collections_dict[store_id] = {}
-                store_collections_dict[store_id]["store"] = store
+
                 # 组装 collection
-                cursor.execute("""select id, title, category_id from product_category where store_id=%s""", (store_id,))
-                collections = cursor.fetchall()
-                store_collections_dict[store_id]["collections"] = collections
+                cursor.execute("""select id, category_id from product_category where store_id=%s""", (store_id,))
+                collections_list = cursor.fetchall()
+                if not collections_list:
+                    continue
                 # 组装 product
-                store_product_dict[store_id] = {}
-                cursor.execute('''select id, uuid, product_category_id from `product` where store_id=%s''', (store_id))
+                cursor.execute('''select id, uuid from `product` where store_id=%s''', (store_id))
                 exist_products = cursor.fetchall()
                 for exp in exist_products:
-                    store_product_dict[store_id][str(exp[1]) + "_" + str(exp[2])] = exp[0]
+                    product_store_uuid_dict[str(store_id) + "_" + str(exp[1])] = exp[0]
 
-            # 遍历数据库中的所有store, 拉产品
-            for key, value in store_collections_dict.items():
-                store_id, store_url, store_token, *_ = value["store"]
-
-                for collection in value["collections"]:
-                    id, collection_title, collection_id = collection
+                # 遍历数据库中的所有store, 拉产品
+                for id, collection_id in collections_list:
                     since_id = ""
                     uuid_list = []
                     papi = ProductsApi(store_token, store_url)
@@ -150,9 +143,9 @@ class ShopifyDataProcessor:
                                     price = float(variants[0].get("price", "0"))
 
                                 try:
-                                    uuid_id = str(pro_uuid) + "_" + str(id)
-                                    if uuid_id in store_product_dict[store_id].keys():
-                                        pro_id = store_product_dict[store_id][uuid_id]
+                                    uuid_id = str(store_id) + "_" + str(pro_uuid)
+                                    if uuid_id in product_store_uuid_dict:
+                                        pro_id = product_store_uuid_dict[uuid_id]
                                         logger.info("[update_shopify_product] product is already exist, store_id={} store_url={}, product_id={},product_category_id={} ".format(store_id,store_url,pro_id,id))
                                         cursor.execute('''update `product` set name=%s, url=%s, image_url=%s,price=%s,product_category_id=%s, update_time=%s where id=%s''',
                                                        (pro_title, pro_url, pro_image,price, id, time_now, pro_id))
@@ -164,7 +157,7 @@ class ShopifyDataProcessor:
                                         pro_id = cursor.lastrowid
                                         logger.info("[update_shopify_product] product is new, store_id={},store_url={}, product_id={}，product_category_id={}".format(store_id,store_url, pro_id, id))
                                         conn.commit()
-                                    uuid_list.append(pro_uuid)
+                                    product_store_uuid_dict[uuid_id] = pro_id
                                 except Exception as e:
                                     logger.exception("[update_shopify_product] exception, store_id={}, error=%s".format(store_id, str(e)))
 
@@ -926,9 +919,9 @@ class ShopifyDataProcessor:
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
-    #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    ShopifyDataProcessor(db_info=db_info).update_top_product()
+    # ShopifyDataProcessor(db_info=db_info).update_top_product()
     # 拉取shopify GA 数据
     #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
