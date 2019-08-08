@@ -270,9 +270,9 @@ class ProductsApi:
 
 
 if __name__ == '__main__':
-    access_token = "d1063808be79897450ee5030e1c163ef"
+    access_token = "84ae42dd2bda781f84d8fd1d199dba88"
     id = "3583116148816"
-    shop_uri = "charrcter.myshopify.com"
+    shop_uri = "tiptopfree.myshopify.com"
     products_api = ProductsApi(access_token=access_token, shop_uri=shop_uri)
     # print(products_api.get_all_customers(since_id="1493285240905"))
     # products_api.get_shop_info()

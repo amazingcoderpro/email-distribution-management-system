@@ -146,7 +146,7 @@ class ShopifyDataProcessor:
                                     uuid_id = str(store_id) + "_" + str(pro_uuid)
                                     if uuid_id in product_store_uuid_dict:
                                         pro_id = product_store_uuid_dict[uuid_id]
-                                        logger.info("[update_shopify_product] product is already exist, store_id={} store_url={}, product_id={},product_category_id={} ".format(store_id,store_url,pro_id,id))
+                                        logger.info("[update_shopify_product] product is already exist store_id={} store_url={} product_id={} uuid={} product_category_id={} ".format(store_id,store_url,pro_id, pro_uuid, id))
                                         cursor.execute('''update `product` set name=%s, url=%s, image_url=%s,price=%s,product_category_id=%s, update_time=%s where id=%s''',
                                                        (pro_title, pro_url, pro_image,price, id, time_now, pro_id))
                                         conn.commit()
@@ -918,8 +918,8 @@ class ShopifyDataProcessor:
 
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
-    #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
-    ShopifyDataProcessor(db_info=db_info).update_shopify_product()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_product()
     # 拉取shopify GA 数据
