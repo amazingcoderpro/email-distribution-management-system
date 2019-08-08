@@ -80,7 +80,7 @@ class EmailTemplateRetrieveView(generics.RetrieveUpdateAPIView):
     """邮件模版详情"""
     queryset = models.EmailTemplate.objects.all()
     serializer_class = service.EmailTemplateSerializer
-    permission_classes = (IsAuthenticated, StorePermission)
+    permission_classes = (IsAuthenticated, CustomerGroupOptPermission)
     authentication_classes = (JSONWebTokenAuthentication,)
 
 

@@ -75,6 +75,7 @@ webhook_urlpatterns = [
 v2_urlpatterns = [
     url(r'opstores/store/$', opstores_service.StoreInitViews.as_view()),
     url(r'^email_trigger/$', opstores_service.EmailTriggerView.as_view()),
+    url(r'^email_trigger/(?P<pk>[0-9]+)/$', service.EmailTriggerOptView.as_view()),
 ]
 
 
