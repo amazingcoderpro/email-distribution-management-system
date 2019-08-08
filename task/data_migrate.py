@@ -112,6 +112,7 @@ class DataMigrate:
         recent_7days_paid_products = []
         recent_15days_paid_products = []
         recent_30days_paid_products = []
+        stores.append({"id":99, "name":"Astrotrex"})
         for store in stores:
             store_site = store.get("name", "")
             store_id = store.get("id")
@@ -134,16 +135,47 @@ class DataMigrate:
                 else:
                     recent_30days_paid_products += products
 
-            top6_products_recent3days = [item[0] for item in Counter(recent_3days_paid_products).most_common(6)]
-            top6_products_recent7days = [item[0] for item in Counter(recent_7days_paid_products).most_common(6)]
-            top6_products_recent15days = [item[0] for item in Counter(recent_15days_paid_products).most_common(6)]
-            top6_products_recent30days = [item[0] for item in Counter(recent_30days_paid_products).most_common(6)]
+            top6_product_ids_recent3days = [item[0] for item in Counter(recent_3days_paid_products).most_common(6)]
+            top6_product_ids_recent7days = [item[0] for item in Counter(recent_7days_paid_products).most_common(6)]
+            top6_product_ids_recent15days = [item[0] for item in Counter(recent_15days_paid_products).most_common(6)]
+            top6_product_ids_recent30days = [item[0] for item in Counter(recent_30days_paid_products).most_common(6)]
 
-            print(top6_products_recent3days)
-            print(top6_products_recent7days)
-            print(top6_products_recent15days)
-            print(top6_products_recent30days)
+            print(top6_product_ids_recent3days)
+            print(top6_product_ids_recent7days)
+            print(top6_product_ids_recent15days)
+            print(top6_product_ids_recent30days)
+
+            top6_products_3days = []
+            top6_products_7days = []
+            top6_products_15days = []
+            top6_products_30days = []
             product_col = db["shopify_product"]
+            all_top = top6_product_ids_recent3days+top6_product_ids_recent7days+top6_product_ids_recent15days+top6_product_ids_recent30days
+            all_top = [int(item) for item in all_top]
+            if all_top:
+                # products = product_col.find({"id": all_top[0]}, {"id": 1, "title": 1, "handle": 1, "variants": 1, "images": 1})
+                products = product_col.find({"id": all_top[0], "site_name": store_site},
+                                            {"id": 1, "title": 1, "handle": 1})
+                for pro in products:
+                    product_info = {
+                        "uuid": pro["id"],
+                        "name": pro["title"],
+                        "price": 0,
+                        "image_url": "",
+                        "url": ""
+                    }
+                    if pro["id"] in top6_product_ids_recent3days:
+                        top6_products_3days.append(product_info)
+                    elif pro["id"] in top6_product_ids_recent7days:
+                        top6_products_7days.append(product_info)
+                    elif pro["id"] in top6_product_ids_recent15days:
+                        top6_products_15days.append(product_info)
+                    else:
+                        top6_products_30days.append(product_info)
+
+        mdb.close()
+
+
 
     def close(self):
         logger.info("")
@@ -156,10 +188,5 @@ class DataMigrate:
 
 if __name__ == '__main__':
     dm = DataMigrate(MONGO_CONFIG, MYSQL_CONFIG)
-    dm.init_mongo()
     dm.update_top_products()
     dm.close()
-
-
-
-
