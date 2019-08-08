@@ -669,6 +669,44 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
+    def unpaid_order_customers_mongo(self, store_name, min_time=None, max_time=None):
+        """
+        获取未支付的customers
+        :param store_id: 店铺ID
+        :param store_name: 店铺名称
+        :param min_time:
+        :param max_time:
+        :return: 符合条件的id{customer_id:[checkout_id1,checkout_id2], }
+        """
+        logger.info("unpaid_order_customers_mongo start")
+        result_dict = {}
+        try:
+            mdb = MongoDBUtil(mongo_config=self.mongo_config)
+            db = mdb.get_instance()
+            if min_time and max_time:
+                filter_dict = {"$lte": max_time, "$gte": min_time}
+            elif min_time:
+                filter_dict = {"$gte": min_time}
+            elif max_time:
+                filter_dict = {"$lte": max_time}
+            else:
+                filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")+"+08:00"}
+            unpaid_order = db.shopify_unpaid_order.find({"site_name": store_name, "gateway": {"$ne": None}, "updated_at": filter_dict}, {"_id": 0, "id": 1, "token": 1, "customer.id": 1})
+            paid_order = [item["checkout_token"] for item in db.shopify_order.find({"site_name": store_name}, {"_id": 0, "checkout_token": 1})]
+            for unpaid in unpaid_order:
+                if unpaid["token"] in paid_order:
+                    continue
+                if unpaid["customer"]["id"] not in result_dict:
+                    result_dict[unpaid["customer"]["id"]] = [unpaid["id"],]
+                else:
+                    result_dict[unpaid["customer"]["id"]].append(unpaid["id"])
+            return result_dict
+        except Exception as e:
+            logger.exception("unpaid_order_customers_mongo catch exception={}".format(e))
+            return result_dict
+        finally:
+            mdb.close()
+
     def adapt_last_order_status_mongo(self, store_id, relations, store_name):
         """
         适配出所有最后一次订单状态符合条件的客户id
@@ -683,20 +721,13 @@ class AnalyzeCondition:
             db = mdb.get_instance()
             # 从customer表中查找对应的uuid
             customer = db["shopify_customer"]
-            if relations[0]["relation"] == "is null":  # 没有任何订单的用户
-                customers = customer.find({"last_order_id": None, "site_name": store_name},
-                                      {"_id": 0, "id": 1, "last_order_id": 1})
-                return [cus["id"] for cus in customers]
-
-            customers = [(item["last_order_id"], item["id"]) for item in customer.find({"last_order_id": {"$ne": None}, "site_name": store_name},
-                                      {"_id": 0, "id": 1, "last_order_id": 1})]
             if relations[0]["relation"] == "is paid":  # 最后一笔订单已支付
-                paid_order_ids =[item["id"] for item in db.shopify_order.find({"site_name": store_name}, {"_id": 0, "id": 1})]
-                return [id for order_id, id in customers if order_id in paid_order_ids]
-
-            elif relations[0]["relation"] == "is unpaid":  # 最后一笔订单未支付
-                unpaid_order_ids =[item["id"] for item in db.shopify_unpaid_order.find({"site_name": store_name}, {"_id": 0, "id": 1})]
-                return [id for order_id, id in customers if order_id in unpaid_order_ids]
+                customers = [item["id"] for item in customer.find({"last_order_id": {"$ne": None}, "site_name": store_name},
+                                           {"_id": 0, "id": 1, "last_order_id": 1})]
+                return customers
+            elif relations[0]["relation"] == "is unpaid":
+                result_dict = self.unpaid_order_customers_mongo(store_name)
+                return list(result_dict.keys())
         except Exception as e:
             logger.exception("adapt_last_order_status_mongo catch exception={}".format(e))
             return []
@@ -1825,4 +1856,5 @@ if __name__ == '__main__':
     # print(ac.adapt_total_order_amount_mongo(1, [{"relation":"is less than","values":["1.00",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
     # print(ac.adapt_customer_email_mongo(1, [{"relation":"is end with","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
     # print(ac.adapt_is_accept_marketing_mongo(1, [{"relation":"is true","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
-    print(ac.adapt_last_order_status_mongo(1, [{"relation":"is null","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
+    # print(ac.adapt_last_order_status_mongo(1, [{"relation":"is paid","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
+    print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
