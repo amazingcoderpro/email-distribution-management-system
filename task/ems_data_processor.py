@@ -278,7 +278,7 @@ class EMSDataProcessor:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
-            update_list = []
+            update_list,insert_list = [], []
             # 获取取消订阅的收件人
             unsubscriber_result = self.ems.get_opt_out_link_subscribers()
             # 获取休眠的收件人
@@ -301,6 +301,10 @@ class EMSDataProcessor:
             if unsubscriber_result["code"] != 1 and snoozed_result["code"] != 1:
                 logger.error("get unsubscriber and snoozed customers failed.")
                 return False
+            # 查询出customer_unsubscribe table 已存在的email
+            cursor.execute("select email, store_id, id from customer_unsubscribe")
+            only_field = cursor.fetchall()
+            only = {only[0]+str(only[1]): only[2] for only in only_field}
             if unsubscriber_result["code"] == 1:
                 logger.info("sttart update unsubscriber customers.")
                 unsubscriber_customers_list = unsubscriber_result["data"]["RemovedSubscribers"]["RemovedSubscriber"]
@@ -308,7 +312,14 @@ class EMSDataProcessor:
                     # 通过ListId获取store_id
                     store_id = store_dict.get(cus["ListId"])
                     if store_id:
-                        update_list.append((datetime.datetime.strptime(cus["UnsubscribedOn"], "%Y-%m-%dT%H:%M:%S.%f"), 1, datetime.datetime.now(), cus["Email"], store_id))
+                        try:
+                            Unsubscribed_date = datetime.datetime.strptime(cus["UnsubscribedOn"], "%Y-%m-%dT%H:%M:%S.%f")
+                        except:
+                            Unsubscribed_date = datetime.datetime.strptime(cus["UnsubscribedOn"], "%Y-%m-%dT%H:%M:%S")
+                        if cus["Email"]+str(store_id) in only:
+                            update_list.append((Unsubscribed_date, 1, datetime.datetime.now(), only[cus["Email"]+str(store_id)]))
+                        else:
+                            insert_list.append((Unsubscribed_date, 1, datetime.datetime.now(), datetime.datetime.now(), cus["Email"], store_id))
                         logger.info("email(%s) Unsubscribed success in store(id=%s), UnsubscribedOn %s." % (cus["Email"], store_id, cus["UnsubscribedOn"]))
             if snoozed_result["code"] == 1:
                 logger.info("sttart update snoozed customers.")
@@ -317,11 +328,21 @@ class EMSDataProcessor:
                     # 通过ListId获取store_id
                     store_id = store_dict.get(cust["ListId"])
                     if store_id:
-                        update_list.append((datetime.datetime.strptime(cust["SnoozedUntil"], "%Y-%m-%dT%H:%M:%S.%f"), 2, datetime.datetime.now(), cust["Email"], store_id))
+                        try:
+                            Unsubscribed_date = datetime.datetime.strptime(cust["SnoozedUntil"], "%Y-%m-%dT%H:%M:%S.%f")
+                        except:
+                            Unsubscribed_date = datetime.datetime.strptime(cust["SnoozedUntil"], "%Y-%m-%dT%H:%M:%S")
+                        if cust["Email"] + str(store_id) in only:
+                            update_list.append((Unsubscribed_date, 2, datetime.datetime.now(), only[cust["Email"]+str(store_id)]))
+                        else:
+                            insert_list.append((Unsubscribed_date, 2, datetime.datetime.now(), datetime.datetime.now(), cust["Email"], store_id))
                         logger.info("email(%s) Snoozed success in store(id=%s), SnoozedUntil %s." % (cust["Email"], store_id, cust["SnoozedUntil"]))
             # 更新数据库
-            cursor.executemany("""update customer set unsubscribe_date=%s, unsubscribe_status=%s, update_time=%s where customer_email=%s and store_id=%s""",
+            cursor.executemany("""update customer_unsubscribe set unsubscribe_date=%s, unsubscribe_status=%s, update_time=%s where id=%s""",
                            update_list)
+            cursor.executemany(
+                """insert into customer_unsubscribe (unsubscribe_date,unsubscribe_status,update_time,create_time,email,store_id)
+                values (%s,%s,%s,%s,%s,%s)""", insert_list)
             logger.info("update unsubscriber and snoozed customers success.")
             conn.commit()
         except Exception as e:
