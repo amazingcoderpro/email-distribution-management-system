@@ -1098,11 +1098,13 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
-    def filter_received_customer_mongo(self, store_id, email_id):
+    def filter_received_customer_mongo(self, store_id, email_id, store_name):
 
         """
         7天之内收到过此邮件的用户
         :param store_id: 用户所属的店铺
+        :param email_id: 发送邮件后返回的邮件ID
+        :param store_name: 店铺名称
         :return: 满足条件的用户uuid列表
         """
         logger.info("the customer received an email from this campaign in the last 7 days, store_id={}".format(store_id))
@@ -1121,11 +1123,11 @@ class AnalyzeCondition:
             if res:
                 for ret in res:
                     result.append(ret.get('email'))
-            site_name = self.get_site_name_by_sotre_id(store_id)
-            if not site_name:
-                logger.warning("site name exception.site name is %s" % site_name)
+            # site_name = self.get_site_name_by_sotre_id(store_id)
+            # if not site_name:
+            #     logger.warning("site name exception.site name is %s" % site_name)
             # 转换成uuid列表
-            result = self.customer_email_to_uuid_mongo(result, site_name)
+            result = self.customer_email_to_uuid_mongo(result, store_name)
         except Exception as e:
             logger.exception("the customer received an email from this campaign in the last 7 days catch exception={}".format(e))
         finally:
