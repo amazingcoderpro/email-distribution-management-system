@@ -416,7 +416,6 @@ class ShopifyDataProcessor:
                 exit_top_three_list = []
                 for item in top_three_product:
                     if item["uuid"] not in exit_top_three_list:
-                        item["image_url"] = item["image_url"] + ""
                         exit_top_three_list.append(item["uuid"])
                         top_three_list.append(item)
                 cursor.execute(
@@ -926,6 +925,8 @@ if __name__ == '__main__':
     # 拉取shopify GA 数据
     #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
+    # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer((4,1))
     ShopifyDataProcessor(db_info=db_info).update_store_webhook((4,"tiptopfree.myshopify.com","84ae42dd2bda781f84d8fd1d199dba88", "iii"))
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
