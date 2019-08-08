@@ -72,9 +72,13 @@ class EventOrderPaid(APIView):
         res["status"] = 1
         res["total_price"] = request.data["total_price"]
         res["checkout_id"] = request.data["checkout_id"]
+        res["order_status_url"] = request.data["order_status_url"]
         create_time = request.data["created_at"].replace("T", " ")[:-6]
+        update_time = request.data["updated_at"].replace("T", " ")[:-6]
         res["order_create_time"] = datetime.datetime.strptime(create_time, "%Y-%m-%d %H:%M:%S")
+        res["order_update_time"] = datetime.datetime.strptime(update_time, "%Y-%m-%d %H:%M:%S")
         res["customer_uuid"] = request.data["customer"]["id"]
+        res["status_tag"] = "paid"
         res["create_time"] = datetime.datetime.now()
         order_instance = models.OrderEvent.objects.filter(store=store, order_uuid=request.data["id"]).first()
         li = []
@@ -84,7 +88,7 @@ class EventOrderPaid(APIView):
             price = item["price"]
             quantity = item["quantity"]
             li.append({"product_id": product_id, "title": title, "price": price, "quantity": quantity})
-        res["product_info"] = json.dumps(li)
+        res["product_info"] = li
         if order_instance:
             order_instance.product_info = res["product_info"]
             order_instance.total_price = res["total_price"]

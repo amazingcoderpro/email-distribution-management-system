@@ -46,7 +46,11 @@ class Store(models.Model):
     init = models.SmallIntegerField(db_index=True, choices=init_choices, default=0, verbose_name="店铺初始化")
     source_choices = ((0, 'opstores'), (1, 'foreign_store'))
     source = models.SmallIntegerField(db_index=True, choices=source_choices, default=0, verbose_name="店铺来自")
-    user = models.OneToOneField(User, on_delete=models.DO_NOTHING, blank=True, null=True, unique=True)
+    if ENABLE_MIGRATE:
+        user_id = models.IntegerField(db_index=True, verbose_name="用户id")
+    else:
+        user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
+    # user = models.OneToOneField(User, on_delete=models.DO_NOTHING, blank=True, null=True, unique=True)
     store_create_time = models.DateTimeField(blank=True, null=True, verbose_name="店铺创建时间")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
