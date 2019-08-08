@@ -140,6 +140,71 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
+    def order_filter_mongo(self, store_id, status, relation, value, min_time=None, max_time=None):
+        """
+        筛选满足订单条件的客户id
+        :param store_id: 店铺id
+        :param status: 订单状态0－未支付，　１－支付　, 2 - all
+        :param relation: 订单条件关系，　大于，小于，等于
+        :param value: 订单条件值
+        :param min_time: 时间筛选范围起点
+        :param max_time: 时间筛选范围终点
+        :return: list 满足条件的客户列表
+        """
+        customers = []
+        try:
+            customers = []
+            mdb = MongoDBUtil(mongo_config=self.mongo_config)
+            db = mdb.get_instance()
+            # TODO
+            info = db.shopify_order
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return customers
+            # 判断需要查询的状态
+            if status == 2:
+                status = (0, 1)
+            else:
+                status = (status,)
+            # between date
+            if min_time and max_time:
+                cursor.execute(
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
+                    and `order_update_time`>=%s and `order_update_time`<=%s group by `customer_uuid`""",
+                    (store_id, status, min_time, max_time))
+            # after, in the past
+            elif min_time:
+                cursor.execute(
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
+                    and `order_update_time`>=%s group by `customer_uuid`""", (store_id, status, min_time))
+            # before
+            elif max_time:
+                cursor.execute(
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
+                    and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, max_time))
+            # over all time
+            else:
+                cursor.execute(
+                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
+                    group by `customer_uuid`""", (store_id, status))
+
+            res = cursor.fetchall()
+            relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
+
+            for uuid, count in res:
+                just_str = "{} {} {}".format(count, relation_dict.get(relation), value)
+                if eval(just_str):
+                    customers.append(uuid)
+            return customers
+        except Exception as e:
+            logger.exception("order_filter e={}".format(e))
+            return customers
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
     def adapt_sign_up_time_mongo(self, store_id, relations, store_name):
         try:
             customers = []
@@ -240,7 +305,6 @@ class AnalyzeCondition:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-
 
     def adapt_last_opened_email_time(self, store_id, relations):
         """
@@ -378,7 +442,7 @@ class AnalyzeCondition:
         adapt_customers = self.order_filter(store_id=store_id, status=0, relation=relations[0]["relation"],
                                        value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
         return adapt_customers
-    
+
     def adapt_paid_order(self, store_id, relations):
         """
         适配出所有已支付的订单符合条件的客户id
@@ -1466,6 +1530,7 @@ if __name__ == '__main__':
     #              }
 
     ac = AnalyzeCondition(mysql_config=MYSQL_CONFIG, mongo_config=MONGO_CONFIG)
+    ac.adapt_placed_order()
     ac.update_customer_group_list()
     # conditions = ac.get_conditions()
     # for cond in conditions:

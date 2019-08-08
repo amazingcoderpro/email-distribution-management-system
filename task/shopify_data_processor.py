@@ -371,7 +371,7 @@ class ShopifyDataProcessor:
                 stores = store
 
             for store in stores:
-                store_id, store_url, store_token = store
+                store_id, store_url, store_token, *_ = store
                 top_three_product_list,top_seven_product_list,top_fifteen_product_list,top_thirty_product_list = [],[],[],[]
                 top_three_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=3),datetime.time.min)
                 top_seven_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=7),datetime.time.min)
@@ -640,6 +640,8 @@ class ShopifyDataProcessor:
         return True
 
     def update_store_webhook(self, store=None):
+        store_id, store_url, store_token, store_create_time = store[0]
+        logger.info("update_store_webhook is checking... store_id={}".format(store_id))
         webhooks = [
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/cart/update/', 'topic': 'carts/update'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/order/paid/', 'topic': 'orders/paid'},
@@ -649,9 +651,12 @@ class ShopifyDataProcessor:
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/checkouts/update/','topic': 'checkouts/update'},
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/checkouts/delete/','topic': 'checkouts/delete'},
         ]
-        webhook_info = shopify_webhook.ProductsApi(shop_uri=store[0][1], access_token=store[0][2])
+        webhook_info = shopify_webhook.ProductsApi(shop_uri=store_url, access_token=store_token)
         for webhook in webhooks:
-            webhook_info.create_webhook(topic=webhook.get("topic", ""), address=webhook.get("address", ""))
+            logger.info("update_store_webhook store_id={}, webhook_topic={}".format(store_id, webhook["topic"]))
+            webhook_result = webhook_info.create_webhook(topic=webhook.get("topic", ""), address=webhook.get("address", ""))
+            if webhook_result["code"] == 2:
+                logger.error("update_store_webhook auth failed store_id={}, error_manage={}".format(store_id, webhook_result["msg"]))
 
     def create_template(self, store=None):
         try:
@@ -737,11 +742,7 @@ class ShopifyDataProcessor:
 
             # 新店铺拉客户, 初始拉取一次，以后由webhook推送新顾客的创建事件
             self.update_shopify_customers(store=store)
-            self.update_shopify_order_customer()
-
-            # TODO 新店铺创建模版
-            self.create_template(store)
-
+            self.update_shopify_order_customer(store)
             self.update_store_webhook(store)
 
             logger.info("update_new_shopify end init data store_id={}".format(store[0]))
@@ -885,30 +886,33 @@ class ShopifyDataProcessor:
             conn.close() if conn else 0
         return True
 
-    def update_shopify_order_customer(self):
+    def update_shopify_order_customer(self, store):
         """
         # 用户的订单表 和  用户的信息表同步
         :return:
         """
-        logger.info("Synchronize customer and order data is cheking...")
+        store_id, *_ = store[0]
+        logger.info("update_shopify_order_customer is cheking... store_id={}".format(store_id))
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
                           password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return False
-            cursor.execute("""select `status`, `order_update_time`, `order_uuid`, `store_id` from `order_event` """,)
+            cursor.execute("""select `status`, `order_update_time`, `order_uuid` from `order_event` where store_id=%s""",(store_id,))
             ret = cursor.fetchall()
             if ret:
+                logger.info("update_shopify_order_customer store_id={}".format(store_id,))
                 cursor.executemany(
-                    """update customer set `last_order_status`=%s, `last_order_time`=%s where last_order_id = %s and store_id=%s""",
+                    """update customer set `last_order_status`=%s, `last_order_time`=%s where last_order_id = %s""",
                     ret)
             conn.commit()
         except Exception as e:
-            logger.exception("Synchronize customer and order data e={}".format(e))
+            logger.exception("update_shopify_order_customer store_id={},e={}".format(store_id, e))
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
+        logger.info("update_shopify_order_customer is ending... store_id={}".format(store_id))
         return True
 
 
@@ -923,7 +927,10 @@ if __name__ == '__main__':
     # 订单表 和  用户表 之间的数据同步
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
+    # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer((4,1))
+    ShopifyDataProcessor(db_info=db_info).update_store_webhook((4,"tiptopfree.myshopify.com","84ae42dd2bda781f84d8fd1d199dba88", "iii"))
+    # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
 
-    #ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    # ShopifyDataProcessor(db_info=db_info).update_new_shopify()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
 

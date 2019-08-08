@@ -50,10 +50,8 @@ class ProductsApi:
             if result.status_code in [200, 201]:
                 logger.info("create shopify webhook info is success")
                 res_dict = json.loads(result.text)
-                print(res_dict)
                 return {"code": 1, "msg": "", "data": res_dict}
             else:
-                logger.info("create shopify webhook info is failed")
                 return {"code": 2, "msg": json.loads(result.text).get("errors", ""), "data": ""}
         except Exception as e:
             logger.error("create shopify webhook info is failed info={}".format(str(e)))
@@ -97,7 +95,7 @@ class ProductsApi:
 if __name__ == '__main__':
     access_token = "d1063808be79897450ee5030e1c163ef"
     id = "3583116148816"
-    shop_uri = "charrcter.myshopify.com"
+    shop_uri = "tiptopfree.myshopify.com"
     address = "https://smartsend.seamarketings.com/api/v1/webhook/cart/update/"
     topic = "carts/update"
     products_api = ProductsApi(shop_uri=shop_uri, access_token=access_token)
