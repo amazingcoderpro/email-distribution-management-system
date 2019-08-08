@@ -1,5 +1,5 @@
 from django.conf.urls import url, include
-from app.views import shopify_auth, personal_center, service, webhook
+from app.views import shopify_auth, personal_center, service, webhook, opstores_service
 
 
 auth_urlpatterns = [
@@ -25,10 +25,10 @@ v1_urlpatterns = [
     url(r'^customer_group/(?P<pk>[0-9]+)/$', service.CustomerGroupOptView.as_view()),
 
     # 邮件管理
-    url(r'^email_template/$', service.EmailTemplateView.as_view()),
-    url(r'^email_template/trigger/$', service.TriggerEmailTemplateView.as_view()),
-    # url(r'^email_template/(?P<pk>[0-9]+)/$', service.EmailTemplateDeleteView.as_view()),
-    url(r'^email_template/(?P<pk>[0-9]+)/$', service.EmailTemplateUpdateView.as_view()),
+    url(r'^email_template/$', service.EmailTemplateView.as_view()),                         # 模板列表，创建模板
+    url(r'^email_template/trigger/$', service.TriggerEmailTemplateView.as_view()),          # 通过flow创建邮件模板
+    url(r'^email_template/(?P<pk>[0-9]+)/$', service.EmailTemplateRetrieveView.as_view()),  # 模板详情
+    url(r'^email_template/(?P<pk>[0-9]+)/$', service.EmailTemplateUpdateView.as_view()),    # 更改状态
 
     url(r'^top_product/$', service.TopProductView.as_view()),
     url(r'^upload_picture/$', service.UploadPicture.as_view()),
@@ -72,8 +72,16 @@ webhook_urlpatterns = [
 ]
 
 
+v2_urlpatterns = [
+    url(r'opstores/store/$', opstores_service.StoreInitViews.as_view()),
+    url(r'^email_trigger/$', opstores_service.EmailTriggerView.as_view()),
+]
+
+
+
 urlpatterns = [
     url(r'^v1/auth/', include(auth_urlpatterns)),
     url(r'^v1/webhook/', include(webhook_urlpatterns)),
     url(r'^v1/', include(v1_urlpatterns)),
+    url(r'^v2/', include(v2_urlpatterns)),
 ]
