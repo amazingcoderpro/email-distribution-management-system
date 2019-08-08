@@ -363,7 +363,7 @@ class ShopifyDataProcessor:
                 return False
             if not store:
                 cursor.execute(
-                    """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1""")
+                    """select store.id, store.url, store.token from store left join user on store.user_id = user.id where user.is_active = 1 and store.id != 1 and store.source = 1""")
                 stores = cursor.fetchall()
                 if not stores:
                     return False
@@ -406,108 +406,112 @@ class ShopifyDataProcessor:
                 top_fifteen_product_list = [item[0] for item in Counter(top_fifteen_product_list).most_common(6)]
                 top_thirty_product_list = [item[0] for item in Counter(top_thirty_product_list).most_common(6)]
                 current_time = datetime.datetime.now()
-                logger.info("update_top_product is cheking... store_id={} 3_product_list={}".format(store_id, top_three_product_list))
 
                 # top_three
-                cursor_dict.execute(
-                    """select id,name,url,uuid,price,image_url from product where store_id = %s and uuid in %s""",(store_id, top_three_product_list))
-                top_three_product = cursor_dict.fetchall()
+                if top_three_product_list:
+                    logger.info("update_top_product is cheking... store_id={} 3_product_list={}".format(store_id,top_three_product_list))
+                    cursor_dict.execute(
+                        """select id,name,url,uuid,price,image_url from product where store_id = %s and uuid in %s""",(store_id, top_three_product_list))
+                    top_three_product = cursor_dict.fetchall()
 
-                top_three_list = []
-                exit_top_three_list = []
-                for item in top_three_product:
-                    if item["uuid"] not in exit_top_three_list:
-                        exit_top_three_list.append(item["uuid"])
-                        top_three_list.append(item)
-                cursor.execute(
-                    """select id from top_product where store_id = %s """,(store_id))
-                store = cursor.fetchall()
-                if not store:
+                    top_three_list = []
+                    exit_top_three_list = []
+                    for item in top_three_product:
+                        if item["uuid"] not in exit_top_three_list:
+                            exit_top_three_list.append(item["uuid"])
+                            top_three_list.append(item)
                     cursor.execute(
-                        "insert into `top_product` (`top_three`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s)",
-                        (json.dumps(top_three_list),store_id, current_time,current_time))
-                    conn.commit()
-                else:
-                    cursor.execute(
-                        '''update `top_product` set top_three=%s,update_time=%s where store_id=%s''', (json.dumps(top_three_list),current_time, store_id))
-                    conn.commit()
+                        """select id from top_product where store_id = %s """,(store_id))
+                    store = cursor.fetchall()
+                    if not store:
+                        cursor.execute(
+                            "insert into `top_product` (`top_three`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s)",
+                            (json.dumps(top_three_list),store_id, current_time,current_time))
+                        conn.commit()
+                    else:
+                        cursor.execute(
+                            '''update `top_product` set top_three=%s,update_time=%s where store_id=%s''', (json.dumps(top_three_list),current_time, store_id))
+                        conn.commit()
 
                 # top_seven
-                logger.info("update_top_product is cheking... store_id={} 7_product_list={}".format(store_id, top_seven_product_list))
-                cursor_dict.execute(
-                    """select id,name,url,uuid,price,image_url from product where store_id = %s and uuid in %s""",(store_id, top_seven_product_list))
-                top_seven_product = cursor_dict.fetchall()
+                if top_seven_product_list:
+                    logger.info("update_top_product is cheking... store_id={} 7_product_list={}".format(store_id, top_seven_product_list))
+                    cursor_dict.execute(
+                        """select id,name,url,uuid,price,image_url from product where store_id = %s and uuid in %s""",(store_id, top_seven_product_list))
+                    top_seven_product = cursor_dict.fetchall()
 
-                top_seven_list = []
-                exit_top_seven_list = []
-                for item in top_seven_product:
-                    if item["uuid"] not in exit_top_seven_list:
-                        exit_top_seven_list.append(item["uuid"])
-                        top_seven_list.append(item)
-                cursor.execute(
-                    """select id from top_product where store_id = %s """,(store_id))
-                store = cursor.fetchall()
-                if not store:
+                    top_seven_list = []
+                    exit_top_seven_list = []
+                    for item in top_seven_product:
+                        if item["uuid"] not in exit_top_seven_list:
+                            exit_top_seven_list.append(item["uuid"])
+                            top_seven_list.append(item)
                     cursor.execute(
-                        "insert into `top_product` (`top_seven`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s)",
-                        (json.dumps(top_seven_list),store_id, current_time,current_time))
-                    conn.commit()
-                else:
-                    cursor.execute(
-                        '''update `top_product` set top_seven=%s,update_time=%s where store_id=%s''', (json.dumps(top_seven_list),current_time, store_id))
-                    conn.commit()
+                        """select id from top_product where store_id = %s """,(store_id))
+                    store = cursor.fetchall()
+                    if not store:
+                        cursor.execute(
+                            "insert into `top_product` (`top_seven`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s)",
+                            (json.dumps(top_seven_list),store_id, current_time,current_time))
+                        conn.commit()
+                    else:
+                        cursor.execute(
+                            '''update `top_product` set top_seven=%s,update_time=%s where store_id=%s''', (json.dumps(top_seven_list),current_time, store_id))
+                        conn.commit()
 
 
                 # top_fifteen
-                logger.info("update_top_product is cheking... store_id={} 15_product_list={}".format(store_id, top_fifteen_product_list))
-                cursor_dict.execute(
-                    """select id,name,url,uuid,price, image_url from product where store_id = %s and uuid in %s""",(store_id, top_fifteen_product_list))
-                top_fifteen_product = cursor_dict.fetchall()
+                if top_fifteen_product_list:
+                    logger.info("update_top_product is cheking... store_id={} 15_product_list={}".format(store_id, top_fifteen_product_list))
+                    cursor_dict.execute(
+                        """select id,name,url,uuid,price, image_url from product where store_id = %s and uuid in %s""",(store_id, top_fifteen_product_list))
+                    top_fifteen_product = cursor_dict.fetchall()
 
-                top_fifteen_list = []
-                exit_top_fifteen_list = []
-                for item in top_fifteen_product:
-                    if item["uuid"] not in exit_top_fifteen_list:
-                        exit_top_fifteen_list.append(item["uuid"])
-                        top_fifteen_list.append(item)
-                cursor.execute(
-                    """select id from top_product where store_id = %s """,(store_id))
-                store = cursor.fetchall()
-                if not store:
+                    top_fifteen_list = []
+                    exit_top_fifteen_list = []
+                    for item in top_fifteen_product:
+                        if item["uuid"] not in exit_top_fifteen_list:
+                            exit_top_fifteen_list.append(item["uuid"])
+                            top_fifteen_list.append(item)
                     cursor.execute(
-                        "insert into `top_product` (`top_fifteen`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s)",
-                        (json.dumps(top_fifteen_list),store_id, current_time,current_time))
-                    conn.commit()
-                else:
-                    cursor.execute(
-                        '''update `top_product` set top_fifteen=%s,update_time=%s where store_id=%s''', (json.dumps(top_fifteen_list),current_time, store_id))
-                    conn.commit()
+                        """select id from top_product where store_id = %s """,(store_id))
+                    store = cursor.fetchall()
+                    if not store:
+                        cursor.execute(
+                            "insert into `top_product` (`top_fifteen`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s)",
+                            (json.dumps(top_fifteen_list),store_id, current_time,current_time))
+                        conn.commit()
+                    else:
+                        cursor.execute(
+                            '''update `top_product` set top_fifteen=%s,update_time=%s where store_id=%s''', (json.dumps(top_fifteen_list),current_time, store_id))
+                        conn.commit()
 
 
                 # top_thirty
-                logger.info("update_top_product is cheking... store_id={} 30_product_list={}".format(store_id, top_thirty_product_list))
-                cursor_dict.execute(
-                    """select id,name,url,uuid,price, image_url from product where store_id = %s and uuid in %s""",(store_id, top_thirty_product_list))
-                top_thirty_product = cursor_dict.fetchall()
+                if top_thirty_product_list:
+                    logger.info("update_top_product is cheking... store_id={} 30_product_list={}".format(store_id, top_thirty_product_list))
+                    cursor_dict.execute(
+                        """select id,name,url,uuid,price, image_url from product where store_id = %s and uuid in %s""",(store_id, top_thirty_product_list))
+                    top_thirty_product = cursor_dict.fetchall()
 
-                top_thirty_list = []
-                exit_top_thirty_list = []
-                for item in top_thirty_product:
-                    if item["uuid"] not in exit_top_thirty_list:
-                        exit_top_thirty_list.append(item["uuid"])
-                        top_thirty_list.append(item)
-                cursor.execute(
-                    """select id from top_product where store_id = %s """,(store_id))
-                store = cursor.fetchall()
-                if not store:
+                    top_thirty_list = []
+                    exit_top_thirty_list = []
+                    for item in top_thirty_product:
+                        if item["uuid"] not in exit_top_thirty_list:
+                            exit_top_thirty_list.append(item["uuid"])
+                            top_thirty_list.append(item)
                     cursor.execute(
-                        "insert into `top_product` (`top_thirty`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s)",
-                        (json.dumps(top_thirty_list),store_id, current_time,current_time))
-                    conn.commit()
-                else:
-                    cursor.execute(
-                        '''update `top_product` set top_thirty=%s,update_time=%s where store_id=%s''', (json.dumps(top_thirty_list),current_time, store_id))
-                    conn.commit()
+                        """select id from top_product where store_id = %s """,(store_id))
+                    store = cursor.fetchall()
+                    if not store:
+                        cursor.execute(
+                            "insert into `top_product` (`top_thirty`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s)",
+                            (json.dumps(top_thirty_list),store_id, current_time,current_time))
+                        conn.commit()
+                    else:
+                        cursor.execute(
+                            '''update `top_product` set top_thirty=%s,update_time=%s where store_id=%s''', (json.dumps(top_thirty_list),current_time, store_id))
+                        conn.commit()
         except Exception as e:
             logger.exception("update_top_product e={}".format(e))
             return False
@@ -924,14 +928,14 @@ if __name__ == '__main__':
     #ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    # ShopifyDataProcessor(db_info=db_info).update_top_product()
+    ShopifyDataProcessor(db_info=db_info).update_top_product()
     # 拉取shopify GA 数据
     #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
-    ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
+    #ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer((4,1))
-    ShopifyDataProcessor(db_info=db_info).update_store_webhook((4,"tiptopfree.myshopify.com","84ae42dd2bda781f84d8fd1d199dba88", "iii"))
+    #ShopifyDataProcessor(db_info=db_info).update_store_webhook((4,"tiptopfree.myshopify.com","84ae42dd2bda781f84d8fd1d199dba88", "iii"))
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
 
     # ShopifyDataProcessor(db_info=db_info).update_new_shopify()
