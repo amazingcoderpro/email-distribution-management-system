@@ -435,7 +435,7 @@ class ShopifyDataProcessor:
 
                 # top_seven
                 cursor_dict.execute(
-                    """select id,name,url,uuid,price,image_url,state from product where store_id = %s and uuid in %s""",(store_id, top_seven_product_list))
+                    """select id,name,url,uuid,price,image_url from product where store_id = %s and uuid in %s""",(store_id, top_seven_product_list))
                 top_seven_product = cursor_dict.fetchall()
 
                 top_seven_list = []
@@ -460,7 +460,7 @@ class ShopifyDataProcessor:
 
                 # top_fifteen
                 cursor_dict.execute(
-                    """select id,name,url,uuid,price, image_url,state from product where store_id = %s and uuid in %s""",(store_id, top_fifteen_product_list))
+                    """select id,name,url,uuid,price, image_url from product where store_id = %s and uuid in %s""",(store_id, top_fifteen_product_list))
                 top_fifteen_product = cursor_dict.fetchall()
 
                 top_fifteen_list = []
@@ -485,7 +485,7 @@ class ShopifyDataProcessor:
 
                 ## top_thirty
                 cursor_dict.execute(
-                    """select id,name,url,uuid,price, image_url,state from product where store_id = %s and uuid in %s""",(store_id, top_thirty_product_list))
+                    """select id,name,url,uuid,price, image_url from product where store_id = %s and uuid in %s""",(store_id, top_thirty_product_list))
                 top_thirty_product = cursor_dict.fetchall()
 
                 top_thirty_list = []
