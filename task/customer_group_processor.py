@@ -155,31 +155,45 @@ class AnalyzeCondition:
             customers = []
             mdb = MongoDBUtil(mongo_config=self.mongo_config)
             db = mdb.get_instance()
-            paid_results= db["shopify_order"]
-            unpaid_result= db["shopify_unpai_order"]
+            paid_results = db["shopify_order"]
+            # unpaid_result = db["shopify_unpai_order"]
 
             # 判断需要查询的状态
             # if status == 2:
             #     status = (0, 1)
-            #
             # else:
             #     status = (status,)
 
             if min_time and max_time:
-                pass
+                # res = paid_results.find({"updated_at": {"$gte":min_time, "$lte": max_time}},
+                #                         {"customer.id": 1})
+                group = {
+                    '_id': "$email",
+                    'count': {'$sum': 1}
+                }
+                res = paid_results.aggregate([{"$match": {"updated_at": {"$gte":min_time, "$lte": max_time}}}, {"$group": group}], allowDiskUse=True)
+                for r in res:
+                    print(r)
 
             # after, in the past
             elif min_time:
-                pass
-
+                res = paid_results.find({"updated_at": {"$gte": min_time}},
+                                        {"customer.id": 1})
             # before
             elif max_time:
-                pass
-
+                res = paid_results.find({"updated_at": {"$lte": max_time}},
+                                        {"customer.id": 1})
             # over all time
             else:
-                pass
+                res = paid_results.find({"updated_at": {}},
+                                        {"customer.id": 1})
+            relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
 
+            for uuid, count in res:
+                just_str = "{} {} {}".format(count, relation_dict.get(relations), value)
+                if eval(just_str):
+                    customers.append(uuid)
+            return customers
 
             # return customers
         except Exception as e:
@@ -1825,4 +1839,5 @@ if __name__ == '__main__':
     # print(ac.adapt_total_order_amount_mongo(1, [{"relation":"is less than","values":["1.00",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
     # print(ac.adapt_customer_email_mongo(1, [{"relation":"is end with","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
     # print(ac.adapt_is_accept_marketing_mongo(1, [{"relation":"is true","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
-    print(ac.adapt_last_order_status_mongo(1, [{"relation":"is null","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
+    # print(ac.adapt_last_order_status_mongo(1, [{"relation":"is null","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
+        ac.order_filter_mongo(5, 1, [{"relation":"is null","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], 1, "2019-05-31T16:27:33+08:00", "2020-05-31T16:27:33+08:00")
