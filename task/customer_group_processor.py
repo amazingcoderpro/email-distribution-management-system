@@ -1004,10 +1004,10 @@ class AnalyzeCondition:
         """
         获取当前店铺取消订阅或正在休眠的收件人
         :param store_id: 店铺ID
-        :return: 满足条件的收件人uuid列表
+        :return: 满足条件的收件人email列表
         """
         logger.info(
-            "get unsubscribed and snoozed in the customer list, store_id={}".format(store_id))
+            "get unsubscribed and snoozed in the customer unsubscribe table, store_id={}".format(store_id))
         result = []
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
@@ -1017,7 +1017,7 @@ class AnalyzeCondition:
                 return result
             # 更新休眠收件人的状态
             cursor.execute(
-                """select id,unsubscribe_date from `customer` where store_id=%s and unsubscribe_status=2""", (store_id,))
+                """select id,unsubscribe_date from `customer_unsubscribe` where store_id=%s and unsubscribe_status=2""", (store_id,))
             snoozed = cursor.fetchall()
             if snoozed:
                 update_ids = []
@@ -1026,16 +1026,16 @@ class AnalyzeCondition:
                         update_ids.append(customer["id"])
                 if update_ids:
                     cursor.execute(
-                        """update `customer` set unsubscribe_date=null, unsubscribe_status=0 where id in %s""",
+                        """update `customer_unsubscribe` set unsubscribe_date=null, unsubscribe_status=0 where id in %s""",
                         (tuple(update_ids),))
                     conn.commit()
                     logger.info("update snoozed customers status success.")
             cursor.execute(
-                """select `uuid` from `customer` where store_id=%s and unsubscribe_status in (1,2)""", (store_id,))
+                """select `email` from `customer_unsubscribe` where store_id=%s and unsubscribe_status in (1,2)""", (store_id,))
             res = cursor.fetchall()
             if res:
                 for ret in res:
-                    result.append(ret.get('uuid'))
+                    result.append(ret.get('email'))
         except Exception as e:
             logger.exception("get unsubscribed and snoozed exception: e = {}".format(e))
             return result
@@ -1249,13 +1249,13 @@ class AnalyzeCondition:
                     logger.error("insert_customer_list_id_from_email_trigger failed")
                     return False
 
-            # 对new_customer_list里的收件人进行取消订阅或休眠过滤
-            unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(store_id)
-            new_customer_list = list(set(new_customer_list) - set(unsubscribed_and_snoozed))
-            logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (store_id, set(unsubscribed_and_snoozed)))
-
             # 将new_customer_list转换成邮箱地址列表
             email_list = self.customer_uuid_to_email(new_customer_list)
+            # 对new_customer_list里的收件人进行取消订阅或休眠过滤
+            unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(store_id)
+            email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
+            logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (
+            store_id, set(unsubscribed_and_snoozed)))
             logger.info("new customer list length is %s" % len(email_list))
             # 添加收件人,每次添加不能超过100个收件人
             times = int(len(email_list)//99) + 1
@@ -1446,10 +1446,7 @@ class AnalyzeCondition:
                 if not eval(str(res["customer_list"])):
                     continue
                 customer_list = eval(res["customer_list"])
-                # 对customer_list里的收件人进行取消订阅或休眠过滤
-                unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(res["store_id"])
-                customer_list = list(set(customer_list) - set(unsubscribed_and_snoozed))
-                logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (res["store_id"], set(unsubscribed_and_snoozed)))
+
                 # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
                 if "customer received an email from this campaign in the last 7 days" in eval(res["note"]):
                     customers_7day = self.filter_received_customer(res["store_id"], res["uuid"])
@@ -1468,6 +1465,11 @@ class AnalyzeCondition:
                 ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
                 # 需要将uuid 转换成email
                 email_list = self.customer_uuid_to_email(customer_list)
+                # 对customer_list里的收件人进行取消订阅或休眠过滤
+                unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(res["store_id"])
+                email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
+                logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (
+                res["store_id"], set(unsubscribed_and_snoozed)))
                 send_error_info = ""
                 status = 2
                 for customer in email_list:
@@ -1530,8 +1532,8 @@ if __name__ == '__main__':
     #              }
 
     ac = AnalyzeCondition(mysql_config=MYSQL_CONFIG, mongo_config=MONGO_CONFIG)
-    ac.adapt_placed_order()
-    ac.update_customer_group_list()
+    # ac.adapt_placed_order()
+    # ac.update_customer_group_list()
     # conditions = ac.get_conditions()
     # for cond in conditions:
     #     cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
