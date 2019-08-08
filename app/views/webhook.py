@@ -84,7 +84,7 @@ class EventOrderPaid(APIView):
             price = item["price"]
             quantity = item["quantity"]
             li.append({"product_id": product_id, "title": title, "price": price, "quantity": quantity})
-        res["product_info"] = json.dumps(li)
+        res["product_info"] = li
         if order_instance:
             order_instance.product_info = res["product_info"]
             order_instance.total_price = res["total_price"]
