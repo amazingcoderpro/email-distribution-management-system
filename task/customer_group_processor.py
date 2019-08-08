@@ -151,59 +151,18 @@ class AnalyzeCondition:
         :param max_time: 时间筛选范围终点
         :return: list 满足条件的客户列表
         """
-        customers = []
         try:
             customers = []
             mdb = MongoDBUtil(mongo_config=self.mongo_config)
             db = mdb.get_instance()
-            # TODO
-            info = db.shopify_order
-            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
-                          password=self.db_password).get_instance()
-            cursor = conn.cursor() if conn else None
-            if not cursor:
-                return customers
-            # 判断需要查询的状态
-            if status == 2:
-                status = (0, 1)
-            else:
-                status = (status,)
-            # between date
-            if min_time and max_time:
-                cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
-                    and `order_update_time`>=%s and `order_update_time`<=%s group by `customer_uuid`""",
-                    (store_id, status, min_time, max_time))
-            # after, in the past
-            elif min_time:
-                cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
-                    and `order_update_time`>=%s group by `customer_uuid`""", (store_id, status, min_time))
-            # before
-            elif max_time:
-                cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
-                    and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, max_time))
-            # over all time
-            else:
-                cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
-                    group by `customer_uuid`""", (store_id, status))
+            #TODO
 
-            res = cursor.fetchall()
-            relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
-
-            for uuid, count in res:
-                just_str = "{} {} {}".format(count, relation_dict.get(relation), value)
-                if eval(just_str):
-                    customers.append(uuid)
             return customers
         except Exception as e:
-            logger.exception("order_filter e={}".format(e))
+            logger.exception("adapt_sign_up_time_mongo catch exception={}".format(e))
             return customers
         finally:
-            cursor.close() if cursor else 0
-            conn.close() if conn else 0
+            mdb.close()
 
     def adapt_sign_up_time_mongo(self, store_id, relations, store_name):
         try:
