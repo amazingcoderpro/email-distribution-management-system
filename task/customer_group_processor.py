@@ -24,9 +24,9 @@ class AnalyzeCondition:
                               "Customer last order created time": "adapt_last_order_created_time",
                               "Customer last opened email time": "adapt_last_opened_email_time",
                               "Customer last click email time": "adapt_last_click_email_time",
-                              "Customer placed order": "adapt_placed_order",
-                              "Customer paid order": "adapt_paid_order",
-                              "Customer order number is": "adapt_all_order",
+                              "Customer placed order": "adapt_placed_order",  # 已完成
+                              "Customer paid order": "adapt_paid_order",  # 已完成
+                              "Customer order number is": "adapt_all_order",  # 已完成
                               "Customer opened email": "adapt_opened_email",  # 已完成
                               "Customer clicked email": "adapt_clicked_email",  # 已完成
                               "Customer last order status": "adapt_last_order_status",  # 已完成
@@ -34,7 +34,7 @@ class AnalyzeCondition:
                               "Customer Email": "adapt_customer_email",  # 已完成
                               "Customer total order payment amount": "adapt_total_order_amount",  # 已完成
                             }
-        self.note_dict = {"customer makes a purchase": self.filter_purchase_customer,
+        self.note_dict = {"customer makes a purchase": self.filter_purchase_customer,  # 已完成
                           "customer received an email from this campaign in the last 7 days": self.filter_received_customer,  # 已完成
                         }
         self.mongo_config = mongo_config
@@ -519,7 +519,7 @@ class AnalyzeCondition:
                                        value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
         return adapt_customers
 
-    def adapt_paid_order_monogo(self, store_id, relations, store_name):
+    def adapt_paid_order_mongo(self, store_id, relations, store_name):
         """
         适配出所有已支付的订单符合条件的客户id
         :param store_id: 店铺id
@@ -533,7 +533,7 @@ class AnalyzeCondition:
                                        value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
         return adapt_customers
 
-    def adapt_all_order_monogo(self, store_id, relations, store_name):
+    def adapt_all_order_mongo(self, store_id, relations, store_name):
         """
         适配出所有的订单符合条件的客户id
         :param store_id: 店铺id
@@ -697,8 +697,8 @@ class AnalyzeCondition:
         :return: 客户的id列表
         """
         # relations 两个, 第一个是数量，第二个是时间范围
-        min_time, max_time = self.date_relation_convert(relation=relations[1]["relation"], values=relations[1]["values"],
-                                                   unit=relations[1].get("unit", "days"))
+        min_time, max_time = self.date_relation_convert_mongo(relation=relations[1]["relation"], values=relations[1]["values"],
+                                                   unit=relations[1].get("unit", "days"), store_name=store_name)
         customers = self.email_opt_filter_mongo(store_id=store_id, opt_type=0, relation=relations[0]["relation"], value=relations[0]["values"][0],
                          min_time=min_time, max_time=max_time, site_name=store_name)
         return customers
@@ -725,8 +725,8 @@ class AnalyzeCondition:
         :return: 客户的id列表
         """
         # relations 两个, 第一个是数量，第二个是时间范围
-        min_time, max_time = self.date_relation_convert(relation=relations[1]["relation"], values=relations[1]["values"],
-                                                   unit=relations[1].get("unit", "days"))
+        min_time, max_time = self.date_relation_convert_mongo(relation=relations[1]["relation"], values=relations[1]["values"],
+                                                   unit=relations[1].get("unit", "days"), store_name=store_name)
         customers = self.email_opt_filter_mongo(store_id=store_id, opt_type=1, relation=relations[0]["relation"], value=relations[0]["values"][0],
                          min_time=min_time, max_time=max_time, site_name=store_name)
         return customers
