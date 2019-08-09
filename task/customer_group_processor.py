@@ -784,7 +784,7 @@ class AnalyzeCondition:
             elif max_time:
                 filter_dict = {"$lte": max_time}
             else:
-                filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")+"+08:00"}
+                filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
             unpaid_order = db.shopify_unpaid_order.find({"site_name": store_name, "gateway": {"$ne": None}, "updated_at": filter_dict}, {"_id": 0, "id": 1, "token": 1, "customer.id": 1})
             paid_order = [item["checkout_token"] for item in db.shopify_order.find({"site_name": store_name}, {"_id": 0, "checkout_token": 1})]
             for unpaid in unpaid_order:
@@ -1411,6 +1411,20 @@ class AnalyzeCondition:
         """
         logger.info("customers by makes a purchase, store_id={}".format(store_id))
         adapt_customers = self.order_filter(store_id=store_id, status=1, relation="more than",
+                                            value=0, min_time=start_time, max_time=end_time)
+        return adapt_customers
+
+    def filter_purchase_customer_mongo(self, store_id, start_time, store_name, end_time=datetime.datetime.now()):
+
+        """
+        搜索在flow过程中完成了一次购买的用户(发第一封邮件时不需要筛选，以后每次发邮件前都需要)
+        :param store_id: 用户所属的店铺
+        :param start_time:  flow的创建时间
+        :param end_time:  截止到目前为止，发邮件前的时间
+        :return: 满足条件的用户id列表
+        """
+        logger.info("customers by makes a purchase, store_id={}".format(store_id))
+        adapt_customers = self.order_filter_mongo(store_id=store_id, status=1, store_name=store_name, relation="more than",
                                             value=0, min_time=start_time, max_time=end_time)
         return adapt_customers
 
