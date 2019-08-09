@@ -444,7 +444,7 @@ class ShopifyDataProcessor:
                             "name": pro["title"],
                             "price": pro["variants"][0].get("price", 0),
                             "image_url": pro["image"].get("src", ""),
-                            "url": f"{domain}/products/{pro['handle']}"
+                            "url": f"https://{domain}/products/{pro['handle']}"
                         }
                         if pro["id"] in top6_product_ids_recent3days:
                             top6_products_3days.append(product_info)
