@@ -183,7 +183,7 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
-    def order_filter_mongo(self, store_id, status, store_name, relations, value, min_time=None, max_time=None):
+    def order_filter_mongo(self, store_id, status, store_name, relation, value, min_time=None, max_time=None):
         """
         筛选满足订单条件的客户id
         :param store_id: 店铺id
@@ -207,10 +207,10 @@ class AnalyzeCondition:
                 # 查询未支付的customer_uuid
                 unpaid_res = self.unpaid_order_customers_mongo(store_name, min_time, max_time)
                 for uuid, count_list in unpaid_res.items():
-                    just_str = "{} {} {}".format(len(count_list), relation_dict.get(relations), value)
+                    just_str = "{} {} {}".format(len(count_list), relation_dict.get(relation), value)
                     if eval(just_str):
                         customers.append(uuid)
-                    print("test 1")
+
             if status == 1 or flag:
                 if min_time and max_time:
                     filter_dict = {"$lte": max_time, "$gte": min_time}
@@ -219,7 +219,7 @@ class AnalyzeCondition:
                 elif max_time:
                     filter_dict = {"$lte": max_time}
                 else:
-                    filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")+"+08:00"}
+                    filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
 
                 group = {
                     '_id': "$customer.id",
@@ -229,10 +229,9 @@ class AnalyzeCondition:
                     [{"$match": {"updated_at": filter_dict}}, {"$group": group}],
                     allowDiskUse=True)
                 for item in paid_res:
-                    just_str = "{} {} {}".format(item["count"], relation_dict.get(relations), value)
+                    just_str = "{} {} {}".format(item["count"], relation_dict.get(relation), value)
                     if eval(just_str):
                         customers.append(item["_id"])
-                    print("test 2")
             return customers
         except Exception as e:
             logger.exception("adapt_sign_up_time_mongo catch exception={}".format(e))
