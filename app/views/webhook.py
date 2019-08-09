@@ -72,7 +72,7 @@ class EventOrderPaid(APIView):
         res["status"] = 1
         res["total_price"] = request.data["total_price"]
         res["checkout_id"] = request.data["checkout_id"]
-        res["order_status_url"] = request.data["order_status_url"]
+        res["order_status_url"] = request.data["order_status_url"] if request.data["order_status_url"] else ""
         create_time = request.data["created_at"].replace("T", " ")[:-6]
         update_time = request.data["updated_at"].replace("T", " ")[:-6]
         res["order_create_time"] = datetime.datetime.strptime(create_time, "%Y-%m-%d %H:%M:%S")
