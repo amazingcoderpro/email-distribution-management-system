@@ -880,6 +880,7 @@ class ShopifyDataProcessor:
                 logger.info("update_new_shopify end init data store_id={}".format(store[0]))
             else:
                 # 对来自opstores的新入店铺，拉取top　products
+                logger.info("update_new_shopify store from opstores, store={}".format(store[0]))
                 self.update_top_products_mongo(store)
 
         except Exception as e:
