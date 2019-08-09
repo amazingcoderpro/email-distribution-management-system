@@ -53,7 +53,7 @@ MONGO_CONFIG = {
     "password": 'edm12345678',
     "replica_set": "mgset-13096445",
     "auth_type": "SCRAM-SHA-1",
-    "ssh": True,
+    "ssh": False,
     "ssh_host": "47.244.107.240",
     "ssh_user": "root",
     "ssh_password": "ZBzZehr+WLonFxax"
