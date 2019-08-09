@@ -6,6 +6,8 @@ import pymysql
 import datetime
 import json
 from dateutil.relativedelta import relativedelta
+from pytz import timezone
+
 from config import logger, MONGO_CONFIG, MYSQL_CONFIG
 from task.db_util import DBUtil, MongoDBUtil
 from sdk.ems import ems_api
@@ -1055,6 +1057,100 @@ class AnalyzeCondition:
 
         return min_time, max_time
 
+    def get_shop_timezone_mongo(self, store_name):
+        """
+        获取当前店铺的时区
+        :param store_name: 店铺名称
+        :return: 时区名称，eg:'Asia/Shanghai'
+        """
+        logger.info("get_shop_timezone_mongo start, store name is %s" % store_name)
+        timezone = ""
+        try:
+            mdb = MongoDBUtil(mongo_config=self.mongo_config)
+            db = mdb.get_instance()
+            # 从shop_info表中查找对应的时区
+            shop_info = db["shopify_shop_info"]
+
+            timezone = shop_info.find_one({"site_name": store_name}, {"_id": 0, "iana_timezone": 1})
+            if timezone["iana_timezone"]:
+                timezone = timezone["iana_timezone"]
+            return timezone
+        except Exception as e:
+            logger.exception("get_shop_timezone_mongo catch exception={}".format(e))
+            return timezone
+        finally:
+            mdb.close()
+
+    def date_relation_convert_mongo(self, relation, values, store_name, unit="days"):
+        """
+        转换日期条件为起\止时间点
+        :param relation: 日期条件，如before, in the past...
+        :param values: 条件值列表
+        :param unit: 日期单位
+        :return: 起＼止时间点，datetime类型
+        """
+        def unit_convert(unit_, value):
+            if unit_ in ["days", 'weeks']:
+                str_delta = "datetime.timedelta({}={})".format(unit_, value)
+            else:
+                str_delta = "relativedelta({}={})".format(unit_, value)
+            return eval(str_delta)
+
+        try:
+            min_time = None
+            max_time = None
+            # 兼容一下时间格式
+            format_str_0 = format_str_1 = "%Y-%m-%d %H:%M:%S" if len(values[0]) > 11 else "%Y-%m-%d"
+            if len(values) == 2:
+                format_str_1 = "%Y-%m-%d %H:%M:%S" if len(values[1]) > 11 else "%Y-%m-%d"
+
+            time_now = datetime.datetime.now()
+            if relation.lower() in "is in the past":
+                min_time = time_now - unit_convert(unit_=unit, value=values[0])
+            elif relation.lower() in "is before":
+                max_time = datetime.datetime.strptime(values[0], format_str_0)
+            elif relation.lower() in "is after":
+                min_time = datetime.datetime.strptime(values[0], format_str_0)
+            elif relation.lower() == "is between date" or relation.lower() == "between date":
+                min_time = datetime.datetime.strptime(values[0], format_str_0)
+                max_time = datetime.datetime.strptime(values[1], format_str_1)
+            elif relation.lower() == "is between" or relation.lower() == "between":
+                max_time = time_now - unit_convert(unit_=unit, value=values[0])
+                min_time = time_now - unit_convert(unit_=unit, value=values[1])
+            else:
+                # over all time
+                min_time = None
+                max_time = None
+            # 按照store的时区转换
+            iana_timezone = self.get_shop_timezone_mongo(store_name)
+            if min_time:
+                min_time = self.timezone_transform(min_time, 'Asia/Shanghai', iana_timezone).replace(" ", "T")
+            if max_time:
+                max_time = self.timezone_transform(max_time, 'Asia/Shanghai', iana_timezone).replace(" ", "T")
+        except Exception as e:
+            logger.exception("date_relation_convert catch exception: {}".format(e))
+
+        return min_time, max_time
+
+    def timezone_transform(self, date_time, src_timezone, dst_timezone):
+        """
+        将date_time从src_timezone时区转换成dst_timezone时区的时间
+        :param date_time: datetime时间类型or时间字符串，格式为："%Y-%m-%d %H:%M:%S"
+        :param src_timezone: 源时区名称，eg:'Asia/Shanghai'
+        :param dst_timezone: 目标时区名称，同src_timezone
+        :return: 转换后的datetine时间类型 or 时间字符串，格式为："%Y-%m-%d %H:%M:%S";
+        转换后的时间有6分钟的时间精度调整
+        """
+        try:
+            if isinstance(date_time, str):
+                date_time = datetime.datetime.strptime(date_time[0:19], "%Y-%m-%d %H:%M:%S")
+                result_time = date_time.replace(tzinfo=timezone(src_timezone)).astimezone(timezone(dst_timezone)) + datetime.timedelta(0,360)
+                return result_time.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                return date_time.replace(tzinfo=timezone(src_timezone)).astimezone(timezone(dst_timezone)) + datetime.timedelta(0,360)
+        except Exception as e:
+            logger.error("timezone_transform exception e: " % e)
+
     def get_customers_by_condition(self, condition, store_id):
         """
         根据综合条件，筛选出符合的顾客列表
@@ -1954,5 +2050,8 @@ if __name__ == '__main__':
     # ac.order_filter(5, 1, [{"relation": "is null", "values": ["ru", 1], "unit": "days", "errorMsg": ""},{"relation": "is over all time", "values": [0, 1], "unit": "days", "errorMsg": ""}], 1,
     #                       "2019-05-31T16:27:33+08:00", "2020-05-31T16:27:33+08:00")
     # print(ac.adapt_last_order_status_mongo(1, [{"relation":"is paid","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
+    # print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
+    # print(ac.get_shop_timezone_mongo("charrcter"))
+    print(ac.timezone_transform("2019-08-09 05:31:41.350", 'UTC', 'Asia/Shanghai'))
     # print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
 
