@@ -1,16 +1,14 @@
 import datetime
 import json
 import os
-import time
 import pymysql
 from collections import Counter
 
 from sdk.googleanalytics.google_oauth_info import GoogleApi
 from sdk.shopify.get_shopify_data import ProductsApi
-from config import logger, SHOPIFY_CONFIG
-from task.db_util import DBUtil
-from config import logger, ROOT_PATH
+from config import logger, ROOT_PATH, MONGO_CONFIG, MYSQL_CONFIG
 from sdk.shopify import shopify_webhook
+from task.db_util import DBUtil, MongoDBUtil
 
 
 class ShopifyDataProcessor:
@@ -346,7 +344,139 @@ class ShopifyDataProcessor:
         logger.info("update_shopify_orders id finished")
         return True
 
-    def update_top_product(self,store=None):
+    def get_opstores_stores(self):
+        """
+        获取所有来自opstores的店铺id及名称
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return None
+
+            cursor.execute("""select id, name, url, domain, source from store where id>0 and source=0""")
+            stores = cursor.fetchall()
+            return stores
+        except Exception as e:
+            logger.exception("get_opstores_stores exception e={}".format(e))
+            return None
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
+    def update_top_products_mongo(self, store=None):
+        if store:
+            stores = self.get_opstores_stores()
+        else:
+            # store.id, store.url, store.token, store_create_time, store.source, store.domain, store.name
+            stores = ({"id": store[0][0], "url": store[0][1], "source": store[0][4], "domain": store[0][5], "name": store[0][6]}, )
+        if not stores:
+            logger.warning("There have not stores to update top products")
+            return False
+
+        try:
+            mdb = MongoDBUtil(mongo_config=MONGO_CONFIG)
+            db = mdb.get_instance()
+            if not db:
+                logger.error("update_top_products_mongo error, connect mongo db failed.")
+                return False
+
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                logger.error("update_top_products_mongo error, connect mysql db failed.")
+                return False
+
+            time_now = datetime.datetime.now()
+            time_beg = (datetime.datetime.now()-datetime.timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
+            recent_3days_paid_products = []
+            recent_7days_paid_products = []
+            recent_15days_paid_products = []
+            recent_30days_paid_products = []
+            for store in stores:
+                store_site = store.get("name", "")
+                store_id = store.get("id")
+                domain = store.get("domain", "")
+                source = store.get("source", 0)
+                # 只处理来自己opstores的店铺
+                if source != 0:
+                    continue
+
+                logger.info("start parse top products from mongo, store id={}, name={}".format(store_id, store_site))
+                order_collection = db["shopify_order"]
+                orders = order_collection.find({"site_name": store_site, "updated_at": {"$gte": time_beg}}, {"line_items": 1, "updated_at": 1})
+                for order in orders:
+                    line_items = order.get("line_items", [])
+                    order_updated_time = order.get("updated_at", "")
+                    order_updated = datetime.datetime.strptime(order_updated_time[0: 19], "%Y-%m-%dT%H:%M:%S")
+                    delta_days = (time_now - order_updated).total_seconds()/3600/24
+                    for pro in line_items:
+                        if delta_days <= 3:
+                            recent_3days_paid_products.append(pro.get("product_id", ""))
+                        elif delta_days <= 7:
+                            recent_7days_paid_products.append(pro.get("product_id", ""))
+                        elif delta_days <= 15:
+                            recent_15days_paid_products.append(pro.get("product_id", ""))
+                        else:
+                            recent_30days_paid_products.append(pro.get("product_id", ""))
+
+                top6_product_ids_recent3days = [item[0] for item in Counter(recent_3days_paid_products).most_common(6)]
+                top6_product_ids_recent7days = [item[0] for item in Counter(recent_7days_paid_products).most_common(6)]
+                top6_product_ids_recent15days = [item[0] for item in Counter(recent_15days_paid_products).most_common(6)]
+                top6_product_ids_recent30days = [item[0] for item in Counter(recent_30days_paid_products).most_common(6)]
+
+                top6_products_3days = []
+                top6_products_7days = []
+                top6_products_15days = []
+                top6_products_30days = []
+                product_col = db["shopify_product"]
+                all_top = top6_product_ids_recent3days+top6_product_ids_recent7days+top6_product_ids_recent15days+top6_product_ids_recent30days
+                all_top = [int(item) for item in all_top]
+                if all_top:
+                    products = product_col.find({"id": {"$in": all_top}}, {"id": 1, "title": 1, "handle": 1, "variants.price": 1, "image.src": 1})
+                    # products = product_col.find({"id": {"$in": all_top}, "site_name": store_site},
+                    #                             {"id": 1, "title": 1, "handle": 1})
+                    for pro in products:
+                        product_info = {
+                            "uuid": pro["id"],
+                            "name": pro["title"],
+                            "price": pro["variants"][0].get("price", 0),
+                            "image_url": pro["image"].get("src", ""),
+                            "url": f"https://{domain}/products/{pro['handle']}"
+                        }
+                        if pro["id"] in top6_product_ids_recent3days:
+                            top6_products_3days.append(product_info)
+                        elif pro["id"] in top6_product_ids_recent7days:
+                            top6_products_7days.append(product_info)
+                        elif pro["id"] in top6_product_ids_recent15days:
+                            top6_products_15days.append(product_info)
+                        else:
+                            top6_products_30days.append(product_info)
+
+                current_time = datetime.datetime.now()
+                cursor.execute(
+                    """select id from top_product where store_id = %s """, (store_id))
+                store = cursor.fetchall()
+                if not store:
+                    cursor.execute(
+                        "insert into `top_product` (`top_three`, `top_seven`, `top_fifteen`, `top_thirty`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s)",
+                        (json.dumps(top6_products_3days), json.dumps(top6_products_7days), json.dumps(top6_products_15days), json.dumps(top6_products_30days), store_id, current_time, current_time))
+                    conn.commit()
+                else:
+                    cursor.execute(
+                        '''update `top_product` set `top_three`=%s, `top_seven`=%s, `top_fifteen`=%s, `top_thirty`=%s, `update_time`=%s where `store_id`=%s''',
+                        (json.dumps(top6_products_3days), json.dumps(top6_products_7days), json.dumps(top6_products_15days), json.dumps(top6_products_30days), current_time, store_id))
+                    conn.commit()
+        except Exception as e:
+            pass
+        finally:
+            mdb.close()
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
+    def update_top_product(self, store=None):
         """更新tot product"""
         logger.info("update_top_product is cheking...")
         try:
@@ -640,7 +770,7 @@ class ShopifyDataProcessor:
         return True
 
     def update_store_webhook(self, store=None):
-        store_id, store_url, store_token, store_create_time = store[0]
+        store_id, store_url, store_token, store_create_time, *_ = store[0]
         logger.info("update_store_webhook is checking... store_id={}".format(store_id))
         webhooks = [
             {'address': 'https://smartsend.seamarketings.com/api/v1/webhook/cart/update/', 'topic': 'carts/update'},
@@ -672,7 +802,7 @@ class ShopifyDataProcessor:
             update_time = datetime.datetime.now()
 
             cursor_dict.execute(
-                """select title, description, relation_info, email_delay, note from email_trigger where store_id = 1""")
+                """select title, description, relation_info, email_delay, note from email_trigger where store_id = 1 and source = 1""")
             email_trigger = cursor_dict.fetchall()
 
             for item in email_trigger:
@@ -683,13 +813,13 @@ class ShopifyDataProcessor:
 
 
             cursor_dict.execute(
-                """select title, description, subject, heading_text, logo, banner, headline, body_text, customer_group_list, send_rule, send_type, html from email_template where store_id = 1""")
+                """select title, description, subject, heading_text, headline, body_text, customer_group_list, send_rule, send_type, html from email_template where store_id = 1 and source = 1""")
             email_template = cursor_dict.fetchall()
 
             for item in email_template:
                 cursor_dict.execute(
-                    "insert into `email_template` (`title`, `description`, `subject`, `heading_text`,`customer_group_list`, `logo`, `banner`, `headline`, `body_text`, `send_rule`, `html`, `send_type`, `status`,`enable`,`revenue`,`sessions`,`transcations`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (item["title"],item["description"],item["subject"],item["heading_text"],item["customer_group_list"],item["logo"],item["banner"],item["headline"],item["body_text"],item["send_rule"],item["html"],item["send_type"],0,0,0,0,0,store_id,create_time,update_time))
+                    "insert into `email_template` (`title`, `description`, `subject`, `heading_text`,`customer_group_list`, `headline`, `body_text`, `send_rule`, `html`, `send_type`, `status`,`enable`,`revenue`,`sessions`,`transcations`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (item["title"],item["description"],item["subject"],item["heading_text"],item["customer_group_list"],item["headline"],item["body_text"],item["send_rule"],item["html"],item["send_type"],0,0,0,0,0,store_id,create_time,update_time))
                 conn.commit()
 
 
@@ -722,7 +852,7 @@ class ShopifyDataProcessor:
                 return False
 
             cursor.execute(
-                """select store.id, store.url, store.token, store_create_time from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
+                """select store.id, store.url, store.token, store_create_time, store.source, store.domain, store.name from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0""")
             store = cursor.fetchone()
             if not store:
                 logger.info("update_new_shopify is ending... no store need update")
@@ -734,18 +864,25 @@ class ShopifyDataProcessor:
                 '''update `store` set init=%s,update_time=%s where id=%s''',(1, update_time, store[0]))
             conn.commit()
             logger.info("update_new_shopify begin update data store_id={}".format(store[0]))
+
             store = (store,)
-            self.update_shopify_collections(store)
-            self.update_shopify_orders(store)
-            self.update_shopify_product(store)
-            self.update_top_product(store)
+            if store[0][4] == 1:
+                self.create_template(store)
+                self.update_shopify_collections(store)
+                self.update_shopify_orders(store)
+                self.update_shopify_product(store)
+                self.update_top_product(store)
 
-            # 新店铺拉客户, 初始拉取一次，以后由webhook推送新顾客的创建事件
-            self.update_shopify_customers(store=store)
-            self.update_shopify_order_customer(store)
-            self.update_store_webhook(store)
+                # 新店铺拉客户, 初始拉取一次，以后由webhook推送新顾客的创建事件
+                self.update_shopify_customers(store=store)
+                self.update_shopify_order_customer(store)
+                self.update_store_webhook(store)
 
-            logger.info("update_new_shopify end init data store_id={}".format(store[0]))
+                logger.info("update_new_shopify end init data store_id={}".format(store[0]))
+            else:
+                # 对来自opstores的新入店铺，拉取top　products
+                logger.info("update_new_shopify store from opstores, store={}".format(store[0]))
+                self.update_top_products_mongo(store)
 
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
@@ -779,7 +916,7 @@ class ShopifyDataProcessor:
                 customer_update_list = []
                 total_insert_ids = []
 
-                store_id, store_url, store_token, store_create_time = store
+                store_id, store_url, store_token, store_create_time, *_ = store
                 if not all([store_url, store_token]):
                     logger.warning("the store have not url or token, store id={}".format(store_id))
                     continue
@@ -918,10 +1055,10 @@ class ShopifyDataProcessor:
 
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
-    ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
+    # ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    # ShopifyDataProcessor(db_info=db_info).update_top_product()
+    ShopifyDataProcessor(db_info=db_info).update_top_product()
     # 拉取shopify GA 数据
     #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步

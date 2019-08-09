@@ -47,21 +47,19 @@ class StoreSerializer(serializers.ModelSerializer):
             store_dict["domain"] = validated_data["domain"]
             store_dict["user"] = user_instance
             store_dict["sender"] = validated_data["name"]
-            store_dict["init"] = 1
+            store_dict["init"] = 0
             instance = super(StoreSerializer, self).create(store_dict)
 
-            email_trigger = models.EmailTrigger.objects.filter(store_id=1).values("title", "description","relation_info","email_delay")
+            email_trigger = models.EmailTrigger.objects.filter(store_id=1,source=0).values("title", "description","relation_info","email_delay")
             for item in email_trigger:
                 trigger_dict = {"store":instance, "title": item["title"], "description": item["description"],"relation_info": item["relation_info"], "email_delay" : item["email_delay"]}
                 models.EmailTrigger.objects.create(**trigger_dict)
 
-            email_template = models.EmailTemplate.objects.filter(store_id=1).values("title", "description","subject","heading_text","logo","banner","headline","body_text","customer_group_list","html","send_rule","send_type")
+            email_template = models.EmailTemplate.objects.filter(store_id=1,source=0).values("title", "description","subject","heading_text","headline","body_text","customer_group_list","html","send_rule","send_type")
             for item in email_template:
                 template_dict = {"store": instance, "title": item["title"], "description": item["description"]}
                 template_dict["subject"] = item["subject"]
                 template_dict["heading_text"] = item["heading_text"]
-                template_dict["logo"] = item["logo"]
-                template_dict["banner"] = item["banner"]
                 template_dict["body_text"] = item["body_text"]
                 template_dict["headline"] = item["headline"]
                 template_dict["headline"] = item["headline"]

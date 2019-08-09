@@ -92,7 +92,7 @@ class DataMigrate:
             stores = cursor.fetchall()
             return stores
         except Exception as e:
-            logger.exception("get_all_stores exception e={}".format(e))
+            logger.exception("get_opstores_stores exception e={}".format(e))
             return None
         finally:
             cursor.close() if cursor else 0
@@ -206,8 +206,17 @@ class DataMigrate:
         if self.ssh_server and self.ssh_server.is_alive:
             self.ssh_server.close()
 
+def test_mongo():
+    mdb = MongoDBUtil(MONGO_CONFIG)
+    db = mdb.get_instance()
+    col = db["shopify_order"]
+    res = col.find({"site_name": "callalike", "updated_at": {'$lt': "2018-04-13", "$gte": "2017-04-12"}})
+    for r in res:
+        print(r)
+    mdb.close()
 
 if __name__ == '__main__':
-    dm = DataMigrate(MONGO_CONFIG, MYSQL_CONFIG)
-    dm.update_top_products_mongo()
-    dm.close()
+    # dm = DataMigrate(MONGO_CONFIG, MYSQL_CONFIG)
+    # dm.update_top_products_mongo()
+    # dm.close()
+    test_mongo()
