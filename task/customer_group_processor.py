@@ -111,16 +111,19 @@ class AnalyzeCondition:
                 cursor.execute(
                     """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
                     and `order_update_time`>=%s and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, min_time, max_time))
+
             # after, in the past
             elif min_time:
                 cursor.execute(
                     """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
                     and `order_update_time`>=%s group by `customer_uuid`""", (store_id, status, min_time))
+
             # before
             elif max_time:
                 cursor.execute(
                     """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
                     and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, max_time))
+
             # over all time
             else:
                 cursor.execute(
@@ -157,33 +160,57 @@ class AnalyzeCondition:
             customers = []
             mdb = MongoDBUtil(mongo_config=self.mongo_config)
             db = mdb.get_instance()
-            paid_results= db["shopify_order"]
-            unpaid_result= db["shopify_unpai_order"]
+            paid_results = db["shopify_order"]
+            # unpaid_result = db["shopify_unpai_order"]
 
             # 判断需要查询的状态
             # if status == 2:
             #     status = (0, 1)
-            #
             # else:
             #     status = (status,)
 
+            # between date
             if min_time and max_time:
-                pass
-
+                group = {
+                    '_id': "$customer.id",
+                    'count': {'$sum': 1}
+                }
+                res = paid_results.aggregate([{"$match": {"updated_at": {"$gte": min_time, "$lte": max_time}}}, {"$group": group}], allowDiskUse=True)
+                for num in res:
+                    print(num)
             # after, in the past
             elif min_time:
-                pass
+                group = {
+                    'customer_id': "$customer.id",
+                    'count': {'$sum': 1}
+                }
+                res = paid_results.aggregate([{"$match": {"updated_at": {"$gte": min_time}}}, {"$group": group}], allowDiskUse=True)
 
             # before
             elif max_time:
-                pass
+                group = {
+                    'customer_id': "$customer.id",
+                    'count': {'$sum': 1}
+                }
+                res = paid_results.aggregate([{"$match": {"updated_at": {"$lte": max_time}}}, {"$group": group}], allowDiskUse=True)
 
             # over all time
             else:
-                pass
+                group = {
+                    'customer_id': "$customer.id",
+                    'count': {'$sum': 1}
+                }
+                res = paid_results.aggregate([{"$match": {"updated_at": {}}}, {"$group": group}], allowDiskUse=True)
 
+            relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
 
-            # return customers
+            for item in res:
+                just_str = "{} {} {}".format(item["count"], relation_dict.get(relations), value)
+                if eval(just_str):
+                    customers.append(item["_id"])
+            print(customers)
+            return customers
+
         except Exception as e:
             logger.exception("adapt_sign_up_time_mongo catch exception={}".format(e))
             return customers
@@ -1952,7 +1979,14 @@ if __name__ == '__main__':
     # print(ac.adapt_total_order_amount_mongo(1, [{"relation":"is less than","values":["1.00",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
     # print(ac.adapt_customer_email_mongo(1, [{"relation":"is end with","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
     # print(ac.adapt_is_accept_marketing_mongo(1, [{"relation":"is true","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
+
+    # print(ac.adapt_last_order_status_mongo(1, [{"relation":"is null","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
+    ac.order_filter_mongo(5, 1, [{"relation": "is null", "values":["ru",1], "unit":"days","errorMsg":""}, {"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], 1, "2019-05-31T16:27:33+08:00", "2020-05-31T16:27:33+08:00")
+    # ac.order_filter(5, 1, [{"relation": "is null", "values": ["ru", 1], "unit": "days", "errorMsg": ""},{"relation": "is over all time", "values": [0, 1], "unit": "days", "errorMsg": ""}], 1,
+    #                       "2019-05-31T16:27:33+08:00", "2020-05-31T16:27:33+08:00")
     # print(ac.adapt_last_order_status_mongo(1, [{"relation":"is paid","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
     # print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
     # print(ac.get_shop_timezone_mongo("charrcter"))
     print(ac.timezone_transform("2019-08-09 05:31:41.350", 'UTC', 'Asia/Shanghai'))
+    # print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
+

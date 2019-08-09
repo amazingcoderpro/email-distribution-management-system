@@ -12,7 +12,7 @@ from sshtunnel import SSHTunnelForwarder
 from config import MONGO_CONFIG, MYSQL_CONFIG, logger
 from task.db_util import DBUtil, MongoDBUtil
 
-
+import json
 class DataMigrate:
     """
     数据迁移,
@@ -88,7 +88,7 @@ class DataMigrate:
             if not cursor:
                 return None
 
-            cursor.execute("""select id, name from store where id>=0""")
+            cursor.execute("""select id, name, url, domain, source from store where id>0""")
             stores = cursor.fetchall()
             return stores
         except Exception as e:
@@ -98,13 +98,19 @@ class DataMigrate:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
-    def update_top_products(self):
+    def update_top_products_mongo(self):
         stores = self.get_all_stores()
         if not stores:
             logger.warning("There have not stores to update top products")
 
         mdb = MongoDBUtil(mongo_config=MONGO_CONFIG)
         db = mdb.get_instance()
+
+        conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                      password=self.db_password).get_instance()
+        cursor = conn.cursor() if conn else None
+        if not cursor:
+            return False
 
         time_now = datetime.now()
         time_beg = (datetime.now()-timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
@@ -115,6 +121,12 @@ class DataMigrate:
         for store in stores:
             store_site = store.get("name", "")
             store_id = store.get("id")
+            domain = store.get("domain", "")
+            source = store.get("source", 0)
+            # if source != 0:
+            #     continue
+
+            logger.info("start parse top products from mongo, store id={}, name={}".format(store_id, store_site))
             order_collection = db["shopify_order"]
             orders = order_collection.find({"site_name": store_site, "updated_at": {"$gte": time_beg}}, {"line_items": 1, "updated_at": 1})
             for order in orders:
@@ -123,26 +135,21 @@ class DataMigrate:
                 order_updated = datetime.strptime(order_updated_time[0: 19], "%Y-%m-%dT%H:%M:%S")
                 delta_days = (time_now - order_updated).total_seconds()/3600/24
                 products = []
+                idx = 0
                 for pro in line_items:
-                    products.append(pro.get("id", ""))
-                if delta_days <= 3:
-                    recent_3days_paid_products += products
-                elif delta_days <= 7:
-                    recent_7days_paid_products += products
-                elif delta_days <= 15:
-                    recent_15days_paid_products += products
-                else:
-                    recent_30days_paid_products += products
+                    if delta_days <= 3:
+                        recent_3days_paid_products.append(pro.get("product_id", ""))
+                    elif delta_days <= 7:
+                        recent_7days_paid_products.append(pro.get("product_id", ""))
+                    elif delta_days <= 15:
+                        recent_15days_paid_products.append(pro.get("product_id", ""))
+                    else:
+                        recent_30days_paid_products.append(pro.get("product_id", ""))
 
             top6_product_ids_recent3days = [item[0] for item in Counter(recent_3days_paid_products).most_common(6)]
             top6_product_ids_recent7days = [item[0] for item in Counter(recent_7days_paid_products).most_common(6)]
             top6_product_ids_recent15days = [item[0] for item in Counter(recent_15days_paid_products).most_common(6)]
             top6_product_ids_recent30days = [item[0] for item in Counter(recent_30days_paid_products).most_common(6)]
-
-            print(top6_product_ids_recent3days)
-            print(top6_product_ids_recent7days)
-            print(top6_product_ids_recent15days)
-            print(top6_product_ids_recent30days)
 
             top6_products_3days = []
             top6_products_7days = []
@@ -152,16 +159,16 @@ class DataMigrate:
             all_top = top6_product_ids_recent3days+top6_product_ids_recent7days+top6_product_ids_recent15days+top6_product_ids_recent30days
             all_top = [int(item) for item in all_top]
             if all_top:
-                # products = product_col.find({"id": all_top[0]}, {"id": 1, "title": 1, "handle": 1, "variants": 1, "images": 1})
-                products = product_col.find({"id": all_top[0], "site_name": store_site},
-                                            {"id": 1, "title": 1, "handle": 1})
+                products = product_col.find({"id": {"$in": all_top}}, {"id": 1, "title": 1, "handle": 1, "variants.price": 1, "image.src": 1})
+                # products = product_col.find({"id": {"$in": all_top}, "site_name": store_site},
+                #                             {"id": 1, "title": 1, "handle": 1})
                 for pro in products:
                     product_info = {
                         "uuid": pro["id"],
                         "name": pro["title"],
-                        "price": 0,
-                        "image_url": "",
-                        "url": ""
+                        "price": pro["variants"][0].get("price", 0),
+                        "image_url": pro["image"].get("src", ""),
+                        "url": f"{domain}/products/{pro['handle']}"
                     }
                     if pro["id"] in top6_product_ids_recent3days:
                         top6_products_3days.append(product_info)
@@ -171,6 +178,21 @@ class DataMigrate:
                         top6_products_15days.append(product_info)
                     else:
                         top6_products_30days.append(product_info)
+
+            current_time = datetime.now()
+            cursor.execute(
+                """select id from top_product where store_id = %s """, (store_id))
+            store = cursor.fetchall()
+            if not store:
+                cursor.execute(
+                    "insert into `top_product` (`top_three`, `top_seven`, `top_fifteen`, `top_thirty`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s)",
+                    (json.dumps(top6_products_3days), json.dumps(top6_products_7days), json.dumps(top6_products_15days), json.dumps(top6_products_30days), store_id, current_time, current_time))
+                conn.commit()
+            else:
+                cursor.execute(
+                    '''update `top_product` set `top_three`=%s, `top_seven`=%s, `top_fifteen`=%s, `top_thirty`=%s, `update_time`=%s where `store_id`=%s''',
+                    (json.dumps(top6_products_3days), json.dumps(top6_products_7days), json.dumps(top6_products_15days), json.dumps(top6_products_30days), current_time, store_id))
+                conn.commit()
 
         mdb.close()
 
@@ -187,5 +209,5 @@ class DataMigrate:
 
 if __name__ == '__main__':
     dm = DataMigrate(MONGO_CONFIG, MYSQL_CONFIG)
-    dm.update_top_products()
+    dm.update_top_products_mongo()
     dm.close()
