@@ -58,6 +58,44 @@ class AnalyzeCondition:
         else:
             return adapter(store_id, relations)
 
+    def unpaid_order_customers_mongo(self, store_name, min_time=None, max_time=None):
+        """
+        获取未支付的customers
+        :param store_id: 店铺ID
+        :param store_name: 店铺名称
+        :param min_time:
+        :param max_time:
+        :return: 符合条件的id{customer_id:[checkout_id1,checkout_id2], }
+        """
+        logger.info("unpaid_order_customers_mongo start")
+        result_dict = {}
+        try:
+            mdb = MongoDBUtil(mongo_config=self.mongo_config)
+            db = mdb.get_instance()
+            if min_time and max_time:
+                filter_dict = {"$lte": max_time, "$gte": min_time}
+            elif min_time:
+                filter_dict = {"$gte": min_time}
+            elif max_time:
+                filter_dict = {"$lte": max_time}
+            else:
+                filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")+"+08:00"}
+            unpaid_order = db.shopify_unpaid_order.find({"site_name": store_name, "gateway": {"$ne": None}, "updated_at": filter_dict}, {"_id": 0, "id": 1, "token": 1, "customer.id": 1})
+            paid_order = [item["checkout_token"] for item in db.shopify_order.find({"site_name": store_name}, {"_id": 0, "checkout_token": 1})]
+            for unpaid in unpaid_order:
+                if unpaid["token"] in paid_order:
+                    continue
+                if unpaid["customer"]["id"] not in result_dict:
+                    result_dict[unpaid["customer"]["id"]] = [unpaid["id"],]
+                else:
+                    result_dict[unpaid["customer"]["id"]].append(unpaid["id"])
+            return result_dict
+        except Exception as e:
+            logger.exception("unpaid_order_customers_mongo catch exception={}".format(e))
+            return result_dict
+        finally:
+            mdb.close()
+
     def get_store_source(self, store_id):
         """
         获取某一店铺的from_type和name
@@ -143,7 +181,7 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
-    def order_filter_mongo(self, store_id, status, relations, value, min_time=None, max_time=None):
+    def order_filter_mongo(self, store_id, status, store_name, relations, value, min_time=None, max_time=None):
         """
         筛选满足订单条件的客户id
         :param store_id: 店铺id
@@ -159,56 +197,41 @@ class AnalyzeCondition:
             mdb = MongoDBUtil(mongo_config=self.mongo_config)
             db = mdb.get_instance()
             paid_results = db["shopify_order"]
-            # unpaid_result = db["shopify_unpai_order"]
+            relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
+            flag = False
+            if status == 2:
+                flag = True
+            if status == 0 or flag:
+                # 查询未支付的customer_uuid
+                unpaid_res = self.unpaid_order_customers_mongo(store_name, min_time, max_time)
+                for uuid, count_list in unpaid_res.items():
+                    just_str = "{} {} {}".format(len(count_list), relation_dict.get(relations), value)
+                    if eval(just_str):
+                        customers.append(uuid)
+                    print("test 1")
+            if status == 1 or flag:
+                if min_time and max_time:
+                    filter_dict = {"$lte": max_time, "$gte": min_time}
+                elif min_time:
+                    filter_dict = {"$gte": min_time}
+                elif max_time:
+                    filter_dict = {"$lte": max_time}
+                else:
+                    filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")+"+08:00"}
 
-            # 判断需要查询的状态
-            # if status == 2:
-            #     status = (0, 1)
-            # else:
-            #     status = (status,)
-
-            # between date
-            if min_time and max_time:
                 group = {
                     '_id': "$customer.id",
                     'count': {'$sum': 1}
                 }
-                res = paid_results.aggregate([{"$match": {"updated_at": {"$gte": min_time, "$lte": max_time}}}, {"$group": group}], allowDiskUse=True)
-                for num in res:
-                    print(num)
-            # after, in the past
-            elif min_time:
-                group = {
-                    'customer_id': "$customer.id",
-                    'count': {'$sum': 1}
-                }
-                res = paid_results.aggregate([{"$match": {"updated_at": {"$gte": min_time}}}, {"$group": group}], allowDiskUse=True)
-
-            # before
-            elif max_time:
-                group = {
-                    'customer_id': "$customer.id",
-                    'count': {'$sum': 1}
-                }
-                res = paid_results.aggregate([{"$match": {"updated_at": {"$lte": max_time}}}, {"$group": group}], allowDiskUse=True)
-
-            # over all time
-            else:
-                group = {
-                    'customer_id': "$customer.id",
-                    'count': {'$sum': 1}
-                }
-                res = paid_results.aggregate([{"$match": {"updated_at": {}}}, {"$group": group}], allowDiskUse=True)
-
-            relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
-
-            for item in res:
-                just_str = "{} {} {}".format(item["count"], relation_dict.get(relations), value)
-                if eval(just_str):
-                    customers.append(item["_id"])
-            print(customers)
+                paid_res = paid_results.aggregate(
+                    [{"$match": {"updated_at": filter_dict}}, {"$group": group}],
+                    allowDiskUse=True)
+                for item in paid_res:
+                    just_str = "{} {} {}".format(item["count"], relation_dict.get(relations), value)
+                    if eval(just_str):
+                        customers.append(item["_id"])
+                    print("test 2")
             return customers
-
         except Exception as e:
             logger.exception("adapt_sign_up_time_mongo catch exception={}".format(e))
             return customers
@@ -478,6 +501,48 @@ class AnalyzeCondition:
         min_time, max_time = self.date_relation_convert(relations[1]["relation"], relations[1]["values"],
                                                         relations[1].get("unit", "days"))
         adapt_customers = self.order_filter(store_id=store_id, status=2, relation=relations[0]["relation"],
+                                            value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
+        return adapt_customers
+
+    def adapt_placed_order_mongo(self, store_id, relations):
+        """
+        适配出所有待支付的订单符合条件的客户id
+        :param store_id: 店铺id
+        :param relations: 筛选条件
+        :return: 客户id列表
+        """
+        # relations 两个, 第一个是数量，第二个是时间范围
+        min_time, max_time = self.date_relation_convert(relations[1]["relation"], relations[1]["values"],
+                                                   relations[1].get("unit", "days"))
+        adapt_customers = self.order_filter_mongo(store_id=store_id, status=0, relation=relations[0]["relation"],
+                                       value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
+        return adapt_customers
+
+    def adapt_paid_order_monogo(self, store_id, relations):
+        """
+        适配出所有已支付的订单符合条件的客户id
+        :param store_id: 店铺id
+        :param relations: 筛选条件
+        :return: 客户id列表
+        """
+        # relations 两个, 第一个是数量，第二个是时间范围
+        min_time, max_time = self.date_relation_convert(relations[1]["relation"], relations[1]["values"],
+                                                   relations[1].get("unit", "days"))
+        adapt_customers = self.order_filter_mongo(store_id=store_id, status=1, relation=relations[0]["relation"],
+                                       value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
+        return adapt_customers
+
+    def adapt_all_order_monogo(self, store_id, relations):
+        """
+        适配出所有的订单符合条件的客户id
+        :param store_id: 店铺id
+        :param relations: 筛选条件
+        :return: 客户id列表
+        """
+        # relations 两个, 第一个是数量，第二个是时间范围
+        min_time, max_time = self.date_relation_convert(relations[1]["relation"], relations[1]["values"],
+                                                        relations[1].get("unit", "days"))
+        adapt_customers = self.order_filter_mongo(store_id=store_id, status=2, relation=relations[0]["relation"],
                                             value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
         return adapt_customers
 
@@ -1885,7 +1950,7 @@ if __name__ == '__main__':
     # print(ac.adapt_is_accept_marketing_mongo(1, [{"relation":"is true","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
 
     # print(ac.adapt_last_order_status_mongo(1, [{"relation":"is null","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
-    ac.order_filter_mongo(5, 1, [{"relation": "is null", "values":["ru",1], "unit":"days","errorMsg":""}, {"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], 1, "2019-05-31T16:27:33+08:00", "2020-05-31T16:27:33+08:00")
+    ac.order_filter_mongo(5, 2, "charrcter", "more than", 1, "2019-05-31T16:27:33+08:00", "2020-05-31T16:27:33+08:00")
     # ac.order_filter(5, 1, [{"relation": "is null", "values": ["ru", 1], "unit": "days", "errorMsg": ""},{"relation": "is over all time", "values": [0, 1], "unit": "days", "errorMsg": ""}], 1,
     #                       "2019-05-31T16:27:33+08:00", "2020-05-31T16:27:33+08:00")
     # print(ac.adapt_last_order_status_mongo(1, [{"relation":"is paid","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
