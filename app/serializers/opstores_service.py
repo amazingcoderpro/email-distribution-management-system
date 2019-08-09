@@ -47,7 +47,7 @@ class StoreSerializer(serializers.ModelSerializer):
             store_dict["domain"] = validated_data["domain"]
             store_dict["user"] = user_instance
             store_dict["sender"] = validated_data["name"]
-            store_dict["init"] = 1
+            store_dict["init"] = 0
             instance = super(StoreSerializer, self).create(store_dict)
 
             email_trigger = models.EmailTrigger.objects.filter(store_id=1).values("title", "description","relation_info","email_delay")
