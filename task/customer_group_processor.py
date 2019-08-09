@@ -506,7 +506,7 @@ class AnalyzeCondition:
                                             value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
         return adapt_customers
 
-    def adapt_placed_order_mongo(self, store_id, relations):
+    def adapt_placed_order_mongo(self, store_id, relations, store_name):
         """
         适配出所有待支付的订单符合条件的客户id
         :param store_id: 店铺id
@@ -514,13 +514,13 @@ class AnalyzeCondition:
         :return: 客户id列表
         """
         # relations 两个, 第一个是数量，第二个是时间范围
-        min_time, max_time = self.date_relation_convert(relations[1]["relation"], relations[1]["values"],
+        min_time, max_time = self.date_relation_convert_mongo(relations[1]["relation"], relations[1]["values"], store_name,
                                                    relations[1].get("unit", "days"))
-        adapt_customers = self.order_filter_mongo(store_id=store_id, status=0, relation=relations[0]["relation"],
+        adapt_customers = self.order_filter_mongo(store_id=store_id, status=0, store_name=store_name, relation=relations[0]["relation"],
                                        value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
         return adapt_customers
 
-    def adapt_paid_order_monogo(self, store_id, relations):
+    def adapt_paid_order_monogo(self, store_id, relations, store_name):
         """
         适配出所有已支付的订单符合条件的客户id
         :param store_id: 店铺id
@@ -528,13 +528,13 @@ class AnalyzeCondition:
         :return: 客户id列表
         """
         # relations 两个, 第一个是数量，第二个是时间范围
-        min_time, max_time = self.date_relation_convert(relations[1]["relation"], relations[1]["values"],
+        min_time, max_time = self.date_relation_convert_mongo(relations[1]["relation"], relations[1]["values"], store_name,
                                                    relations[1].get("unit", "days"))
-        adapt_customers = self.order_filter_mongo(store_id=store_id, status=1, relation=relations[0]["relation"],
+        adapt_customers = self.order_filter_mongo(store_id=store_id, status=1, store_name=store_name, relation=relations[0]["relation"],
                                        value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
         return adapt_customers
 
-    def adapt_all_order_monogo(self, store_id, relations):
+    def adapt_all_order_monogo(self, store_id, relations, store_name):
         """
         适配出所有的订单符合条件的客户id
         :param store_id: 店铺id
@@ -542,9 +542,9 @@ class AnalyzeCondition:
         :return: 客户id列表
         """
         # relations 两个, 第一个是数量，第二个是时间范围
-        min_time, max_time = self.date_relation_convert(relations[1]["relation"], relations[1]["values"],
+        min_time, max_time = self.date_relation_convert_mongo(relations[1]["relation"], relations[1]["values"], store_name,
                                                         relations[1].get("unit", "days"))
-        adapt_customers = self.order_filter_mongo(store_id=store_id, status=2, relation=relations[0]["relation"],
+        adapt_customers = self.order_filter_mongo(store_id=store_id, status=2, store_name= store_name, relation=relations[0]["relation"],
                                             value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
         return adapt_customers
 
