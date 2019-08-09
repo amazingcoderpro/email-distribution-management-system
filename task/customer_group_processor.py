@@ -1672,7 +1672,7 @@ class AnalyzeCondition:
             if not store:
                 logger.warning("not found any data")
                 return None
-            email_list = list(set([s["customer_email"] for s in store]))
+            email_list = list(set([s["customer_email"] for s in store if s["customer_email"]]))
         except Exception as e:
             logger.exception("customer uuid to customer email exception: {}".format(e))
             return None
@@ -1680,6 +1680,30 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
         return email_list
+
+    def customer_uuid_to_email_mongo(self, customer_uuid_list, store_name):
+        """
+        将customer_uuid转换成email
+        :param customer_uuid_list: customer uuid列表
+        :param store_name: email 列表
+        :return:
+        """
+        email_list = []
+        try:
+            mdb = MongoDBUtil(mongo_config=self.mongo_config)
+            db = mdb.get_instance()
+            # 从customer表中查找对应的email
+            customer = db["shopify_customer"]
+            customers = customer.find({"id": {"$in": customer_uuid_list}, "site_name": store_name}, {"_id": 0, "id": 1, "email": 1})
+            for cus in customers:
+                if cus["email"]:
+                    email_list.append(cus["email"])
+        except Exception as e:
+            logger.exception("customer_uuid_to_email_mongo catch exception={}".format(e))
+            return email_list
+        finally:
+            mdb.close()
+        return list(set(email_list))
 
     def insert_customer_list_id_from_email_trigger(self, customer_list_id, trigger_id):
         """
@@ -1756,9 +1780,10 @@ class AnalyzeCondition:
                 if not r:
                     logger.error("insert_customer_list_id_from_email_trigger failed")
                     return False
-
+            # 获取store的from_type, store_name
+            from_type, store_name = self.get_store_source(store_id)
             # 将new_customer_list转换成邮箱地址列表
-            email_list = self.customer_uuid_to_email(new_customer_list)
+            email_list = self.customer_uuid_to_email(new_customer_list) if from_type else self.customer_uuid_to_email_mongo(new_customer_list, store_name)
             # 对new_customer_list里的收件人进行取消订阅或休眠过滤
             unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(store_id)
             email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
@@ -1954,15 +1979,16 @@ class AnalyzeCondition:
                 if not eval(str(res["customer_list"])):
                     continue
                 customer_list = eval(res["customer_list"])
-
+                # 获取store的from_type, store_name
+                from_type, store_name = self.get_store_source(res["store_id"])
                 # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
                 if "customer received an email from this campaign in the last 7 days" in eval(res["note"]):
-                    customers_7day = self.filter_received_customer(res["store_id"], res["uuid"])
+                    customers_7day = self.filter_received_customer(res["store_id"], res["uuid"]) if from_type else self.filter_received_customer_mongo(res["store_id"], res["uuid"], store_name)
                     customer_list = list(set(customer_list)-set(customers_7day))
                     logger.info("filter the customer received an email from this campaign in the last 7 days.")
                 if "customer makes a purchase" in eval(res["note"]) and res["remark"] != "first":
                     # 对customer_list里的收件人进行note筛选(从第一封邮件开始完成购买的人)
-                    customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"])
+                    customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_name)
                     customer_list = list(set(customer_list) - set(customers_purchased))
                     logger.info("filter the customer makes a purchase.")
                 # 开始对筛选过的用户发送邮件
@@ -1972,7 +1998,7 @@ class AnalyzeCondition:
                     return False
                 ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
                 # 需要将uuid 转换成email
-                email_list = self.customer_uuid_to_email(customer_list)
+                email_list = self.customer_uuid_to_email(customer_list) if from_type else self.customer_uuid_to_email_mongo(customer_list, store_name)
                 # 对customer_list里的收件人进行取消订阅或休眠过滤
                 unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(res["store_id"])
                 email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
@@ -2059,12 +2085,13 @@ if __name__ == '__main__':
     # print(ac.adapt_is_accept_marketing_mongo(1, [{"relation":"is true","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
 
     # print(ac.adapt_last_order_status_mongo(1, [{"relation":"is null","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
-    ac.order_filter_mongo(5, 2, "charrcter", "more than", 1, "2019-05-31T16:27:33+08:00", "2020-05-31T16:27:33+08:00")
+    # ac.order_filter_mongo(5, 2, "charrcter", "more than", 1, "2019-05-31T16:27:33+08:00", "2020-05-31T16:27:33+08:00")
     # ac.order_filter(5, 1, [{"relation": "is null", "values": ["ru", 1], "unit": "days", "errorMsg": ""},{"relation": "is over all time", "values": [0, 1], "unit": "days", "errorMsg": ""}], 1,
     #                       "2019-05-31T16:27:33+08:00", "2020-05-31T16:27:33+08:00")
     # print(ac.adapt_last_order_status_mongo(1, [{"relation":"is paid","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
     # print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
     # print(ac.get_shop_timezone_mongo("charrcter"))
-    print(ac.timezone_transform("2019-08-09 05:31:41.350", 'UTC', 'Asia/Shanghai'))
+    # print(ac.timezone_transform("2019-08-09 05:31:41.350", 'UTC', 'Asia/Shanghai'))
     # print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
+    print(ac.customer_uuid_to_email_mongo([1077951529024,1078304604224,1079054073920], "Astrotrex"))
 
