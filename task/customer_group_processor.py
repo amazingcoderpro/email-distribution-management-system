@@ -200,18 +200,14 @@ class AnalyzeCondition:
             db = mdb.get_instance()
             paid_results = db["shopify_order"]
             relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
-            flag = False
-            if status == 2:
-                flag = True
-            if status == 0 or flag:
+            if status == 0 or status == 2:  # 状态为0或者2的时候需要筛选的用户
                 # 查询未支付的customer_uuid
                 unpaid_res = self.unpaid_order_customers_mongo(store_name, min_time, max_time)
                 for uuid, count_list in unpaid_res.items():
                     just_str = "{} {} {}".format(len(count_list), relation_dict.get(relation), value)
                     if eval(just_str):
                         customers.append(uuid)
-
-            if status == 1 or flag:
+            if status == 1 or status == 2:  # 状态为1或者2的时候需要筛选的用户
                 if min_time and max_time:
                     filter_dict = {"$lte": max_time, "$gte": min_time}
                 elif min_time:
@@ -2227,6 +2223,7 @@ class AnalyzeCondition:
                 send_error_info = ""
                 status = 2
                 for customer in email_list:
+                    # 发送邮件前，有可能需要先更新一下html
                     rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
                     if rest["code"] != 1:
                         logger.warning("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
