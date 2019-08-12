@@ -20,10 +20,10 @@ class AnalyzeCondition:
         self.db_name = mysql_config.get("db", "")
         self.db_user = mysql_config.get("user", "")
         self.db_password = mysql_config.get("password", "")
-        self.condition_dict = {"Customer sign up time": "adapt_sign_up_time",
-                              "Customer last order created time": "adapt_last_order_created_time",
-                              "Customer last opened email time": "adapt_last_opened_email_time",
-                              "Customer last click email time": "adapt_last_click_email_time",
+        self.condition_dict = {"Customer sign up time": "adapt_sign_up_time",  # 已完成
+                              "Customer last order created time": "adapt_last_order_created_time",  # 已完成
+                              "Customer last opened email time": "adapt_last_opened_email_time",  # 已完成
+                              "Customer last click email time": "adapt_last_click_email_time",  # 已完成
                               "Customer placed order": "adapt_placed_order",  # 已完成
                               "Customer paid order": "adapt_paid_order",  # 已完成
                               "Customer order number is": "adapt_all_order",  # 已完成
@@ -81,7 +81,7 @@ class AnalyzeCondition:
             elif max_time:
                 filter_dict = {"$lte": max_time}
             else:
-                filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")+"+08:00"}
+                filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
             unpaid_order = db.shopify_unpaid_order.find({"site_name": store_name, "gateway": {"$ne": None}, "updated_at": filter_dict}, {"_id": 0, "id": 1, "token": 1, "customer.id": 1})
             paid_order = [item["checkout_token"] for item in db.shopify_order.find({"site_name": store_name}, {"_id": 0, "checkout_token": 1})]
             for unpaid in unpaid_order:
@@ -234,18 +234,37 @@ class AnalyzeCondition:
                         customers.append(item["_id"])
             return customers
         except Exception as e:
-            logger.exception("adapt_sign_up_time_mongo catch exception={}".format(e))
+            logger.exception("order_filter_mongo catch exception={}".format(e))
             return customers
         finally:
             mdb.close()
 
     def adapt_sign_up_time_mongo(self, store_id, relations, store_name):
+        """
+        适配出所有符合注册条件的客户id
+        :param store_id: 店铺id
+        :param relations: 筛选条件
+        :param store_name: 店铺名称
+        :return: 客户ids
+        """
+        min_time, max_time = self.date_relation_convert_mongo(relations[0]["relation"], relations[0]["values"], store_name,
+                                                        relations[0].get("unit", "days"))
+        customers = []
         try:
-            customers = []
             mdb = MongoDBUtil(mongo_config=self.mongo_config)
             db = mdb.get_instance()
             #TODO
-
+            if min_time and max_time:
+                filter_dict = {"$lte": max_time, "$gte": min_time}
+            elif min_time:
+                filter_dict = {"$gte": min_time}
+            elif max_time:
+                filter_dict = {"$lte": max_time}
+            else:
+                filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
+            customers_res = db.shopify_customer.find({"site_name": store_name, "created_at": filter_dict}, {"_id": 0, "id": 1})
+            for cus in customers_res:
+                customers.append(cus["id"])
             return customers
         except Exception as e:
             logger.exception("adapt_sign_up_time_mongo catch exception={}".format(e))
@@ -340,6 +359,42 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
+    def adapt_last_order_created_time_mongo(self, store_id, relations, store_name):
+        """
+        适配出所有上次订单时间符合条件的客户id
+        :param store_id: 店铺ID
+        :param relations: 筛选条件
+        :param store_name: 店铺名称
+        :return: 客户ids
+        """
+        min_time, max_time = self.date_relation_convert_mongo(relations[0]["relation"], relations[0]["values"],
+                                                              store_name,
+                                                              relations[0].get("unit", "days"))
+        customers = []
+        try:
+            mdb = MongoDBUtil(mongo_config=self.mongo_config)
+            db = mdb.get_instance()
+            # TODO
+            if min_time and max_time:
+                filter_dict = {"$lte": max_time, "$gte": min_time}
+            elif min_time:
+                filter_dict = {"$gte": min_time}
+            elif max_time:
+                filter_dict = {"$lte": max_time}
+            else:
+                filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
+            order_ids = db.shopify_customer.find({"site_name": store_name, "last_order_id": {"$ne": None}}, {"_id": 0, "id": 1, "last_order_id": 1})
+            orders = [item["id"] for item in db.shopify_order.find({"site_name": store_name, "updated_at": filter_dict}, {"_id": 0, "id": 1})]
+            for cus in order_ids:
+                if cus["last_order_id"] in orders:
+                    customers.append(cus["id"])
+            return customers
+        except Exception as e:
+            logger.exception("adapt_last_order_created_time_mongo catch exception={}".format(e))
+            return customers
+        finally:
+            mdb.close()
+
     def adapt_last_opened_email_time(self, store_id, relations):
         """
         适配出所有打开过邮件的时间符合条件的客户ids
@@ -401,13 +456,73 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
+    def adapt_last_opened_email_time_mongo(self, store_id, relations, store_name):
+        """
+        适配出所有打开过邮件的时间符合条件的客户ids
+        :param store_id: 店铺id
+        :param relations: 时间范围条件
+        :param store_name: 店铺名称
+        :return: 客户ids
+        """
+        customers = []
+        customer_emails = []
+        opt_type = 0
+        min_time, max_time = self.date_relation_convert(relations[0]["relation"], relations[0]["values"],
+                                                        relations[0].get("unit", "days"))
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return customers
+
+            # between date
+            if min_time and max_time:
+                cursor.execute(
+                    """select `email` from `subscriber_activity` where store_id=%s and type=%s 
+                    and `opt_time`>=%s and `opt_time`<=%s""",
+                    (store_id, opt_type, min_time, max_time))
+            # after, in the past
+            elif min_time:
+                cursor.execute(
+                    """select `email` from `subscriber_activity` where store_id=%s and type=%s 
+                    and `opt_time`>=%s""", (store_id, opt_type, min_time))
+            # before
+            elif max_time:
+                cursor.execute(
+                    """select `email`　from `subscriber_activity` where store_id=%s and type=%s 
+                    and `opt_time`<=%s""", (store_id, opt_type, max_time))
+            # over all time
+            else:
+                cursor.execute(
+                    """select `email`, count from `subscriber_activity` where store_id=%s and type=%s""",
+                    (store_id, opt_type))
+
+            res = cursor.fetchall()
+            for email in res:
+                customer_emails.append(email[0])
+
+            # 去重
+            customer_emails = list(set(customer_emails))
+            if customer_emails:
+                # 通过邮箱查出所有的uuid
+                customers = self.customer_email_to_uuid_mongo(customer_emails, store_name)
+            return customers
+        except Exception as e:
+            logger.exception("adapt_last_opened_email_time_mongo exception e={}".format(e))
+            return customers
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
+
     def adapt_last_click_email_time(self, store_id, relations):
         """
-            适配出所有打开过邮件的时间符合条件的客户ids
-            :param store_id: 店铺id
-            :param relations: 时间范围条件
-            :return: 客户ids
-            """
+        适配出所有打开过邮件的时间符合条件的客户ids
+        :param store_id: 店铺id
+        :param relations: 时间范围条件
+        :return: 客户ids
+        """
         customers = []
         customer_emails = []
         opt_type = 1
@@ -455,6 +570,63 @@ class AnalyzeCondition:
                 if res:
                     for uuid in res:
                         customers.append(uuid[0])
+            return customers
+        except Exception as e:
+            logger.exception("adapt_last_click_email_time e={}".format(e))
+            return customers
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
+    def adapt_last_click_email_time_mongo(self, store_id, relations, store_name):
+        """
+        适配出所有打开过邮件的时间符合条件的客户ids
+        :param store_id: 店铺id
+        :param relations: 时间范围条件
+        :return: 客户ids
+        """
+        customers = []
+        customer_emails = []
+        opt_type = 1
+        min_time, max_time = self.date_relation_convert(relations[0]["relation"], relations[0]["values"],
+                                                   relations[0].get("unit", "days"))
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return customers
+
+            # between date
+            if min_time and max_time:
+                cursor.execute(
+                    """select `email` from `subscriber_activity` where store_id=%s and type=%s 
+                    and `opt_time`>=%s and `opt_time`<=%s""",
+                    (store_id, opt_type, min_time, max_time))
+            # after, in the past
+            elif min_time:
+                cursor.execute(
+                    """select `email` from `subscriber_activity` where store_id=%s and type=%s 
+                    and `opt_time`>=%s""", (store_id, opt_type, min_time))
+            # before
+            elif max_time:
+                cursor.execute(
+                    """select `email`　from `subscriber_activity` where store_id=%s and type=%s 
+                    and `opt_time`<=%s""", (store_id, opt_type, max_time))
+            # over all time
+            else:
+                cursor.execute(
+                    """select `email` from `subscriber_activity` where store_id=%s and type=%s""",
+                    (store_id, opt_type))
+
+            res = cursor.fetchall()
+            for email in res:
+                customer_emails.append(email[0])
+
+            # 去重
+            customer_emails = list(set(customer_emails))
+            if customer_emails:
+                # 通过邮箱查出所有的uuid
+                customers = self.customer_email_to_uuid_mongo(customer_emails, store_name)
             return customers
         except Exception as e:
             logger.exception("adapt_last_click_email_time e={}".format(e))
@@ -631,7 +803,10 @@ class AnalyzeCondition:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return customers
-
+            if min_time:
+                min_time = datetime.datetime.strptime(min_time, "%Y-%m-%dT%H:%M:%S")
+            if max_time:
+                max_time = datetime.datetime.strptime(max_time, "%Y-%m-%dT%H:%M:%S")
             # between date
             if min_time and max_time:
                 cursor.execute(
@@ -1088,7 +1263,7 @@ class AnalyzeCondition:
         :param relation: 日期条件，如before, in the past...
         :param values: 条件值列表
         :param unit: 日期单位
-        :return: 起＼止时间点，datetime类型
+        :return: 起＼止时间点，时间字符串类型
         """
         def unit_convert(unit_, value):
             if unit_ in ["days", 'weeks']:
@@ -1097,9 +1272,9 @@ class AnalyzeCondition:
                 str_delta = "relativedelta({}={})".format(unit_, value)
             return eval(str_delta)
 
+        min_time = None
+        max_time = None
         try:
-            min_time = None
-            max_time = None
             # 兼容一下时间格式
             format_str_0 = format_str_1 = "%Y-%m-%d %H:%M:%S" if len(values[0]) > 11 else "%Y-%m-%d"
             if len(values) == 2:
@@ -1125,12 +1300,11 @@ class AnalyzeCondition:
             # 按照store的时区转换
             iana_timezone = self.get_shop_timezone_mongo(store_name)
             if min_time:
-                min_time = self.timezone_transform(min_time, 'Asia/Shanghai', iana_timezone).replace(" ", "T")
+                min_time = self.timezone_transform(min_time, 'Asia/Shanghai', iana_timezone)
             if max_time:
-                max_time = self.timezone_transform(max_time, 'Asia/Shanghai', iana_timezone).replace(" ", "T")
+                max_time = self.timezone_transform(max_time, 'Asia/Shanghai', iana_timezone)
         except Exception as e:
             logger.exception("date_relation_convert catch exception: {}".format(e))
-
         return min_time, max_time
 
     def timezone_transform(self, date_time, src_timezone, dst_timezone):
@@ -1145,10 +1319,10 @@ class AnalyzeCondition:
         try:
             if isinstance(date_time, str):
                 date_time = datetime.datetime.strptime(date_time[0:19], "%Y-%m-%d %H:%M:%S")
-                result_time = date_time.replace(tzinfo=timezone(src_timezone)).astimezone(timezone(dst_timezone)) + datetime.timedelta(0,360)
-                return result_time.strftime("%Y-%m-%d %H:%M:%S")
-            else:
-                return date_time.replace(tzinfo=timezone(src_timezone)).astimezone(timezone(dst_timezone)) + datetime.timedelta(0,360)
+            result_time = date_time.replace(tzinfo=timezone(src_timezone)).astimezone(timezone(dst_timezone))
+            if dst_timezone != 'Asia/Shanghai':
+                result_time += datetime.timedelta(0,360)
+            return result_time.strftime("%Y-%m-%d %H:%M:%S").replace(" ", "T")
         except Exception as e:
             logger.error("timezone_transform exception e: " % e)
 
@@ -1580,7 +1754,7 @@ class AnalyzeCondition:
             for cus in customers:
                 uuid_list.append(cus["id"])
         except Exception as e:
-            logger.exception("adapt_sign_up_time_mongo catch exception={}".format(e))
+            logger.exception("customer_email_to_uuid_mongo catch exception={}".format(e))
             return uuid_list
         finally:
             mdb.close()
@@ -2095,5 +2269,8 @@ if __name__ == '__main__':
     # print(ac.get_shop_timezone_mongo("charrcter"))
     # print(ac.timezone_transform("2019-08-09 05:31:41.350", 'UTC', 'Asia/Shanghai'))
     # print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
-    print(ac.customer_uuid_to_email_mongo([1077951529024,1078304604224,1079054073920], "Astrotrex"))
+    # print(ac.customer_uuid_to_email_mongo([1077951529024,1078304604224,1079054073920], "Astrotrex"))
+    # print(ac.adapt_sign_up_time_mongo(1,[{"relation":"is between date","values":["2019-08-01 00:00:00","2019-08-09 00:00:00"],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], "Astrotrex"))
+    # print(ac.adapt_last_order_created_time_mongo(1,[{"relation":"is between date","values":["2019-02-10 00:00:00","2019-02-11 00:00:00"],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], "Astrotrex"))
+    print(ac.adapt_last_opened_email_time_mongo(1,[{"relation":"is between date","values":["2019-02-10 00:00:00","2019-02-11 00:00:00"],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], "Astrotrex"))
 

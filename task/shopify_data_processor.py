@@ -802,7 +802,7 @@ class ShopifyDataProcessor:
             update_time = datetime.datetime.now()
 
             cursor_dict.execute(
-                """select title, description, relation_info, email_delay, note from email_trigger where store_id = 1""")
+                """select title, description, relation_info, email_delay, note from email_trigger where store_id = 1 and source = 1""")
             email_trigger = cursor_dict.fetchall()
 
             for item in email_trigger:
@@ -813,13 +813,13 @@ class ShopifyDataProcessor:
 
 
             cursor_dict.execute(
-                """select title, description, subject, heading_text, logo, banner, headline, body_text, customer_group_list, send_rule, send_type, html from email_template where store_id = 1""")
+                """select title, description, subject, heading_text, headline, body_text, customer_group_list, send_rule, send_type, html from email_template where store_id = 1 and source = 1""")
             email_template = cursor_dict.fetchall()
 
             for item in email_template:
                 cursor_dict.execute(
-                    "insert into `email_template` (`title`, `description`, `subject`, `heading_text`,`customer_group_list`, `logo`, `banner`, `headline`, `body_text`, `send_rule`, `html`, `send_type`, `status`,`enable`,`revenue`,`sessions`,`transcations`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (item["title"],item["description"],item["subject"],item["heading_text"],item["customer_group_list"],item["logo"],item["banner"],item["headline"],item["body_text"],item["send_rule"],item["html"],item["send_type"],0,0,0,0,0,store_id,create_time,update_time))
+                    "insert into `email_template` (`title`, `description`, `subject`, `heading_text`,`customer_group_list`, `headline`, `body_text`, `send_rule`, `html`, `send_type`, `status`,`enable`,`revenue`,`sessions`,`transcations`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (item["title"],item["description"],item["subject"],item["heading_text"],item["customer_group_list"],item["headline"],item["body_text"],item["send_rule"],item["html"],item["send_type"],0,0,0,0,0,store_id,create_time,update_time))
                 conn.commit()
 
 
@@ -867,6 +867,7 @@ class ShopifyDataProcessor:
 
             store = (store,)
             if store[0][4] == 1:
+                self.create_template(store)
                 self.update_shopify_collections(store)
                 self.update_shopify_orders(store)
                 self.update_shopify_product(store)
