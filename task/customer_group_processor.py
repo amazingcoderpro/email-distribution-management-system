@@ -1275,10 +1275,13 @@ class AnalyzeCondition:
         min_time = None
         max_time = None
         try:
+            min_time = None
+            max_time = None
+            format_str_0 = format_str_1 = "%Y-%m-%d %H:%M:%S"
             # 兼容一下时间格式
-            format_str_0 = format_str_1 = "%Y-%m-%d %H:%M:%S" if len(values[0]) > 11 else "%Y-%m-%d"
-            if len(values) == 2:
-                format_str_1 = "%Y-%m-%d %H:%M:%S" if len(values[1]) > 11 else "%Y-%m-%d"
+            if isinstance(values[0], str):
+                if len(values[0]) <= 10:
+                    format_str_0 = format_str_1 = "%Y-%m-%d"
 
             time_now = datetime.datetime.now()
             if relation.lower() in "is in the past":
@@ -1305,6 +1308,7 @@ class AnalyzeCondition:
                 max_time = self.timezone_transform(max_time, 'Asia/Shanghai', iana_timezone)
         except Exception as e:
             logger.exception("date_relation_convert catch exception: {}".format(e))
+            # return min_time, max_time
         return min_time, max_time
 
     def timezone_transform(self, date_time, src_timezone, dst_timezone):
