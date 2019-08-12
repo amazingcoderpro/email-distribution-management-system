@@ -713,11 +713,15 @@ class AnalyzeCondition:
         :return: 客户id列表
         """
         # relations 两个, 第一个是数量，第二个是时间范围
-        min_time, max_time = self.date_relation_convert_mongo(relations[1]["relation"], relations[1]["values"], store_name,
-                                                        relations[1].get("unit", "days"))
-        adapt_customers = self.order_filter_mongo(store_id=store_id, status=2, store_name= store_name, relation=relations[0]["relation"],
-                                            value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
-        return adapt_customers
+        try:
+            min_time, max_time = self.date_relation_convert_mongo(relations[1]["relation"], relations[1]["values"], store_name,
+                                                            relations[1].get("unit", "days"))
+            adapt_customers = self.order_filter_mongo(store_id=store_id, status=2, store_name= store_name, relation=relations[0]["relation"],
+                                                value=relations[0]["values"][0], min_time=min_time, max_time=max_time)
+            return adapt_customers
+        except Exception as e:
+            logger.exception("adapt_all_order_mongo catch exception={}, relations={}".format(e, relations))
+            return []
 
     def email_opt_filter(self, store_id, opt_type, relation, value, min_time, max_time):
         """

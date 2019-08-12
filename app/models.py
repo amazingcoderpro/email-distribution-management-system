@@ -206,7 +206,7 @@ class EmailTask(models.Model):
     finished_time = models.DateTimeField(blank=True, null=True, verbose_name="完成时间")
     customer_list = models.TextField(blank=True, null=True, verbose_name="符合触发条件的用户列表")
     if ENABLE_MIGRATE:
-        email_trigger_id = models.IntegerField(db_index=True, default=None, verbose_name="email_trigger_id")
+        email_trigger_id = models.IntegerField(db_index=True, null=True, blank=True, default=None, verbose_name="email_trigger_id")
     else:
         email_trigger = models.ForeignKey(EmailTrigger, blank=True, null=True, on_delete=models.DO_NOTHING)
 
