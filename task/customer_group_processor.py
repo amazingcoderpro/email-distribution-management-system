@@ -1328,7 +1328,7 @@ class AnalyzeCondition:
                 result_time += datetime.timedelta(0,360)
             return result_time.strftime("%Y-%m-%d %H:%M:%S").replace(" ", "T")
         except Exception as e:
-            logger.error("timezone_transform exception e: " % e)
+            logger.error("timezone_transform exception e: %s" % e)
 
     def get_customers_by_condition(self, condition, store_id):
         """
