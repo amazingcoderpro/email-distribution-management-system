@@ -190,8 +190,8 @@ class EmailTrigger(models.Model):
     create_time = models.DateTimeField(db_index=True,auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True,auto_now=True, verbose_name="更新时间")
 
-    class Meta:
-        managed = ENABLE_MIGRATE
+    class ENABLE_MIGRATE:
+        managed = True
         db_table = 'email_trigger'
         ordering = ["-id"]
 
