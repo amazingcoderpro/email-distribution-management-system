@@ -46,17 +46,17 @@ MYSQL_CONFIG = {
 }
 
 MONGO_CONFIG = {
-    "host": "dds-j6cd6095509954a41.mongodb.rds.aliyuncs.com",
+    "host": "dds-j6cd6095509954a41348-pub.mongodb.rds.aliyuncs.com",
     "port": 3717,
     "db": "looklook",
     "user": "orderplus_edm",
-    "password": 'edm12345678',
+    "password": 'edm123456789',
     "replica_set": "mgset-13096445",
     "auth_type": "SCRAM-SHA-1",
     "ssh": False,
-    "ssh_host": "47.244.107.240",
-    "ssh_user": "root",
-    "ssh_password": "ZBzZehr+WLonFxax"
+    # "ssh_host": "47.244.107.240",
+    # "ssh_user": "root",
+    # "ssh_password": "ZBzZehr+WLonFxax"
 }
 
 ROOT_PATH = os.path.dirname(os.path.abspath(__file__))

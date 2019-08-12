@@ -1236,7 +1236,7 @@ class AnalyzeCondition:
         :return: 时区名称，eg:'Asia/Shanghai'
         """
         logger.info("get_shop_timezone_mongo start, store name is %s" % store_name)
-        timezone = ""
+        timezone_str = ""
         try:
             mdb = MongoDBUtil(mongo_config=self.mongo_config)
             db = mdb.get_instance()
@@ -1244,9 +1244,9 @@ class AnalyzeCondition:
             shop_info = db["shopify_shop_info"]
 
             timezone = shop_info.find_one({"site_name": store_name}, {"_id": 0, "iana_timezone": 1})
-            if timezone["iana_timezone"]:
-                timezone = timezone["iana_timezone"]
-            return timezone
+            if timezone and timezone["iana_timezone"]:
+                timezone_str = timezone["iana_timezone"]
+            return timezone_str
         except Exception as e:
             logger.exception("get_shop_timezone_mongo catch exception={}".format(e))
             return timezone
@@ -1324,7 +1324,7 @@ class AnalyzeCondition:
                 result_time += datetime.timedelta(0,360)
             return result_time.strftime("%Y-%m-%d %H:%M:%S").replace(" ", "T")
         except Exception as e:
-            logger.error("timezone_transform exception e: " % e)
+            logger.error("timezone_transform exception e: %s" % e)
 
     def get_customers_by_condition(self, condition, store_id):
         """
