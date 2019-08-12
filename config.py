@@ -60,3 +60,4 @@ MONGO_CONFIG = {
 }
 
 ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
+ENABLE_SUBSCRIBE = True     # 是启用取消订阅，启用后不再发送邮件给那些已经取消订阅的人

@@ -8,7 +8,7 @@ import json
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
 
-from config import logger, MONGO_CONFIG, MYSQL_CONFIG
+from config import logger, MONGO_CONFIG, MYSQL_CONFIG, ENABLE_SUBSCRIBE
 from task.db_util import DBUtil, MongoDBUtil
 from sdk.ems import ems_api
 
@@ -102,7 +102,7 @@ class AnalyzeCondition:
         """
         获取某一店铺的from_type和name
         :param store_id: 店铺id
-        :return: 元组(from_type, name)
+        :return: 元组(from_type, name) from_type:0--来自opstores, 1--来自edm
         """
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
@@ -1462,22 +1462,29 @@ class AnalyzeCondition:
                 group_id = value["group_id"]
                 store_id = value["store_id"]
                 group_title = value["group_title"]
+                source, store_name = self.get_store_source(store_id)
                 # 新的顾客列表，转成邮件
                 new_customer_list = value["customer_list"]
+                dt_now = datetime.datetime.now()
+
+                # 获取这个店铺所有处于退订状态的客户邮箱
+                cursor.execute("select `email` from customer_unsubscribe where store_id=%s and (`unsubscribe_status`=1 or (`unsubscribe_status`=2 and `unsubscribe_date`<%s))", (store_id, dt_now))
+                unsub_email = cursor.fetchall()
+                unsub_email_list = []
+                should_delete_unsub_email_list = []
+                if unsub_email:
+                    unsub_email_list = [ue["email"] for ue in unsub_email]
 
                 logger.info("update group id={}, new customer list length={}".format(group_id, len(new_customer_list)))
-                dt_now = datetime.datetime.now()
                 if new_customer_list:
-                    cursor.execute("""select `customer_email`, `unsubscribe_status`, `unsubscribe_date` from `customer` where `uuid` in %s""", (new_customer_list, ))
-                    new_cus = cursor.fetchall()
+                    if source == 0:
+                        new_customer_email_list = self.customer_uuid_to_email_mongo(new_customer_list, store_name)
+                    else:
+                        new_customer_email_list = self.customer_uuid_to_email(new_customer_list)
 
                     # 从需要新增的客户中，排除那些取消订阅的或者处于休眠期的客户
-                    new_cus = [em for em in new_cus
-                              if em["unsubscribe_status"] == 0 or
-                              (em["unsubscribe_status"] == 2 and em["unsubscribe_date"] and em["unsubscribe_date"] < dt_now)]
-
-                    new_customer_email_list = [em["customer_email"] for em in new_cus]
-                    new_customer_email_list = [em for em in new_customer_email_list if em]
+                    if ENABLE_SUBSCRIBE and unsub_email_list:
+                        new_customer_email_list = list(set(new_customer_email_list).difference(set(unsub_email_list)))
                 else:
                     new_customer_email_list = []
 
@@ -1489,12 +1496,16 @@ class AnalyzeCondition:
                     if customer_group["customer_list"]:
                         old_customer_list = eval(customer_group["customer_list"])
                         if old_customer_list:
-                            cursor.execute("select `uuid`, `unsubscribe_status`, `unsubscribe_date` from `customer` where uuid in %s", (old_customer_list, ))
-                            old_cus = cursor.fetchall()
-                            # 从现有的收件人中排除那些取消订阅的或者处于休眠期的客户
-                            old_customer_list = [oc["uuid"] for oc in old_cus if oc["unsubscribe_status"] == 0 or
-                                      (oc["unsubscribe_status"] == 2 and oc["unsubscribe_date"] and oc[
-                                          "unsubscribe_date"] < dt_now)]
+                            if source == 0:
+                                old_email_list = self.customer_uuid_to_email_mongo(old_customer_list)
+                            else:
+                                old_email_list = self.customer_uuid_to_email(old_customer_list)
+
+                            # 从现有的收件人中排除那些取消订阅的或者处于休眠期的客户,同时出现在旧用户列表和取消列表中的用户才是需要删除的
+                            if unsub_email_list and old_email_list:
+                                should_delete_unsub_email_list = list(set(old_email_list).intersection(set(unsub_email_list)))
+                        else:
+                            old_email_list = []
                     else:
                         old_customer_list = []
                 else:
@@ -1515,31 +1526,48 @@ class AnalyzeCondition:
                     new_add_customers = list(set(new_customer_list) - set(old_customer_list))   #新增加的客户id
                     delete_customers = list(set(old_customer_list) - set(new_customer_list))     #需要删除的客户id
                     if new_add_customers:
-                        cursor.execute("""select `customer_email` from `customer` where `uuid` in %s""", (new_add_customers,))
-                        new_cus = cursor.fetchall()
-                        new_add_customers_email_list = [em["customer_email"] for em in new_cus]
-                        new_add_customers_email_list = [em for em in new_add_customers_email_list if em] #只要不为空的邮箱
-                        if new_add_customers_email_list:
-                            diff_add_result = exp.add_subscriber(old_uuid, new_add_customers_email_list)
+                        if source == 0:
+                            new_add_customers_email_list = self.customer_uuid_to_email_mongo(new_add_customers)
+                        else:
+                            new_add_customers_email_list = self.customer_uuid_to_email(new_add_customers)
+
+                        while new_add_customers_email_list:
+                            if len(new_add_customers_email_list) >= 100:
+                                front_99 = new_add_customers_email_list[0:99]
+                                new_add_customers_email_list = new_add_customers_email_list[99:]
+                            else:
+                                front_99 = new_add_customers_email_list
+                                new_add_customers_email_list = []
+
+                            diff_add_result = exp.add_subscriber(old_uuid, front_99)
                             if diff_add_result["code"] == 1:
                                 logger.info("add_subscriber succeed, uuid={}".format(old_uuid))
                             elif diff_add_result["code"] == 3:
                                 logger.warning("add_subscriber partly succeed, uuid={}, invalid email={}".format(old_uuid, diff_add_result.get("invalid_email", [])))
                             else:
                                 logger.error("update_customer_group_list add_subscriber failed, diff_add_result={}, "
-                                             "group id={}, uuid={}, add emails={}".format(diff_add_result, group_id, uuid, new_add_customers_email_list))
+                                             "group id={}, uuid={}, add emails={}".format(diff_add_result, group_id, uuid, front_99))
 
                     if delete_customers:
-                        cursor.execute("""select `customer_email` from `customer` where `uuid` in %s""", (delete_customers,))
-                        new_cus = cursor.fetchall()
-                        delete_customers_email_list = [em["customer_email"] for em in new_cus]
-                        delete_customers_email_list = [em for em in delete_customers_email_list if em]  # 只要不为空的邮箱
+                        if source == 0:
+                            delete_customers_email_list = self.customer_uuid_to_email_mongo(delete_customers)
+                        else:
+                            delete_customers_email_list = self.customer_uuid_to_email(delete_customers)
+
                         if delete_customers_email_list:
                             for email in delete_customers_email_list:
                                 diff_delete_result = exp.delete_subscriber(email, old_uuid)
                                 if diff_delete_result["code"] != 1:
                                     logger.error("update_customer_group_list delete_subscriber failed, diff_delete_result={}"
                                                 ", group id={}, uuid={}, delete email={}".format(diff_delete_result, group_id, old_uuid, email))
+                    # 删除那些取消订阅的
+                    if ENABLE_SUBSCRIBE and should_delete_unsub_email_list:
+                        for ue in should_delete_unsub_email_list:
+                            try:
+                                # 从所有人中删除那些取消订阅的
+                                exp.delete_subscriber(ue, old_uuid)
+                            except:
+                                pass
 
                     cursor.execute(
                         "update `customer_group` set customer_list=%s, members=%s, update_time=%s, state=1 where id=%s",
@@ -1549,8 +1577,8 @@ class AnalyzeCondition:
                     # 还没有创建过email group id
                     logger.info("customer group have not been analyzed, need analyze")
                     # 如果customer list为空，则暂时不创建email group
-                    if not new_customer_email_list:
-                        continue
+                    # if not new_customer_email_list:
+                    #     continue
 
                     email_group_name = f"{store['name']}_{group_title}_{datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}".replace(" ", "_")
                     create_result = exp.create_subscribers_list(name=email_group_name)
@@ -1558,9 +1586,17 @@ class AnalyzeCondition:
                     if create_result["code"] == 1:
                         uuid = create_result["data"]
                         logger.info("customer group analyze and create email group id={}".format(uuid))
-                        add_result = exp.add_subscriber(str(uuid), new_customer_email_list)
-                        if add_result["code"] != 1:
-                            logger.error("update_customer_group_list add_subscriber failed, group id={}, uuid={}, result={}".format(group_id, uuid, add_result))
+                        while new_customer_email_list:
+                            if len(new_customer_email_list) >= 100:
+                                front_99 = new_customer_email_list[0:99]
+                                new_customer_email_list = new_customer_email_list[99:]
+                            else:
+                                front_99 = new_customer_email_list
+                                new_customer_email_list = []
+
+                            add_result = exp.add_subscriber(str(uuid), front_99)
+                            if add_result["code"] != 1:
+                                logger.error("update_customer_group_list add_subscriber failed, group id={}, uuid={}, result={}".format(group_id, uuid, add_result))
                         cursor.execute(
                             "update `customer_group` set uuid=%s, customer_list=%s, members=%s, update_time=%s, state=1 where id=%s",
                             (str(uuid), str(new_customer_list), len(new_customer_list), datetime.datetime.now(), group_id))
@@ -1848,6 +1884,7 @@ class AnalyzeCondition:
             if not store:
                 logger.warning("not found any data")
                 return None
+
             email_list = list(set([s["customer_email"] for s in store if s["customer_email"]]))
         except Exception as e:
             logger.exception("customer uuid to customer email exception: {}".format(e))
@@ -1879,6 +1916,8 @@ class AnalyzeCondition:
             return email_list
         finally:
             mdb.close()
+
+        email_list = [em for em in email_list if em]  # 只要不为空的邮箱
         return list(set(email_list))
 
     def insert_customer_list_id_from_email_trigger(self, customer_list_id, trigger_id):
@@ -1962,7 +2001,8 @@ class AnalyzeCondition:
             email_list = self.customer_uuid_to_email(new_customer_list) if from_type else self.customer_uuid_to_email_mongo(new_customer_list, store_name)
             # 对new_customer_list里的收件人进行取消订阅或休眠过滤
             unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(store_id)
-            email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
+            if ENABLE_SUBSCRIBE:
+                email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
             logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (
             store_id, set(unsubscribed_and_snoozed)))
             logger.info("new customer list length is %s" % len(email_list))
@@ -2243,7 +2283,7 @@ if __name__ == '__main__':
 
     ac = AnalyzeCondition(mysql_config=MYSQL_CONFIG, mongo_config=MONGO_CONFIG)
     # ac.adapt_placed_order()
-    # ac.update_customer_group_list()
+    ac.update_customer_group_list()
     # conditions = ac.get_conditions()
     # for cond in conditions:
     #     cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
@@ -2272,5 +2312,5 @@ if __name__ == '__main__':
     # print(ac.customer_uuid_to_email_mongo([1077951529024,1078304604224,1079054073920], "Astrotrex"))
     # print(ac.adapt_sign_up_time_mongo(1,[{"relation":"is between date","values":["2019-08-01 00:00:00","2019-08-09 00:00:00"],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], "Astrotrex"))
     # print(ac.adapt_last_order_created_time_mongo(1,[{"relation":"is between date","values":["2019-02-10 00:00:00","2019-02-11 00:00:00"],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], "Astrotrex"))
-    print(ac.adapt_last_opened_email_time_mongo(1,[{"relation":"is between date","values":["2019-02-10 00:00:00","2019-02-11 00:00:00"],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], "Astrotrex"))
+    # print(ac.adapt_last_opened_email_time_mongo(1,[{"relation":"is between date","values":["2019-02-10 00:00:00","2019-02-11 00:00:00"],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], "Astrotrex"))
 
