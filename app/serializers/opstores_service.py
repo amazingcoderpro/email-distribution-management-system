@@ -50,12 +50,12 @@ class StoreSerializer(serializers.ModelSerializer):
             store_dict["init"] = 0
             instance = super(StoreSerializer, self).create(store_dict)
 
-            email_trigger = models.EmailTrigger.objects.filter(store_id=1,source=0).values("title", "description","relation_info","email_delay")
+            email_trigger = models.EmailTrigger.objects.filter(store_id=1).values("title", "description","relation_info","email_delay")
             for item in email_trigger:
                 trigger_dict = {"store":instance, "title": item["title"], "description": item["description"],"relation_info": item["relation_info"], "email_delay" : item["email_delay"]}
                 models.EmailTrigger.objects.create(**trigger_dict)
 
-            email_template = models.EmailTemplate.objects.filter(store_id=1,source=0).values("title", "description","subject","heading_text","headline","body_text","customer_group_list","html","send_rule","send_type")
+            email_template = models.EmailTemplate.objects.filter(store_id=1).values("title", "description","subject","heading_text","headline","body_text","customer_group_list","html","send_rule","send_type")
             for item in email_template:
                 template_dict = {"store": instance, "title": item["title"], "description": item["description"]}
                 template_dict["subject"] = item["subject"]
@@ -68,6 +68,13 @@ class StoreSerializer(serializers.ModelSerializer):
                 template_dict["send_rule"] = item["send_rule"]
                 template_dict["send_type"] = item["send_type"]
                 models.EmailTemplate.objects.create(**template_dict)
+
+            customer_group = models.CustomerGroup.objects.filter(store_id=1).values("title","description","relation_info")
+            for item in customer_group:
+                trigger_dict = {"store": instance, "title": item["title"], "description": item["description"],
+                                "relation_info": item["relation_info"], "state": 0}
+                models.CustomerGroup.objects.create(**trigger_dict)
+
         return instance
 
 

@@ -200,18 +200,14 @@ class AnalyzeCondition:
             db = mdb.get_instance()
             paid_results = db["shopify_order"]
             relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
-            flag = False
-            if status == 2:
-                flag = True
-            if status == 0 or flag:
+            if status == 0 or status == 2:  # 状态为0或者2的时候需要筛选的用户
                 # 查询未支付的customer_uuid
                 unpaid_res = self.unpaid_order_customers_mongo(store_name, min_time, max_time)
                 for uuid, count_list in unpaid_res.items():
                     just_str = "{} {} {}".format(len(count_list), relation_dict.get(relation), value)
                     if eval(just_str):
                         customers.append(uuid)
-
-            if status == 1 or flag:
+            if status == 1 or status == 2:  # 状态为1或者2的时候需要筛选的用户
                 if min_time and max_time:
                     filter_dict = {"$lte": max_time, "$gte": min_time}
                 elif min_time:
@@ -226,7 +222,7 @@ class AnalyzeCondition:
                     'count': {'$sum': 1}
                 }
                 paid_res = paid_results.aggregate(
-                    [{"$match": {"updated_at": filter_dict}}, {"$group": group}],
+                    [{"$match": {"updated_at": filter_dict, "site_name": store_name}}, {"$group": group}],
                     allowDiskUse=True)
                 for item in paid_res:
                     just_str = "{} {} {}".format(item["count"], relation_dict.get(relation), value)
@@ -1244,7 +1240,7 @@ class AnalyzeCondition:
         :return: 时区名称，eg:'Asia/Shanghai'
         """
         logger.info("get_shop_timezone_mongo start, store name is %s" % store_name)
-        timezone_str = ""
+        timezone_str = "Asia/Shanghai"
         try:
             mdb = MongoDBUtil(mongo_config=self.mongo_config)
             db = mdb.get_instance()
@@ -1279,8 +1275,6 @@ class AnalyzeCondition:
         min_time = None
         max_time = None
         try:
-            min_time = None
-            max_time = None
             format_str_0 = format_str_1 = "%Y-%m-%d %H:%M:%S"
             # 兼容一下时间格式
             if isinstance(values[0], str):
@@ -1505,7 +1499,7 @@ class AnalyzeCondition:
                         old_customer_list = eval(customer_group["customer_list"])
                         if old_customer_list:
                             if source == 0:
-                                old_email_list = self.customer_uuid_to_email_mongo(old_customer_list)
+                                old_email_list = self.customer_uuid_to_email_mongo(old_customer_list, store_name)
                             else:
                                 old_email_list = self.customer_uuid_to_email(old_customer_list)
 
@@ -1535,7 +1529,7 @@ class AnalyzeCondition:
                     delete_customers = list(set(old_customer_list) - set(new_customer_list))     #需要删除的客户id
                     if new_add_customers:
                         if source == 0:
-                            new_add_customers_email_list = self.customer_uuid_to_email_mongo(new_add_customers)
+                            new_add_customers_email_list = self.customer_uuid_to_email_mongo(new_add_customers, store_name)
                         else:
                             new_add_customers_email_list = self.customer_uuid_to_email(new_add_customers)
 
@@ -1558,7 +1552,7 @@ class AnalyzeCondition:
 
                     if delete_customers:
                         if source == 0:
-                            delete_customers_email_list = self.customer_uuid_to_email_mongo(delete_customers)
+                            delete_customers_email_list = self.customer_uuid_to_email_mongo(delete_customers, store_name)
                         else:
                             delete_customers_email_list = self.customer_uuid_to_email(delete_customers)
 
@@ -2231,6 +2225,7 @@ class AnalyzeCondition:
                 send_error_info = ""
                 status = 2
                 for customer in email_list:
+                    # 发送邮件前，有可能需要先更新一下html
                     rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
                     if rest["code"] != 1:
                         logger.warning("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))

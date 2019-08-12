@@ -11,7 +11,7 @@ VALUES
 
 INSERT INTO `store` (`id`, `name`, `url`, `domain`, `email`, `token`, `hmac`, `timezone`, `sender`, `customer_shop`, `sender_address`, `store_view_id`, `init`, `source`, `store_create_time`, `create_time`, `update_time`, `user_id`)
 VALUES
-	(1, 'admin', '', '', '', '', '', '(GMT+08:00) Asia/Shanghai', 'admin', '', '', '195406097', 1, 1, '2018-08-15 10:39:16.000000', '2019-07-12 09:53:09.077657', '2019-08-07 17:51:30.943595', 1);
+	(1, 'admin', '', '', '', '', '', '(GMT+08:00) Asia/Shanghai', 'admin', '', '', '195406097', 1, 0, '2018-08-15 10:39:16.000000', '2019-07-12 09:53:09.077657', '2019-08-07 17:51:30.943595', 1);
 
 ```
 
