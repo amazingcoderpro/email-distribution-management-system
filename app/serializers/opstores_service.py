@@ -68,6 +68,13 @@ class StoreSerializer(serializers.ModelSerializer):
                 template_dict["send_rule"] = item["send_rule"]
                 template_dict["send_type"] = item["send_type"]
                 models.EmailTemplate.objects.create(**template_dict)
+
+            customer_group = models.CustomerGroup.objects.filter(store_id=1).values("title","description","relation_info")
+            for item in customer_group:
+                trigger_dict = {"store": instance, "title": item["title"], "description": item["description"],
+                                "relation_info": item["relation_info"], "state": 0}
+                models.CustomerGroup.objects.create(**trigger_dict)
+
         return instance
 
 
