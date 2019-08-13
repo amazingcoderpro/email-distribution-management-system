@@ -5,9 +5,17 @@
 import os
 import logging
 from log_config import log_config
+logging.getLogger("requests").setLevel(logging.ERROR)
+logging.getLogger("apscheduler").setLevel(logging.ERROR)
+logging.getLogger("pymysql").setLevel(logging.ERROR)
+logging.getLogger("pymongo").setLevel(logging.ERROR)
+logging.getLogger("google-api-python-client").setLevel(logging.ERROR)
 
-log_config.init_log_config("logs", "edm", when="H", interval=1, backup_count=72)
-logger = logging.getLogger()
+WHEN = os.getenv("WHEN", 'H')
+INTERVAL = os.getenv("INTERVAL", 12)
+
+log_config.init_log_config("logs", "edm", when=WHEN, interval=INTERVAL, backup_count=14)
+logger = logging .getLogger()
 
 SHOPIFY_CONFIG = {
     "client_id": "14afd1038ae052d9f13604af3e5e3ce3",
