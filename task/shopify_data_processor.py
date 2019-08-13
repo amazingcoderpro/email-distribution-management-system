@@ -801,9 +801,9 @@ class ShopifyDataProcessor:
             create_time = datetime.datetime.now()
             update_time = datetime.datetime.now()
 
-
+            template_record = {}
             cursor_dict.execute(
-                """select title, description, relation_info from customer_group where store_id = 1""")
+                """select id, title, description, relation_info from customer_group where store_id = 1""")
             customer_group = cursor_dict.fetchall()
 
             for item in customer_group:
@@ -811,17 +811,23 @@ class ShopifyDataProcessor:
                     "insert into `customer_group` (`title`, `description`,`relation_info`, `open_rate`, `click_rate`, `members`, `state`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                     (item["title"],item["description"],item["relation_info"],0,0,0,0,store_id,create_time,update_time))
                 conn.commit()
+                template_record[item["id"]] = cursor_dict.lastrowid
 
-
+            email_template_record = {}
             cursor_dict.execute(
-                """select title, description, subject, heading_text, headline, body_text, customer_group_list, send_rule, send_type, html from email_template where store_id = 1 and source = 1""")
+                """select id, title, description, subject, heading_text, headline, body_text, customer_group_list, send_rule, send_type, html from email_template where store_id = 1 and source = 1""")
             email_template = cursor_dict.fetchall()
 
             for item in email_template:
+                customer_group_list = eval(item["customer_group_list"])
+                for key, val in enumerate(customer_group_list):
+                    customer_group_list[key] = template_record[val]
+
                 cursor_dict.execute(
                     "insert into `email_template` (`title`, `description`, `subject`, `heading_text`,`customer_group_list`, `headline`, `body_text`, `send_rule`, `html`, `send_type`, `status`,`enable`,`revenue`,`sessions`,`transcations`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (item["title"],item["description"],item["subject"],item["heading_text"],item["customer_group_list"],item["headline"],item["body_text"],item["send_rule"],item["html"],item["send_type"],0,0,0,0,0,store_id,create_time,update_time))
+                    (item["title"],item["description"],item["subject"],item["heading_text"],customer_group_list,item["headline"],item["body_text"],item["send_rule"],item["html"],item["send_type"],0,0,0,0,0,store_id,create_time,update_time))
                 conn.commit()
+                email_template_record[item["id"]] = cursor_dict.lastrowid
 
 
 
@@ -831,9 +837,14 @@ class ShopifyDataProcessor:
             email_trigger = cursor_dict.fetchall()
 
             for item in email_trigger:
+                email_delay = json.loads(item["email_delay"])
+                for key, val in enumerate(email_delay):
+                    if val["type"] == "Email":
+                        val["value"] = email_template_record[val["value"]]
+
                 cursor_dict.execute(
                     "insert into `email_trigger` (`title`, `description`, `open_rate`, `click_rate`, `revenue`, `relation_info`, `email_delay`, `note`, `status`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (item["title"],item["description"],0,0,0,item["relation_info"],item["email_delay"],item["note"],0,store_id,create_time,update_time))
+                    (item["title"],item["description"],0,0,0,item["relation_info"],email_delay,item["note"],0,store_id,create_time,update_time))
                 conn.commit()
 
         except Exception as e:
@@ -1059,7 +1070,7 @@ class ShopifyDataProcessor:
 if __name__ == '__main__':
     db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     # ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
-    #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
+    ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_product()
     # 拉取shopify GA 数据
