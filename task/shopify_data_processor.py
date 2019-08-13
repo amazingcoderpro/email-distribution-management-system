@@ -803,7 +803,7 @@ class ShopifyDataProcessor:
 
             template_record = {}
             cursor_dict.execute(
-                """select id, title, description, relation_info from customer_group where store_id = 1""")
+                """select id, title, description, relation_info from customer_group where store_id = 1 and state != 2""")
             customer_group = cursor_dict.fetchall()
 
             for item in customer_group:
@@ -815,7 +815,7 @@ class ShopifyDataProcessor:
 
             email_template_record = {}
             cursor_dict.execute(
-                """select id, title, description, subject, heading_text, headline, body_text, customer_group_list, send_rule, send_type, html from email_template where store_id = 1 and source = 1""")
+                """select id, title, description, subject, heading_text, headline, body_text, customer_group_list, send_rule, send_type, html from email_template where store_id = 1 and status != 2""")
             email_template = cursor_dict.fetchall()
 
             for item in email_template:
@@ -833,7 +833,7 @@ class ShopifyDataProcessor:
 
 
             cursor_dict.execute(
-                """select title, description, relation_info, email_delay, note from email_trigger where store_id = 1 and source = 1""")
+                """select title, description, relation_info, email_delay, note from email_trigger where store_id = 1 and draft = 0 and status != 2""")
             email_trigger = cursor_dict.fetchall()
 
             for item in email_trigger:

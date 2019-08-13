@@ -244,6 +244,33 @@ class EmailTriggerOptSerializer(serializers.ModelSerializer):
         return instance
 
 
+class EmailTriggerCloneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmailTrigger
+        fields = (
+            "status",     # 0--disable, 1-enable
+        )
+
+    def update(self, instance, validated_data):
+        store = models.Store.objects.filter(user=self.context["request"].user).first()
+        dic = {
+            "store": store,
+            "title": instance.title,
+            "description": instance.description,
+            "relation_info": instance.relation_info,
+            "email_delay": instance.email_delay,
+            "note": instance.note,
+            "status": instance.status,
+            "is_open": instance.is_open,
+            "draft":1
+        }
+    
+        clone_instance = models.EmailTrigger.objects.create(**dic)
+        return clone_instance
+
+
+
+
 class SendMailSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.EmailTemplate
