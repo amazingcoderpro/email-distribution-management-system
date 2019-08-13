@@ -801,14 +801,15 @@ class ShopifyDataProcessor:
             create_time = datetime.datetime.now()
             update_time = datetime.datetime.now()
 
-            cursor_dict.execute(
-                """select title, description, relation_info, email_delay, note from email_trigger where store_id = 1 and source = 1""")
-            email_trigger = cursor_dict.fetchall()
 
-            for item in email_trigger:
+            cursor_dict.execute(
+                """select title, description, relation_info from customer_group where store_id = 1""")
+            customer_group = cursor_dict.fetchall()
+
+            for item in customer_group:
                 cursor_dict.execute(
-                    "insert into `email_trigger` (`title`, `description`, `open_rate`, `click_rate`, `revenue`, `relation_info`, `email_delay`, `note`, `status`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (item["title"],item["description"],0,0,0,item["relation_info"],item["email_delay"],item["note"],0,store_id,create_time,update_time))
+                    "insert into `customer_group` (`title`, `description`,`relation_info`, `open_rate`, `click_rate`, `members`, `state`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (item["title"],item["description"],item["relation_info"],0,0,0,0,store_id,create_time,update_time))
                 conn.commit()
 
 
@@ -823,14 +824,16 @@ class ShopifyDataProcessor:
                 conn.commit()
 
 
-            cursor_dict.execute(
-                """select title, description, relation_info from customer_group where store_id = 1""")
-            customer_group = cursor_dict.fetchall()
 
-            for item in customer_group:
+
+            cursor_dict.execute(
+                """select title, description, relation_info, email_delay, note from email_trigger where store_id = 1 and source = 1""")
+            email_trigger = cursor_dict.fetchall()
+
+            for item in email_trigger:
                 cursor_dict.execute(
-                    "insert into `customer_group` (`title`, `description`,`relation_info`, `open_rate`, `click_rate`, `members`, `state`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (item["title"],item["description"],item["relation_info"],0,0,0,0,store_id,create_time,update_time))
+                    "insert into `email_trigger` (`title`, `description`, `open_rate`, `click_rate`, `revenue`, `relation_info`, `email_delay`, `note`, `status`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (item["title"],item["description"],0,0,0,item["relation_info"],item["email_delay"],item["note"],0,store_id,create_time,update_time))
                 conn.commit()
 
         except Exception as e:
@@ -1058,7 +1061,7 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_product()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    ShopifyDataProcessor(db_info=db_info).update_top_product()
+    # ShopifyDataProcessor(db_info=db_info).update_top_product()
     # 拉取shopify GA 数据
     #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
