@@ -6,7 +6,7 @@ import os
 import logging
 from log_config import log_config
 
-log_config.init_log_config("logs", "edm")
+log_config.init_log_config("logs", "edm", when="H", interval=1, backup_count=72)
 logger = logging.getLogger()
 
 SHOPIFY_CONFIG = {
