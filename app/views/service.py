@@ -212,7 +212,6 @@ class EmailTriggerCloneView(generics.UpdateAPIView):
     authentication_classes = (JSONWebTokenAuthentication,)
 
 
-
 class SendMailView(generics.CreateAPIView):
     """邮件模版增加，测试发送邮件"""
     # queryset = models.EmailTemplate.objects.all()
