@@ -11,7 +11,7 @@ logging.getLogger("pymysql").setLevel(logging.ERROR)
 logging.getLogger("pymongo").setLevel(logging.ERROR)
 logging.getLogger("google-api-python-client").setLevel(logging.ERROR)
 
-WHEN = os.getenv("WHEN", 'H')
+WHEN = os.getenv("WHEN", 'midnight')
 INTERVAL = os.getenv("INTERVAL", 12)
 
 log_config.FORMATTER = "%(asctime)s [%(filename)s:%(funcName)s:%(lineno)d] %(levelname)s %(message)s"
@@ -70,3 +70,10 @@ MONGO_CONFIG = {
 
 ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
 ENABLE_SUBSCRIBE = True     # 是启用取消订阅，启用后不再发送邮件给那些已经取消订阅的人
+
+# if __name__ == '__main__':
+#     import time
+#     while 1:
+#         logger.info("13412412421412")
+#         time.sleep(1)
+
