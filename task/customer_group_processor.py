@@ -816,17 +816,17 @@ class AnalyzeCondition:
             # after, in the past
             elif min_time:
                 cursor.execute(
-                    """select `email`, count from `subscriber_activity` where store_id=%s and type=%s 
+                    """select `email`, count(1) from `subscriber_activity` where store_id=%s and type=%s 
                     and `opt_time`>=%s group by `email`""", (store_id, opt_type, min_time))
             # before
             elif max_time:
                 cursor.execute(
-                    """select `email`, count from `subscriber_activity` where store_id=%s and type=%s 
+                    """select `email`, count(1) from `subscriber_activity` where store_id=%s and type=%s 
                     and `opt_time`<=%s group by `email`""", (store_id, opt_type, max_time))
             # over all time
             else:
                 cursor.execute(
-                    """select `email`, count from `subscriber_activity` where store_id=%s and type=%s 
+                    """select `email`, count(1) from `subscriber_activity` where store_id=%s and type=%s 
                     group by `email`""", (store_id, opt_type))
 
             res = cursor.fetchall()
