@@ -12,10 +12,10 @@ logging.getLogger("pymongo").setLevel(logging.ERROR)
 logging.getLogger("google-api-python-client").setLevel(logging.ERROR)
 
 WHEN = os.getenv("WHEN", 'midnight')
-INTERVAL = os.getenv("INTERVAL", 12)
+INTERVAL = os.getenv("INTERVAL", 1)
 
 log_config.FORMATTER = "%(asctime)s [%(filename)s:%(funcName)s:%(lineno)d] %(levelname)s %(message)s"
-log_config.init_log_config("logs", "edm", when=WHEN, interval=INTERVAL, backup_count=14)
+log_config.init_log_config("logs", "edm", when=WHEN, interval=INTERVAL, backup_count=7)
 logger = logging .getLogger()
 
 SHOPIFY_CONFIG = {
