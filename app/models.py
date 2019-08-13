@@ -117,8 +117,8 @@ class EmailTemplate(models.Model):
     send_rule = models.TextField(verbose_name="发送邮件规则")
     status_choices = ((0, '待解析'), (1, '已解析'), (2, '已删除'))
     status = models.SmallIntegerField(db_index=True, choices=status_choices, default=0, verbose_name="状态")
-    source_choices = ((0, 'opstores'), (1, 'smartsend'), (2, 'all'))
-    source = models.SmallIntegerField(db_index=True, choices=source_choices, default=1, verbose_name="平台模板")
+    # source_choices = ((0, 'opstores'), (1, 'smartsend'), (2, 'all'))
+    # source = models.SmallIntegerField(db_index=True, choices=source_choices, default=1, verbose_name="平台模板")
     enable_choice = ((0, '禁用'), (1, '启用'))
     enable = models.SmallIntegerField(default=0,choices=enable_choice, verbose_name="是否启用")
     send_type_choices = ((0, '定时邮件'), (1, '触发邮件'), (3, '测试邮件'))
@@ -181,8 +181,8 @@ class EmailTrigger(models.Model):
     note = models.TextField(default="[]", verbose_name="对应Note列表")
     status_choice = ((0, 'disable'), (1, 'enable'), (2, 'delete'))
     status = models.SmallIntegerField(default=0, verbose_name="邮件类型")
-    source_choices = ((0, 'opstores'), (1, 'smartsend'), (2, 'all'))
-    source = models.SmallIntegerField(db_index=True, choices=source_choices, default=1, verbose_name="平台模板")
+    is_open_choices = ((0, 'internal'), (1, 'external'))
+    is_open = models.SmallIntegerField(db_index=True, choices=is_open_choices, default=0, verbose_name="是否对外")
     if ENABLE_MIGRATE:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
