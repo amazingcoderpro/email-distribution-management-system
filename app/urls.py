@@ -36,6 +36,7 @@ v1_urlpatterns = [
     # 邮件触发器
     url(r'^email_trigger/$', service.EmailTriggerView.as_view()),
     url(r'^email_trigger/(?P<pk>[0-9]+)/$', service.EmailTriggerOptView.as_view()),
+    url(r'^email_trigger/(?P<pk>[0-9]+)/$', service.EmailTriggerOptView.as_view()),         # 模板克隆
 
     # 测试发送邮件
     url(r'^send_mail/$', service.SendMailView.as_view()),

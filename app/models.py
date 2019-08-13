@@ -175,14 +175,13 @@ class EmailTrigger(models.Model):
     relation_info = models.TextField(blank=True, null=True, verbose_name="筛选条件")
     email_delay = models.TextField(blank=True, null=True, verbose_name="发送邮件顺序")
     customer_list = models.TextField(blank=True, null=True, verbose_name="对应客户列表")
-    # note_choice = ((0, 'Do not send if the customer if your customer makes a purchase. && Do not send if the customer received an email from this campaign in the last 7 days.'),
-    #                (1, 'Do not send if the customer if your customer makes a purchase.'),
-    #                (2, 'Do not send if the customer received an email from this campaign in the last 7 days.'))
     note = models.TextField(default="[]", verbose_name="对应Note列表")
     status_choice = ((0, 'disable'), (1, 'enable'), (2, 'delete'))
     status = models.SmallIntegerField(default=0, verbose_name="邮件类型")
     is_open_choices = ((0, 'internal'), (1, 'external'))
     is_open = models.SmallIntegerField(db_index=True, choices=is_open_choices, default=0, verbose_name="是否对外")
+    draft_choices = ((0, '线上'), (1, '草稿'))
+    draft = models.SmallIntegerField(db_index=True, choices=draft_choices, default=0, verbose_name="是否是草稿状态")
     if ENABLE_MIGRATE:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:

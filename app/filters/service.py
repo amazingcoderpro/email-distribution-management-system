@@ -55,7 +55,7 @@ class EmailTriggerFilter(BaseFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
         store = models.Store.objects.filter(user=request.user).first()
-        filte_kwargs = {"store":  store,}
+        filte_kwargs = {"store":  store, "draft":0,}
         for filter_key in self.filter_keys.keys():
             val = request.query_params.get(filter_key, '')
             if val is not '':
