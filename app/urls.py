@@ -34,9 +34,10 @@ v1_urlpatterns = [
     url(r'^upload_picture/$', service.UploadPicture.as_view()),
 
     # 邮件触发器
-    url(r'^email_trigger/$', service.EmailTriggerView.as_view()),
-    url(r'^email_trigger/(?P<pk>[0-9]+)/$', service.EmailTriggerOptView.as_view()),
-    url(r'^email_trigger/clone/(?P<pk>[0-9]+)/$', service.EmailTriggerCloneView.as_view()),         # 模板克隆
+    url(r'^email_trigger/$', service.EmailTriggerView.as_view()),                                   # trigger列表创建
+    url(r'^email_trigger/(?P<pk>[0-9]+)/$', service.EmailTriggerOptView.as_view()),                 # trigger修改状态
+    url(r'^email_trigger/clone/(?P<pk>[0-9]+)/$', service.EmailTriggerCloneView.as_view()),         # trigger克隆
+    url(r'^email_trigger/edit/(?P<pk>[0-9]+)/$', service.EmailTriggerEditView.as_view()),         # trigger克隆编辑
 
     # 测试发送邮件
     url(r'^send_mail/$', service.SendMailView.as_view()),
