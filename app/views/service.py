@@ -187,7 +187,7 @@ class UploadPicture(APIView):
 
 class EmailTriggerView(generics.ListCreateAPIView):
     """邮件 Trigger展示 增加"""
-    queryset = models.EmailTrigger.objects.filter(draft=0).all()
+    queryset = models.EmailTrigger.objects.all()
     serializer_class = service.EmailTriggerSerializer
     pagination_class = PNPagination
     filter_backends = (service_filter.EmailTriggerFilter,)

@@ -251,11 +251,6 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "status",     # 0--disable, 1-enable
-            "title",
-            "description",
-            "relation_info",
-            "email_delay",
-            "note"
         )
 
     def update(self, instance, validated_data):
@@ -294,7 +289,6 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
                 emailtemplate_instance = models.EmailTemplate.objects.create(**template_dict)
                 val["value"] = emailtemplate_instance.id
 
-
         dic = {
             "store": store,
             "title": instance.title,
@@ -310,6 +304,16 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
 
         clone_instance = models.EmailTrigger.objects.create(**dic)
         return clone_instance
+
+    def to_representation(self, instance):
+        data = super(EmailTriggerCloneSerializer, self).to_representation(instance)
+        data["title"] = instance.title
+        data["description"] = instance.description
+        data["relation_info"] = instance.relation_info
+        data["email_delay"] = instance.email_delay
+        data["note"] = instance.note
+        return data
+
 
 
 class SendMailSerializer(serializers.ModelSerializer):
