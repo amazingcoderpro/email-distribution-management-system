@@ -22,7 +22,7 @@ class TemplateProcessor:
         self.db_user = db_info.get("user", "")
         self.db_password = db_info.get("password", "")
         self.week_day = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6}
-        self.days = ["1st of the month", "15th of the month", "Last day of the month"]
+        self.days = ["1st of the month", "15th of the month", "Last day of the month", "Everyday"]
 
     def analyze_templates(self, template_id=None):
         """
@@ -54,6 +54,9 @@ class TemplateProcessor:
                 logger.info("analyze template, template id={}".format(template_id))
                 #{"begin_time": "2019-10-01 00:00:00", "end_time": "2019-10-02 00:00:00", "cron_type": "Monday", "cron_time": "18:40:00"}
                 send_rule = json.loads(send_rule)
+                if not send_rule:
+                    continue
+
                 execute_times = []
                 time_format = "%Y-%m-%d %H:%M:%S"
                 begin_time = datetime.datetime.strptime(send_rule["begin_time"], time_format)
@@ -81,6 +84,9 @@ class TemplateProcessor:
                         elif cron_type == self.days[2]:
                             if begin_time.month != (begin_time+datetime.timedelta(days=1)).month:
                                 execute_times.append(datetime.datetime.combine(begin_time.date(), cron_time))
+                        # 每一天
+                        elif cron_type == self.days[3]:
+                            execute_times.append(datetime.datetime.combine(begin_time.date(), cron_time))
                     else:
                         # 按周几发
                         if self.week_day.get(cron_type, "") == begin_time.weekday():

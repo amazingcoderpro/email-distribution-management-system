@@ -239,9 +239,81 @@ class EmailTriggerOptSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError("Trigger status must be in options [0, 1, 2]")
 
+        validated_data["draft"] = 0
         instance = super(EmailTriggerOptSerializer, self).update(instance, validated_data)
         models.EmailTask.objects.filter(email_trigger_id=instance.id, status__in=[0, 3]).update(status=task_status)
         return instance
+
+
+class EmailTriggerCloneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmailTrigger
+        fields = (
+            "id",
+            "status",     # 0--disable, 1-enable
+        )
+
+    def update(self, instance, validated_data):
+        store = models.Store.objects.filter(user=self.context["request"].user).first()
+        email_delay = json.loads(instance.email_delay)
+        for key, val in enumerate(email_delay):
+            if val["type"] == "Email":
+                email_template = models.EmailTemplate.objects.filter(id=val["value"]).values("id",
+                                                                                               "title",
+                                                                                               "description",
+                                                                                               "subject",
+                                                                                               "heading_text",
+                                                                                               "headline",
+                                                                                               "body_text",
+                                                                                               "customer_group_list",
+                                                                                               "html",
+                                                                                               "send_rule",
+                                                                                               "send_type",
+                                                                                               "product_condition"
+                                                                                             ).first()
+                template_dict = {
+                    "store": store,
+                    "title": email_template["title"],
+                    "description": email_template["description"],
+                    "subject": email_template["subject"],
+                    "heading_text": email_template["heading_text"],
+                    "body_text": email_template["body_text"],
+                    "headline": email_template["headline"],
+                    "html": email_template["html"],
+                    "customer_group_list": email_template["customer_group_list"],
+                    "send_rule": email_template["send_rule"],
+                    "send_type": email_template["send_type"],
+                    "product_condition": email_template["product_condition"],
+                    "enable": 0
+                }
+                emailtemplate_instance = models.EmailTemplate.objects.create(**template_dict)
+                val["value"] = emailtemplate_instance.id
+
+        dic = {
+            "store": store,
+            "title": instance.title,
+            "description": instance.description,
+            "relation_info": instance.relation_info,
+            "email_delay": email_delay,
+            "note": instance.note,
+            # "status": instance.status,
+            "status": 0,    #新克隆出来的模板，状态应该是0,默认是禁用状态
+            "is_open": instance.is_open,
+            "draft": 1
+        }
+
+        clone_instance = models.EmailTrigger.objects.create(**dic)
+        return clone_instance
+
+    def to_representation(self, instance):
+        data = super(EmailTriggerCloneSerializer, self).to_representation(instance)
+        data["title"] = instance.title
+        data["description"] = instance.description
+        data["relation_info"] = instance.relation_info
+        data["email_delay"] = instance.email_delay
+        data["note"] = instance.note
+        return data
+
 
 
 class SendMailSerializer(serializers.ModelSerializer):

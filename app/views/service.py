@@ -204,6 +204,22 @@ class EmailTriggerOptView(generics.UpdateAPIView):
     authentication_classes = (JSONWebTokenAuthentication,)
 
 
+class EmailTriggerCloneView(generics.UpdateAPIView):
+    """邮件 Trigger clone"""
+    queryset = models.EmailTrigger.objects.all()
+    serializer_class = service.EmailTriggerCloneSerializer
+    permission_classes = (IsAuthenticated, CustomerGroupOptPermission)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+
+class EmailTriggerEditView(generics.UpdateAPIView):
+    """邮件 Trigger clone"""
+    queryset = models.EmailTrigger.objects.all()
+    serializer_class = service.EmailTriggerSerializer
+    permission_classes = (IsAuthenticated, CustomerGroupOptPermission)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+
 class SendMailView(generics.CreateAPIView):
     """邮件模版增加，测试发送邮件"""
     # queryset = models.EmailTemplate.objects.all()

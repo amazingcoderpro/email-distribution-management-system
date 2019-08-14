@@ -11,6 +11,7 @@ from pytz import timezone
 from config import logger, MONGO_CONFIG, MYSQL_CONFIG, ENABLE_SUBSCRIBE
 from task.db_util import DBUtil, MongoDBUtil
 from sdk.ems import ems_api
+from task.product_recommendation import ProductRecommend
 
 
 class AnalyzeCondition:
@@ -816,17 +817,17 @@ class AnalyzeCondition:
             # after, in the past
             elif min_time:
                 cursor.execute(
-                    """select `email`, count from `subscriber_activity` where store_id=%s and type=%s 
+                    """select `email`, count(1) from `subscriber_activity` where store_id=%s and type=%s 
                     and `opt_time`>=%s group by `email`""", (store_id, opt_type, min_time))
             # before
             elif max_time:
                 cursor.execute(
-                    """select `email`, count from `subscriber_activity` where store_id=%s and type=%s 
+                    """select `email`, count(1) from `subscriber_activity` where store_id=%s and type=%s 
                     and `opt_time`<=%s group by `email`""", (store_id, opt_type, max_time))
             # over all time
             else:
                 cursor.execute(
-                    """select `email`, count from `subscriber_activity` where store_id=%s and type=%s 
+                    """select `email`, count(1) from `subscriber_activity` where store_id=%s and type=%s 
                     group by `email`""", (store_id, opt_type))
 
             res = cursor.fetchall()
@@ -994,7 +995,9 @@ class AnalyzeCondition:
                                            {"_id": 0, "id": 1, "last_order_id": 1})]
                 return customers
             elif relations[0]["relation"] == "is unpaid":
-                result_dict = self.unpaid_order_customers_mongo(store_name)
+                result_dict = self.unpaid_order_customers_mongo(store_name,
+                                                                min_time=(datetime.datetime.now()-datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S"),
+                                                                max_time=datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
                 return list(result_dict.keys())
         except Exception as e:
             logger.exception("adapt_last_order_status_mongo catch exception={}".format(e))
@@ -2023,7 +2026,7 @@ class AnalyzeCondition:
                 if item["type"] == "Email":  # 代表是邮件任务
                     template_id, unit = item["value"], item["unit"]
                     # 通过template_id去创建一个事务性邮件，并返回email_uuid
-                    subject, html = self.get_template_info_by_id(template_id)
+                    subject, html, product_condition = self.get_template_info_by_id(template_id)
                     email_uuid = self.create_trigger_email_by_template(store_id, template_id, subject, html, t_id)[0]
                     # 将触发邮件任务参数增加到待入库数据列表中
                     insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(new_customer_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now()))
@@ -2162,7 +2165,7 @@ class AnalyzeCondition:
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
                 return False
-            cursor.execute("select subject, html from email_template where id=%s", (template_id))
+            cursor.execute("select subject, html, product_condition from email_template where id=%s", (template_id))
             result = cursor.fetchone()
             logger.info("get template info by id success.")
         except Exception as e:
@@ -2171,7 +2174,7 @@ class AnalyzeCondition:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return result["subject"], result["html"]
+        return result["subject"], result["html"], result["product_condition"]
 
     def execute_flow_task(self):
         """
@@ -2185,8 +2188,9 @@ class AnalyzeCondition:
             if not cursor:
                 return False
             now_time = datetime.datetime.now()
-            cursor.execute("""select t.id as id,t.remark as remark,t.execute_time as execute_time,t.customer_list as customer_list,
-            t.uuid as uuid,f.store_id as store_id,f.note as note,f.create_time as create_time,f.customer_list_id as customer_list_id
+            cursor.execute("""select t.id as id,t.remark as remark,t.execute_time as execute_time,
+            t.customer_list as customer_list, t.uuid as uuid,f.store_id as store_id,f.note as note,
+            f.create_time as create_time,f.customer_list_id as customer_list_id, t.template_id as template_id
             from email_task as t join email_trigger as f on t.email_trigger_id=f.id 
             where t.type=1 and t.status=0 and t.uuid is not null and f.customer_list_id is not null and execute_time between %s and %s""",
                            (now_time-datetime.timedelta(seconds=70), now_time+datetime.timedelta(seconds=70)))
@@ -2225,7 +2229,14 @@ class AnalyzeCondition:
                 send_error_info = ""
                 status = 2
                 for customer in email_list:
-                    # 发送邮件前，有可能需要先更新一下html
+                    # 发送邮件前，有可能需要先更新一下html,获取html模板
+                    subject, html, product_condition = self.get_template_info_by_id(res["template_id"])
+                    if product_condition in ["Shopping cart goods",]:
+                        # 筛选产品，并更新邮件
+                        pr = ProductRecommend()
+                        customer_id = self.customer_email_to_uuid_mongo([customer], store_name)[0]
+                        new_html = pr.generate_new_html_with_product_block(pr.get_card_product_mongo(customer_id), html)
+                        ems.update_transactional_message(res["uuid"], subject, html=new_html)
                     rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
                     if rest["code"] != 1:
                         logger.warning("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
@@ -2286,7 +2297,7 @@ if __name__ == '__main__':
 
     ac = AnalyzeCondition(mysql_config=MYSQL_CONFIG, mongo_config=MONGO_CONFIG)
     # ac.adapt_placed_order()
-    ac.update_customer_group_list()
+    # ac.update_customer_group_list()
     # conditions = ac.get_conditions()
     # for cond in conditions:
     #     cus = ac.get_customers_by_condition(condition=json.loads(cond["relation_info"]), store_id=cond["store_id"])
@@ -2295,7 +2306,9 @@ if __name__ == '__main__':
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
     # print(ac.filter_received_customer(1, 346))
     # print(ac.parse_trigger_tasks())
-    # print(ac.execute_flow_task())
+    # print(ac.create_trigger_email_by_template(5, 186, "Update Html TEST", """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>jquery</title></head><body><div style="width:1200px;margin:0 auto;"><div class="showBox" style="overflow-wrap: break-word; text-align: center; font-size: 14px;"><div style="margin: 0px auto; width: 100%; border-bottom: 1px solid rgb(204, 204, 204); padding-bottom: 20px;"><div style="margin: 0px auto; width: 30%;"><h2>Subject Line</h2><div>UPDATE HTML CONTENT</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="margin: 0px auto; width: 70%; line-height: 20px; padding: 20px 0px;"><div style="padding: 10px 0px;">UPDATE HTML CONTENT</div><div style="padding: 10px 0px;">If you are having trouble viewing this email, please <a href="http://www.charrcter.com?utm_source=smartsend" target="_blank">click here</a> .</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="width: 30%; margin: 0px auto;"><img src="https://smartsend.seamarketings.com/media/5/0kvndz1fsiyeq9x.jpg" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 30px; border: 1px solid rgb(221, 221, 221); font-weight: 900; padding: 130px;">YOUR BANNER</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 28px; font-weight: 700;">UPDATE HTML CONTENT</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-family: &quot;Segoe UI Emoji&quot;; font-weight: 400; font-style: normal; font-size: 16px;">Dear {firstname}:
+    #      welcome to my shop {shop_name}</div></div><div style="width: calc(100% - 24px); padding: 20px 12px;"></div><div style="width: 100%; padding-bottom: 20px;"><a href="88888888" style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px; text-decoration: none;">Go to Shopping Cart</a></div><div style="width: 100%; padding-bottom: 20px;"><a href="http://www.charrcter.com?utm_source=smartsend" target="_blank"><div style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px;">Back to Shop &gt;&gt;&gt;</div></a></div><div style="width: 100%; padding-bottom: 20px;"><div>neal.zhang@orderplus.com</div></div><div style="width: 100%; padding-bottom: 20px;"><div>2019 charrcter. All rights reserved.</div></div><div style="width: 100%; padding-bottom: 20px;"><div>www.charrcter.com</div></div><div style="width: 100%; padding-bottom: 20px;"><a href="*[link_unsubscribe]*"><div style="display: inline-block; padding: 10px; color: rgb(204, 204, 204); font-size: 14px; border-radius: 10px; border: 1px solid rgb(204, 204, 204);">Unsubscribe</div></a></div></div></div></body></html>""", 146))
+    print(ac.execute_flow_task())
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))

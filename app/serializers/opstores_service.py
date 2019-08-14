@@ -3,6 +3,8 @@ from rest_framework import serializers
 
 from app import models
 
+import json
+
 
 class StoreSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=True, )
@@ -26,7 +28,6 @@ class StoreSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        print(validated_data)
         exit_store = models.Store.objects.filter(name=validated_data["name"]).first()
         if exit_store:
             return exit_store
@@ -50,30 +51,55 @@ class StoreSerializer(serializers.ModelSerializer):
             store_dict["init"] = 0
             instance = super(StoreSerializer, self).create(store_dict)
 
-            email_trigger = models.EmailTrigger.objects.filter(store_id=1).values("title", "description","relation_info","email_delay")
-            for item in email_trigger:
-                trigger_dict = {"store":instance, "title": item["title"], "description": item["description"],"relation_info": item["relation_info"], "email_delay" : item["email_delay"]}
-                models.EmailTrigger.objects.create(**trigger_dict)
-
-            email_template = models.EmailTemplate.objects.filter(store_id=1).values("title", "description","subject","heading_text","headline","body_text","customer_group_list","html","send_rule","send_type")
-            for item in email_template:
-                template_dict = {"store": instance, "title": item["title"], "description": item["description"]}
-                template_dict["subject"] = item["subject"]
-                template_dict["heading_text"] = item["heading_text"]
-                template_dict["body_text"] = item["body_text"]
-                template_dict["headline"] = item["headline"]
-                template_dict["headline"] = item["headline"]
-                template_dict["html"] = item["html"]
-                template_dict["customer_group_list"] = item["customer_group_list"]
-                template_dict["send_rule"] = item["send_rule"]
-                template_dict["send_type"] = item["send_type"]
-                models.EmailTemplate.objects.create(**template_dict)
-
-            customer_group = models.CustomerGroup.objects.filter(store_id=1).values("title","description","relation_info")
+            template_record = {}
+            customer_group = models.CustomerGroup.objects.filter(store_id=1,state__in=[0,1]).values("id","title","description","relation_info")
             for item in customer_group:
-                trigger_dict = {"store": instance, "title": item["title"], "description": item["description"],
-                                "relation_info": item["relation_info"], "state": 0}
-                models.CustomerGroup.objects.create(**trigger_dict)
+                trigger_dict = {
+                    "store": instance,
+                    "title": item["title"],
+                    "description": item["description"],
+                    "relation_info": item["relation_info"],
+                    "state": 0
+                }
+                customer_instance = models.CustomerGroup.objects.create(**trigger_dict)
+                template_record[item["id"]] = customer_instance.id
+
+            email_template = models.EmailTemplate.objects.filter(store_id=1,status__in=[0,1]).values("id", "title", "description", "subject",
+                                                                                    "heading_text", "headline",
+                                                                                    "body_text", "customer_group_list",
+                                                                                    "html", "send_rule", "send_type","product_condition")
+
+            email_template_record = {}
+            for item in email_template:
+                customer_group_list = eval(item["customer_group_list"])
+                for key, val in enumerate(customer_group_list):
+                    customer_group_list[key] = template_record[val]
+                template_dict = {
+                    "store": instance,
+                    "title": item["title"],
+                    "description": item["description"],
+                    "subject": item["subject"],
+                    "heading_text": item["heading_text"],
+                    "body_text": item["body_text"],
+                    "headline": item["headline"],
+                    "html": item["html"],
+                    "customer_group_list": customer_group_list,
+                    "send_rule": item["send_rule"],
+                    "send_type": item["send_type"],
+                    "product_condition": item["product_condition"]
+                }
+                emailtemplate_instance = models.EmailTemplate.objects.create(**template_dict)
+                email_template_record[item["id"]] = emailtemplate_instance.id
+
+            email_trigger = models.EmailTrigger.objects.filter(store_id=1,draft=0,status__in=[0,1]).values("title", "description","relation_info","email_delay","is_open")
+            for item in email_trigger:
+                email_delay = json.loads(item["email_delay"])
+                for key, val in enumerate(email_delay):
+                    if val["type"] == "Email":
+                        val["value"] = email_template_record[val["value"]]
+
+                trigger_dict = {"store":instance, "title": item["title"], "description": item["description"],"relation_info": item["relation_info"], "email_delay" : email_delay,"is_open":item["is_open"]}
+                models.EmailTrigger.objects.create(**trigger_dict)
 
         return instance
 
