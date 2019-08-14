@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Created by charles on 2019-07-19
-# Function: 
+# Function:
+import time
+
 import pymysql
 import datetime
 import json
@@ -2237,6 +2239,7 @@ class AnalyzeCondition:
                         customer_id = self.customer_email_to_uuid_mongo([customer], store_name)[0]
                         new_html = pr.generate_new_html_with_product_block(pr.get_card_product_mongo(customer_id), html)
                         ems.update_transactional_message(res["uuid"], subject, html=new_html)
+                        time.sleep(2)
                     rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
                     if rest["code"] != 1:
                         logger.warning("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
