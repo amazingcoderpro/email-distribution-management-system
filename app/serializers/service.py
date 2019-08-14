@@ -239,6 +239,7 @@ class EmailTriggerOptSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError("Trigger status must be in options [0, 1, 2]")
 
+        validated_data["draft"] = 0
         instance = super(EmailTriggerOptSerializer, self).update(instance, validated_data)
         models.EmailTask.objects.filter(email_trigger_id=instance.id, status__in=[0, 3]).update(status=task_status)
         return instance
@@ -250,6 +251,11 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "status",     # 0--disable, 1-enable
+            "title",
+            "description",
+            "relation_info",
+            "email_delay",
+            "note"
         )
 
     def update(self, instance, validated_data):
@@ -282,7 +288,8 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
                     "customer_group_list": email_template["customer_group_list"],
                     "send_rule": email_template["send_rule"],
                     "send_type": email_template["send_type"],
-                    "product_condition": email_template["product_condition"]
+                    "product_condition": email_template["product_condition"],
+                    "enable": 0
                 }
                 emailtemplate_instance = models.EmailTemplate.objects.create(**template_dict)
                 val["value"] = emailtemplate_instance.id
@@ -295,15 +302,14 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
             "relation_info": instance.relation_info,
             "email_delay": email_delay,
             "note": instance.note,
-            "status": instance.status,
+            # "status": instance.status,
+            "status": 0,    #新克隆出来的模板，状态应该是0,默认是禁用状态
             "is_open": instance.is_open,
-            "draft":1
+            "draft": 1
         }
 
         clone_instance = models.EmailTrigger.objects.create(**dic)
         return clone_instance
-
-
 
 
 class SendMailSerializer(serializers.ModelSerializer):
