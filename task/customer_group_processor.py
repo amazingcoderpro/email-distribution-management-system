@@ -205,7 +205,7 @@ class AnalyzeCondition:
                 # 查询未支付的customer_uuid
                 unpaid_res = self.unpaid_order_customers_mongo(store_name, min_time, max_time)
                 for uuid, count_list in unpaid_res.items():
-                    just_str = "{} {} {}".format(len(count_list), relation_dict.get(relation), value)
+                    just_str = "{} {} {}".format(len(set(count_list)), relation_dict.get(relation), value)
                     if eval(just_str):
                         customers.append(uuid)
             if status == 1 or status == 2:  # 状态为1或者2的时候需要筛选的用户
