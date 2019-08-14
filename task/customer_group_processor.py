@@ -936,6 +936,8 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
+
+
     def unpaid_order_customers_mongo(self, store_name, min_time=None, max_time=None):
         """
         获取未支付的customers
