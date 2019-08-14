@@ -989,11 +989,11 @@ class AnalyzeCondition:
             mdb = MongoDBUtil(mongo_config=self.mongo_config)
             db = mdb.get_instance()
             # 从customer表中查找对应的uuid
-            customer = db["shopify_customer"]
+            # customer = db["shopify_customer"]
             if relations[0]["relation"] == "is paid":  # 最后一笔订单已支付
-                customers = [item["id"] for item in customer.find({"last_order_id": {"$ne": None}, "site_name": store_name},
-                                           {"_id": 0, "id": 1, "last_order_id": 1})]
-                return customers
+                customers = [item["customer"]["id"] for item in db.shopify_order.find({"fulfillment_status": "fulfilled", "site_name": store_name},
+                                           {"_id": 0, "id": 1, "customer.id": 1})]
+                return list(set(customers))
             elif relations[0]["relation"] == "is unpaid":
                 result_dict = self.unpaid_order_customers_mongo(store_name,
                                                                 min_time=(datetime.datetime.now()-datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S"),
