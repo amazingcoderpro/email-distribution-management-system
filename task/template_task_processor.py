@@ -42,7 +42,8 @@ class TemplateProcessor:
                 cursor.execute("""select id, send_rule from `email_template` where status=0 and id=%s""", (template_id, ))
             else:
                 # 找到所有状态是待解析，已启用且类型为模板邮件的模板
-                cursor.execute("""select id, send_rule from `email_template` where status=0 and send_type=0 and enable=1""")
+                # 剔除admin店铺
+                cursor.execute("""select id, send_rule from `email_template` where status=0 and send_type=0 and enable=1 and store_id>1""")
 
             data = cursor.fetchall()
             if not data:

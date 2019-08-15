@@ -651,7 +651,7 @@ class AnalyzeCondition:
             else:
                 filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
             order_customers = [item["customer"]["id"] for item in db.shopify_order.find({"site_name": store_name, "updated_at": filter_dict}, {"_id": 0, "id": 1, "customer.id": 1})]
-            unpaid_customers = [item["customer"]["id"] for item in db.shopify_unpaid_order.find({"site_name": store_name, "updated_at": filter_dict}, {"_id": 0, "id": 1, "customer.id": 1})]
+            unpaid_customers = [item["customer"]["id"] for item in db.shopify_unpaid_order.find({"site_name": store_name, "updated_at": filter_dict, "customer": {"$exists": True}}, {"_id": 0, "id": 1, "customer.id": 1})]
             customers = list(set(order_customers + unpaid_customers))
             return customers
         except Exception as e:
@@ -1315,7 +1315,7 @@ class AnalyzeCondition:
         :return:
         """
         status = False
-        if relations[0]["relation"] == "is true":
+        if 'true' in relations[0]["relation"]:
             status = True
         customer_list = []
         try:
@@ -1694,8 +1694,9 @@ class AnalyzeCondition:
                     (condition_id, ))
             else:
                 # 未删除的才取出来
+                # 剔除amdin
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info` from `customer_group` where id>=0 and state!=2""")
+                    """select `store_id`, `id`, `title`, `relation_info` from `customer_group` where id>=1 and state!=2""")
 
             res = cursor.fetchall()
             if res:
@@ -2102,8 +2103,9 @@ class AnalyzeCondition:
                     (condition_id,))
             else:
                 # 未删除的才取出来
+                # 把admin剔除
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where status=1""")
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where status=1 and store_id!=1""")
 
             res = cursor.fetchall()
             if res:
@@ -2316,7 +2318,7 @@ class AnalyzeCondition:
             return False
         logger.info("email_trigger table update success.")
         # 2、拆解的任务入库email_task
-        if self.insert_email_task_from_trigger(insert_list):
+        if not self.insert_email_task_from_trigger(insert_list):
             return False
         logger.info("email_trigger table update success.")
         return True
@@ -2579,10 +2581,10 @@ if __name__ == '__main__':
     # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
     # print(ac.filter_received_customer(1, 346))
-    # print(ac.parse_trigger_tasks())
+    print(ac.parse_trigger_tasks())
     # print(ac.create_trigger_email_by_template(5, 186, "Update Html TEST", """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>jquery</title></head><body><div style="width:1200px;margin:0 auto;"><div class="showBox" style="overflow-wrap: break-word; text-align: center; font-size: 14px;"><div style="margin: 0px auto; width: 100%; border-bottom: 1px solid rgb(204, 204, 204); padding-bottom: 20px;"><div style="margin: 0px auto; width: 30%;"><h2>Subject Line</h2><div>UPDATE HTML CONTENT</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="margin: 0px auto; width: 70%; line-height: 20px; padding: 20px 0px;"><div style="padding: 10px 0px;">UPDATE HTML CONTENT</div><div style="padding: 10px 0px;">If you are having trouble viewing this email, please <a href="http://www.charrcter.com?utm_source=smartsend" target="_blank">click here</a> .</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="width: 30%; margin: 0px auto;"><img src="https://smartsend.seamarketings.com/media/5/0kvndz1fsiyeq9x.jpg" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 30px; border: 1px solid rgb(221, 221, 221); font-weight: 900; padding: 130px;">YOUR BANNER</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 28px; font-weight: 700;">UPDATE HTML CONTENT</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-family: &quot;Segoe UI Emoji&quot;; font-weight: 400; font-style: normal; font-size: 16px;">Dear {firstname}:
     #      welcome to my shop {shop_name}</div></div><div style="width: calc(100% - 24px); padding: 20px 12px;"></div><div style="width: 100%; padding-bottom: 20px;"><a href="88888888" style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px; text-decoration: none;">Go to Shopping Cart</a></div><div style="width: 100%; padding-bottom: 20px;"><a href="http://www.charrcter.com?utm_source=smartsend" target="_blank"><div style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px;">Back to Shop &gt;&gt;&gt;</div></a></div><div style="width: 100%; padding-bottom: 20px;"><div>neal.zhang@orderplus.com</div></div><div style="width: 100%; padding-bottom: 20px;"><div>2019 charrcter. All rights reserved.</div></div><div style="width: 100%; padding-bottom: 20px;"><div>www.charrcter.com</div></div><div style="width: 100%; padding-bottom: 20px;"><a href="*[link_unsubscribe]*"><div style="display: inline-block; padding: 10px; color: rgb(204, 204, 204); font-size: 14px; border-radius: 10px; border: 1px solid rgb(204, 204, 204);">Unsubscribe</div></a></div></div></div></body></html>""", 146))
-    print(ac.execute_flow_task())
+    # print(ac.execute_flow_task())
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
