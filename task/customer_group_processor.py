@@ -1315,7 +1315,7 @@ class AnalyzeCondition:
         :return:
         """
         status = False
-        if relations[0]["relation"] == "is true":
+        if 'true' in relations[0]["relation"]:
             status = True
         customer_list = []
         try:
@@ -1694,8 +1694,9 @@ class AnalyzeCondition:
                     (condition_id, ))
             else:
                 # 未删除的才取出来
+                # 剔除amdin
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info` from `customer_group` where id>=0 and state!=2""")
+                    """select `store_id`, `id`, `title`, `relation_info` from `customer_group` where id>=1 and state!=2""")
 
             res = cursor.fetchall()
             if res:
@@ -2102,8 +2103,9 @@ class AnalyzeCondition:
                     (condition_id,))
             else:
                 # 未删除的才取出来
+                # 把admin剔除
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where status=1""")
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where status=1 and store_id!=1""")
 
             res = cursor.fetchall()
             if res:
