@@ -69,6 +69,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
                   "revenue",
                   "create_time",
                   "update_time",
+                  "is_cart"
         )
 
     def create(self, validated_data):
