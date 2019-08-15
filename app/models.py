@@ -119,6 +119,8 @@ class EmailTemplate(models.Model):
     status = models.SmallIntegerField(db_index=True, choices=status_choices, default=0, verbose_name="状态")
     # source_choices = ((0, 'opstores'), (1, 'smartsend'), (2, 'all'))
     # source = models.SmallIntegerField(db_index=True, choices=source_choices, default=1, verbose_name="平台模板")
+    cart_choices = ((0, '不显示'), (1, '显示'))
+    is_cart = models.SmallIntegerField(db_index=True, choices=cart_choices, default=0, verbose_name="是否显示购物车产品")
     enable_choice = ((0, '禁用'), (1, '启用'))
     enable = models.SmallIntegerField(default=0,choices=enable_choice, verbose_name="是否启用")
     send_type_choices = ((0, '定时邮件'), (1, '触发邮件'), (3, '测试邮件'))

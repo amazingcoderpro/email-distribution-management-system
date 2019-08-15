@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Created by charles on 2019-07-19
-# Function: 
+# Function:
+import time
+
 import pymysql
 import datetime
 import json
@@ -123,6 +125,104 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
+    def paid_order_filter(self, store_id, min_time=None, max_time=None):
+        """
+        从MYSQL数据库中筛选出某一店铺中所有有过支付订单的客户id
+        :param store_id:
+        :param min_time:
+        :param max_time:
+        :return:
+        """
+        customers = []
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return customers
+
+            if min_time and max_time:
+                cursor.execute(
+                    "select customer_uuid from order_event where store_id=%s and status=1 and order_update_time>=%s and order_update_time<=%s",
+                    (store_id, min_time, max_time))
+            elif min_time:
+                cursor.execute(
+                    "select customer_uuid from order_event where store_id=%s and status=1 and order_update_time>=%s",
+                    (store_id, min_time))
+            elif max_time:
+                cursor.execute(
+                    "select customer_uuid from order_event where store_id=%s and status=1 and order_update_time<=%s",
+                    (store_id, max_time))
+            else:
+                cursor.execute(
+                    "select customer_uuid from order_event where store_id=%s and status=1",
+                    (store_id,))
+
+            res = cursor.fetchall()
+            for r in res:
+                customers.append(r[0])
+            return customers
+        except Exception as e:
+            logger.exception("paid_order_filter e={}".format(e))
+            return customers
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
+    def unpaid_order_filter(self, store_id, min_time=None, max_time=None):
+        """
+        从MYSQL数据库中筛选出某一店铺中所有有未支付订单的客户id
+        :param store_id:
+        :param min_time:
+        :param max_time:
+        :return:
+        """
+        customers = []
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return customers
+
+            if min_time and max_time:
+                cursor.execute(
+                    "select customer_uuid, checkout_id from checkout_event where store_id=%s and checkout_update_time>=%s and checkout_update_time<=%s",
+                    (store_id, min_time, max_time))
+            elif min_time:
+                cursor.execute(
+                    "select customer_uuid, checkout_id from checkout_event where store_id=%s and checkout_update_time>=%s",
+                    (store_id, min_time))
+            elif max_time:
+                cursor.execute(
+                    "select customer_uuid, checkout_id from checkout_event where store_id=%s and checkout_update_time<=%s",
+                    (store_id, max_time))
+            else:
+                cursor.execute(
+                    "select customer_uuid, checkout_id from checkout_event where store_id=%s",
+                    (store_id, ))
+
+            res = cursor.fetchall()
+            checkout_ids = []
+            for r in res:
+                customers.append(r[0])
+                checkout_ids.append(r[1])
+
+            # 再排除掉那些已经付款的checkout
+            if customers:
+                cursor.execute("select customer_uuid from order_event where store_id=%s and status=1 and checkout_id in %s", (store_id, checkout_ids))
+                paid_customers = cursor.fetchall()
+                for pc in paid_customers:
+                    if pc[0] in customers:
+                        customers.remove(pc[0])
+
+            return customers
+        except Exception as e:
+            logger.exception("unpaid_order_filter e={}".format(e))
+            return customers
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
     def order_filter(self, store_id, status, relation, value, min_time=None, max_time=None):
         """
         筛选满足订单条件的客户id
@@ -140,42 +240,160 @@ class AnalyzeCondition:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return customers
-            # 判断需要查询的状态
-            if status == 2:
-                status = (0, 1)
-            else:
-                status = (status, )
-            # between date
-            if min_time and max_time:
-                cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
-                    and `order_update_time`>=%s and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, min_time, max_time))
 
-            # after, in the past
-            elif min_time:
-                cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
-                    and `order_update_time`>=%s group by `customer_uuid`""", (store_id, status, min_time))
+            unpaid_customers = {}
+            paid_customers = {}
+            if status == 1 or status == 2:
+                # between date
+                if min_time and max_time:
+                    cursor.execute(
+                        """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status=1 and `order_update_time`>=%s and `order_update_time`<=%s group by `customer_uuid`""", (store_id, min_time, max_time))
 
-            # before
-            elif max_time:
-                cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
-                    and `order_update_time`<=%s group by `customer_uuid`""", (store_id, status, max_time))
+                # after, in the past
+                elif min_time:
+                    cursor.execute(
+                        """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status=1 and `order_update_time`>=%s group by `customer_uuid`""", (store_id, min_time))
 
-            # over all time
-            else:
-                cursor.execute(
-                    """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status in %s
-                    group by `customer_uuid`""", (store_id, status))
+                # before
+                elif max_time:
+                    cursor.execute(
+                        """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status=1 and `order_update_time`<=%s group by `customer_uuid`""", (store_id, max_time))
 
-            res = cursor.fetchall()
+                # over all time
+                else:
+                    cursor.execute(
+                        """select `customer_uuid`, count(1) from `order_event` where store_id=%s and status=1 group by `customer_uuid`""", (store_id, ))
+
+                res = cursor.fetchall()
+                for uuid, count in res:
+                    paid_customers[uuid] = count
+
+            if status == 0 or status == 2:
+                # between date
+                if min_time and max_time:
+                    cursor.execute(
+                        """select `customer_uuid`, count(1) from `checkout_event` where store_id=%s and `checkout_update_time`>=%s and `checkout_update_time`<=%s group by `customer_uuid`""", (store_id, min_time, max_time))
+
+                    checkouts = cursor.fetchall()
+
+                    for c in checkouts:
+                        customer_uuid = c[0]
+                        count = c[1]
+                        if count>0:
+                            cursor.execute("select checkout_id from checkout_event where store_id=%s and customer_uuid=%s and `checkout_update_time`>=%s and `checkout_update_time`<=%s", (store_id, customer_uuid, min_time, max_time))
+                            checkout_ids = cursor.fetchall()
+                            if checkout_ids:
+                                paid_orders = cursor.execute("select checkout_id from order_event where store_id=%s and status=1 and checkout_id in %s and `order_update_time`>=%s and `order_update_time`<=%s", (store_id, checkout_ids, min_time, max_time))
+                                for pd in paid_orders:
+                                    count -= 1
+                            else:
+                                count = 0
+
+                    count = 0 if count < 0 else count
+                    unpaid_customers[customer_uuid] = count
+
+                # after, in the past
+                elif min_time:
+                    cursor.execute(
+                        """select `customer_uuid`, count(1) from `checkout_event` where store_id=%s and `checkout_update_time`>=%s group by `customer_uuid`""", (store_id, min_time))
+
+                    checkouts = cursor.fetchall()
+                    for c in checkouts:
+                        customer_uuid = c[0]
+                        count = c[1]
+                        if count > 0:
+                            cursor.execute(
+                                "select checkout_id from checkout_event where store_id=%s and customer_uuid=%s and `checkout_update_time`>=%s",
+                                (store_id, customer_uuid, min_time))
+                            checkout_ids = cursor.fetchall()
+                            if checkout_ids:
+                                paid_orders = cursor.execute(
+                                    "select checkout_id from order_event where store_id=%s and status=1 and checkout_id in %s and `order_update_time`>=%s",
+                                    (store_id, checkout_ids, min_time))
+                                for pd in paid_orders:
+                                    count -= 1
+                            else:
+                                count = 0
+
+                    count = 0 if count < 0 else count
+                    unpaid_customers[customer_uuid] = count
+
+                    # before
+                elif max_time:
+                    cursor.execute(
+                        """select `customer_uuid`, count(1) from `checkout_event` where store_id=%s and `checkout_update_time`<=%s group by `customer_uuid`""", (store_id, max_time))
+
+                    checkouts = cursor.fetchall()
+                    for c in checkouts:
+                        customer_uuid = c[0]
+                        count = c[1]
+                        if count > 0:
+                            cursor.execute(
+                                "select checkout_id from checkout_event where store_id=%s and customer_uuid=%s and `checkout_update_time`<=%s",
+                                (store_id, customer_uuid, max_time))
+                            checkout_ids = cursor.fetchall()
+                            if checkout_ids:
+                                paid_orders = cursor.execute(
+                                    "select checkout_id from order_event where store_id=%s and status=1 and checkout_id in %s and `order_update_time`<=%s",
+                                    (store_id, checkout_ids, max_time))
+                                for pd in paid_orders:
+                                    count -= 1
+                            else:
+                                count = 0
+
+                    count = 0 if count < 0 else count
+                    unpaid_customers[customer_uuid] = count
+
+                    # over all time
+                else:
+                    cursor.execute(
+                        """select `customer_uuid`, count(1) from `checkout_event` where store_id=%s group by `customer_uuid`""", (store_id, ))
+                    checkouts = cursor.fetchall()
+                    for c in checkouts:
+                        customer_uuid = c[0]
+                        count = c[1]
+                        if count > 0:
+                            cursor.execute(
+                                "select checkout_id from checkout_event where store_id=%s and customer_uuid=%s",
+                                (store_id, customer_uuid))
+                            checkout_ids = cursor.fetchall()
+                            if checkout_ids:
+                                paid_orders = cursor.execute(
+                                    "select checkout_id from order_event where store_id=%s and status=1 and checkout_id in %s",
+                                    (store_id, checkout_ids))
+                                for pd in paid_orders:
+                                    count -= 1
+                            else:
+                                count = 0
+
+                    count = 0 if count < 0 else count
+                    unpaid_customers[customer_uuid] = count
+
             relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
+            if status == 1:
+                for uuid, count in paid_customers.items():
+                    just_str = "{} {} {}".format(count, relation_dict.get(relation), value)
+                    if eval(just_str):
+                        customers.append(uuid)
+            if status == 0:
+                for uuid, count in unpaid_customers.items():
+                    just_str = "{} {} {}".format(count, relation_dict.get(relation), value)
+                    if eval(just_str):
+                        customers.append(uuid)
 
-            for uuid, count in res:
-                just_str = "{} {} {}".format(count, relation_dict.get(relation), value)
-                if eval(just_str):
-                    customers.append(uuid)
+            if status == 2:
+                for uuid, count in paid_customers.items():
+                    if uuid in unpaid_customers.keys():
+                        paid_customers[uuid] += unpaid_customers[uuid]
+                    else:
+                        unpaid_customers.pop(uuid)
+
+                paid_customers.update(unpaid_customers)
+
+                for uuid, count in paid_customers.items():
+                    just_str = "{} {} {}".format(count, relation_dict.get(relation), value)
+                    if eval(just_str):
+                        customers.append(uuid)
             return customers
         except Exception as e:
             logger.exception("order_filter e={}".format(e))
@@ -205,7 +423,7 @@ class AnalyzeCondition:
                 # 查询未支付的customer_uuid
                 unpaid_res = self.unpaid_order_customers_mongo(store_name, min_time, max_time)
                 for uuid, count_list in unpaid_res.items():
-                    just_str = "{} {} {}".format(len(count_list), relation_dict.get(relation), value)
+                    just_str = "{} {} {}".format(len(set(count_list)), relation_dict.get(relation), value)
                     if eval(just_str):
                         customers.append(uuid)
             if status == 1 or status == 2:  # 状态为1或者2的时候需要筛选的用户
@@ -314,7 +532,7 @@ class AnalyzeCondition:
 
     def adapt_last_order_created_time(self, store_id, relations):
         """
-        适配出所有上次订单时间符合条件的客户id
+        适配出所有上次订单时间符合条件的客户id(这里的订单包括已支付的（order_event)和未支付的(checkout_event))
         :param store_id: 店铺id
         :param relations: 筛选条件　
         :return: 客户ids
@@ -331,24 +549,76 @@ class AnalyzeCondition:
             # between date
             if min_time and max_time:
                 cursor.execute(
-                    """select `uuid` from `customer` where store_id=%s and `last_order_time`>=%s and `last_order_time`<=%s""",
+                    """select `customer_uuid` from `order_event` where store_id=%s and `order_update_time`>=%s and `order_update_time`<=%s""",
                     (store_id, min_time, max_time))
+
+                res = cursor.fetchall()
+                for uuid in res:
+                    customers.append(uuid[0])
+
+                cursor.execute(
+                    """select `customer_uuid` from `checkout_event` where store_id=%s and `checkout_update_time`>=%s and `checkout_update_time`<=%s""",
+                    (store_id, min_time, max_time))
+
+                res = cursor.fetchall()
+                for uuid in res:
+                    customers.append(uuid[0])
+
             # after, in the past
             elif min_time:
                 cursor.execute(
-                    """select `uuid` from `customer` where store_id=%s and `last_order_time`>=%s""", (store_id, min_time))
+                    """select `customer_uuid` from `order_event` where store_id=%s and `order_update_time`>=%s""",
+                    (store_id, min_time))
+
+                res = cursor.fetchall()
+                for uuid in res:
+                    customers.append(uuid[0])
+
+                cursor.execute(
+                    """select `customer_uuid` from `checkout_event` where store_id=%s and `checkout_update_time`>=%s""",
+                    (store_id, min_time))
+
+                res = cursor.fetchall()
+                for uuid in res:
+                    customers.append(uuid[0])
             # before
             elif max_time:
-                cursor.execute("""select `uuid` from `customer` where store_id=%s and `last_order_time`<=%s""",
-                               (store_id, max_time))
+                cursor.execute(
+                    """select `customer_uuid` from `order_event` where store_id=%s and `order_update_time`<=%s""",
+                    (store_id, max_time))
+
+                res = cursor.fetchall()
+                for uuid in res:
+                    customers.append(uuid[0])
+
+                cursor.execute(
+                    """select `customer_uuid` from `checkout_event` where store_id=%s and `checkout_update_time`<=%s""",
+                    (store_id, max_time))
+
+                res = cursor.fetchall()
+                for uuid in res:
+                    customers.append(uuid[0])
+
             # over all time
             else:
-                cursor.execute("""select `uuid` from `customer` where store_id=%s""", (store_id, ))
+                cursor.execute(
+                    """select `customer_uuid` from `order_event` where store_id=%s""",
+                    (store_id,))
 
-            res = cursor.fetchall()
-            for uuid in res:
-                customers.append(uuid[0])
-            return customers
+                res = cursor.fetchall()
+                for uuid in res:
+                    customers.append(uuid[0])
+
+                cursor.execute(
+                    """select `customer_uuid` from `checkout_event` where store_id=%s""",
+                    (store_id,))
+
+                res = cursor.fetchall()
+                for uuid in res:
+                    customers.append(uuid[0])
+
+            # 去重后返回
+            return list(set(customers))
         except Exception as e:
             logger.exception("adapt_last_order_created_time e={}".format(e))
             return customers
@@ -2237,6 +2507,7 @@ class AnalyzeCondition:
                         customer_id = self.customer_email_to_uuid_mongo([customer], store_name)[0]
                         new_html = pr.generate_new_html_with_product_block(pr.get_card_product_mongo(customer_id), html)
                         ems.update_transactional_message(res["uuid"], subject, html=new_html)
+                        time.sleep(2)
                     rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
                     if rest["code"] != 1:
                         logger.warning("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
