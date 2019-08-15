@@ -25,7 +25,7 @@ class ExpertSender:
             return {}
         xmlparse = xmltodict.parse(xmlstr)
         jsonstr = json.dumps(xmlparse, indent=1)
-        return json.loads(jsonstr)["ApiResponse"].get(type)
+        return json.loads(jsonstr).get("ApiResponse", {}).get(type)
 
     @staticmethod
     def jsontoxml(jsonstr):
@@ -400,7 +400,7 @@ class ExpertSender:
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
 
-    def send_transactional_messages(self, email_id, to_email, list_id):
+    def send_transactional_messages(self, email_id, to_email, list_id, snippets=None):
         """
         发送事务性邮件 http://sms.expertsender.cn/api/v2/methods/email-messages/send-transactional-messages/
         :param email_id: 事务邮件ID
@@ -413,9 +413,18 @@ class ExpertSender:
             "Data": {
                 "Receiver": {"Email": to_email,"ListId": list_id}}
             }}
+        cart_products = ""
+        if snippets and isinstance(snippets, list):
+            data["ApiRequest"]["Data"]["Snippets"] = {"Snippet": []}
+            for snippet in snippets:
+                if snippet["name"] == "cart_products":
+                    cart_products = snippet["value"]
+                    snippet["value"] = "%s"
+                data["ApiRequest"]["Data"]["Snippets"]["Snippet"].append({"Name": snippet["name"], "Value": snippet["value"]})
         try:
             data = self.jsontoxml(data)
-            result = requests.post(url, data, headers=self.headers)
+            data = data % ("<![CDATA[%s]]>" % cart_products) if "%s" in data else data
+            result = requests.post(url, data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("send transactional messages", result)
         except Exception as e:
             return {"code": -1, "msg": str(e), "data": ""}
@@ -632,10 +641,11 @@ if __name__ == '__main__':
     # print(ems.get_export_progress(11))  # 11
     # print(ems.clear_subscriber(25, ""))  # 11
     # print(ems.add_subscriber(86, ["leemon.li@orderplus.com"]))
-    # print(ems.create_transactional_message("transactional message test1", html="<a href='*[link_unsubscribe]*'>Unsubscribe</a>"))  # 350
-    # print(ems.send_transactional_messages(400, "leemon.li@orderplus.com", 25))  # 350
-    # print(ems.update_transactional_message(350, "Aliase", "limengqiAliase@163.com", "transactional message test 11", html=html_b))  # 350
+    # print(ems.create_transactional_message("snippet transactiona message test1", html="<a href='www.baidu.com'>*[tr_snippetname]*</a>"))  # 462
+    # print(ems.send_transactional_messages(462, "leemon.li@orderplus.com", 25, [{"name": "href", "value": "https://www.baidu.com"}, {"name": "linkname", "value": "<p style='color:red'>百度百度</p>"}]))  # 350
+    # print(ems.send_transactional_messages(461, "leemon.li@orderplus.com", 25, [{"name": "ShopName", "value": "aaaaa"},{"name": "Firstname", "value": "bbbbb"},{"name": "CartProducts", "value": "<tr></tr>"},{"name": "AbandonedCheckoutUrl", "value": "dddddd"}]))  # 350
+    print(ems.update_transactional_message(461, "update template test 10", html="""Dear *[tr_firstname]* <a href="*[tr_abandoned_checkout_url]*">welcome to *[tr_shop_name]*</a>product--- *[tr_cart_products]*"""))  # 350
     # print(ems.delete_message(349))
-    print(ems.get_opt_out_link_subscribers())
+    # print(ems.get_opt_out_link_subscribers())
     # print(ems.get_snoozed_subscribers(86))
 

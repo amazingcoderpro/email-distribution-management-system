@@ -2298,7 +2298,7 @@ class AnalyzeCondition:
                 if item["type"] == "Email":  # 代表是邮件任务
                     template_id, unit = item["value"], item["unit"]
                     # 通过template_id去创建一个事务性邮件，并返回email_uuid
-                    subject, html, product_condition = self.get_template_info_by_id(template_id)
+                    subject, html, product_condition, is_cart = self.get_template_info_by_id(template_id)
                     email_uuid = self.create_trigger_email_by_template(store_id, template_id, subject, html, t_id)[0]
                     # 将触发邮件任务参数增加到待入库数据列表中
                     insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(new_customer_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now()))
@@ -2437,7 +2437,7 @@ class AnalyzeCondition:
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
                 return False
-            cursor.execute("select subject, html, product_condition from email_template where id=%s", (template_id))
+            cursor.execute("select subject, html, product_condition, is_cart from email_template where id=%s", (template_id))
             result = cursor.fetchone()
             logger.info("get template info by id success.")
         except Exception as e:
@@ -2446,7 +2446,7 @@ class AnalyzeCondition:
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return result["subject"], result["html"], result["product_condition"]
+        return result["subject"], result["html"], result["product_condition"], result["is_cart"]
 
     def execute_flow_task(self):
         """
@@ -2502,15 +2502,18 @@ class AnalyzeCondition:
                 status = 2
                 for customer in email_list:
                     # 发送邮件前，有可能需要先更新一下html,获取html模板
-                    subject, html, product_condition = self.get_template_info_by_id(res["template_id"])
-                    if product_condition in ["Shopping cart goods",]:
+                    subject, html, product_condition, is_cart = self.get_template_info_by_id(res["template_id"])
+                    # if product_condition in ["Shopping cart goods",]:
+                    if int(is_cart) == 1:
                         # 筛选产品，并更新邮件
                         pr = ProductRecommend()
-                        customer_id = self.customer_email_to_uuid_mongo([customer], store_name)[0]
-                        new_html = pr.generate_new_html_with_product_block(pr.get_card_product_mongo(customer_id), html)
-                        ems.update_transactional_message(res["uuid"], subject, html=new_html)
-                        time.sleep(2)
-                    rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
+                        # customer_id = self.customer_email_to_uuid_mongo([customer], store_name)[0]
+                        snippets_list = pr.generate_snippets(pr.get_card_product_mongo(customer, store_name))
+                        # ems.update_transactional_message(res["uuid"], subject, html=new_html)
+                        rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"], snippets=snippets_list)
+
+                    else:
+                        rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
                     if rest["code"] != 1:
                         logger.warning("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
                         msg = rest["msg"]["Message"] if isinstance(rest["msg"], dict) else str(rest["msg"])
