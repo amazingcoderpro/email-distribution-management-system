@@ -295,7 +295,7 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
             "title": instance.title,
             "description": instance.description,
             "relation_info": instance.relation_info,
-            "email_delay": email_delay,
+            "email_delay": instance.email_delay,
             "note": instance.note,
             # "status": instance.status,
             "status": 0,    #新克隆出来的模板，状态应该是0,默认是禁用状态

@@ -101,7 +101,7 @@ class StoreSerializer(serializers.ModelSerializer):
                     if val["type"] == "Email":
                         val["value"] = email_template_record[val["value"]]
 
-                trigger_dict = {"store":instance, "title": item["title"], "description": item["description"],"relation_info": item["relation_info"], "email_delay" : email_delay,"is_open":item["is_open"]}
+                trigger_dict = {"store":instance, "title": item["title"], "description": item["description"], "relation_info": item["relation_info"], "email_delay": item["email_delay"], "is_open": item["is_open"]}
                 models.EmailTrigger.objects.create(**trigger_dict)
 
         return instance
