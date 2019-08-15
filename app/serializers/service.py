@@ -271,7 +271,11 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
                                                                                                "html",
                                                                                                "send_rule",
                                                                                                "send_type",
-                                                                                               "product_condition"
+                                                                                               "product_condition",
+                                                                                                "enable",
+                                                                                             "logo",
+                                                                                             "banner",
+                                                                                             "is_cart"
                                                                                              ).first()
                 template_dict = {
                     "store": store,
@@ -286,7 +290,10 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
                     "send_rule": email_template["send_rule"],
                     "send_type": email_template["send_type"],
                     "product_condition": email_template["product_condition"],
-                    "enable": 0
+                    "enable": email_template["enable"],
+                    "logo": email_template["logo"],
+                    "banner": email_template["banner"],
+                    "is_cart": email_template["is_cart"]
                 }
                 emailtemplate_instance = models.EmailTemplate.objects.create(**template_dict)
                 val["value"] = emailtemplate_instance.id
@@ -298,8 +305,8 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
             "relation_info": instance.relation_info,
             "email_delay": json.dumps(email_delay),
             "note": instance.note,
-            # "status": instance.status,
-            "status": 0,    #新克隆出来的模板，状态应该是0,默认是禁用状态
+            "status": instance.status,
+            # "status": 0,    #新克隆出来的模板，状态应该是0,默认是禁用状态
             "is_open": instance.is_open,
             "draft": 1
         }
