@@ -198,7 +198,11 @@ class EmailTrigger(models.Model):
 
 
 class EmailTask(models.Model):
-    template = models.ForeignKey(EmailTemplate, blank=True, null=True, on_delete=models.DO_NOTHING)
+    if True:
+        template_id = models.IntegerField(db_index=True, null=True, blank=True, default=None, verbose_name="email_template_id")
+    else:
+        template = models.ForeignKey(EmailTrigger, blank=True, null=True, on_delete=models.DO_NOTHING)
+
     uuid = models.CharField(db_index=True, max_length=255, blank=True, null=True, verbose_name="事务邮件ID")
     status_choices = ((0, '待发送'), (1, '已发送(成功)'),(2, '已发送但发送失败'), (3, '模版禁用'), (4, "模板已删除"))
     status = models.SmallIntegerField(db_index=True, choices=status_choices, default=0, verbose_name="邮件发送状态")
@@ -206,7 +210,7 @@ class EmailTask(models.Model):
     execute_time = models.DateTimeField(db_index=True, verbose_name="执行时间")
     finished_time = models.DateTimeField(blank=True, null=True, verbose_name="完成时间")
     customer_list = models.TextField(blank=True, null=True, verbose_name="符合触发条件的用户列表")
-    if ENABLE_MIGRATE:
+    if True:
         email_trigger_id = models.IntegerField(db_index=True, null=True, blank=True, default=None, verbose_name="email_trigger_id")
     else:
         email_trigger = models.ForeignKey(EmailTrigger, blank=True, null=True, on_delete=models.DO_NOTHING)
@@ -217,7 +221,7 @@ class EmailTask(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = ENABLE_MIGRATE
+        managed = True
         db_table = 'email_task'
 
 
