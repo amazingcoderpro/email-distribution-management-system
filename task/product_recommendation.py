@@ -117,8 +117,8 @@ class ProductRecommend:
                                                     {"_id": 0, "id": 1, "handle": 1, "site_name": 1, "image.src": 1,
                                                      "title": 1, "variants": 1})
             for product in product_infos:
-                if len(products) >= length + 1:
-                    break
+                # if len(product_dict) >= length:
+                #     break
                 if product["id"] in product_dict:
                     product_uuid_template_id = "{}_{}".format(product["id"], template_id)
                     product_url = "https://{}.myshopify.com/products/{}".format(product["site_name"],
@@ -127,6 +127,8 @@ class ProductRecommend:
                     product_dict[product["id"]].update(
                         {"product_url": product_url, "image_src": product["image"]["src"]})
             products += list(product_dict.values())
+            if len(product_dict) > length:
+                products = products[0:length+1]
             return products
         except Exception as e:
             logger.exception("get_card_product_mongo catch exception={}".format(e))
@@ -184,4 +186,5 @@ if __name__ == '__main__':
     #     <span style="display: none;">specialProduct</span>
     # """
     # print(pr.generate_new_html_with_product_block(pr.get_card_product_mongo(326597345317), html=html))
-    pr.get_top_product_by_condition("top_fifteen", 3, "cd", 3)
+    pr.get_card_product_mongo(customer_email="twoben.meng@orderplus.com", store_name="charrcter", flow_title="2019-08-15T18:08:45+08:00", template_id=20, domain="charrcter.myshopify.com", length=3)
+    # pr.get_top_product_by_condition("top_fifteen", 3, "cd", 3)
