@@ -2245,7 +2245,8 @@ class AnalyzeCondition:
                 old_customer_list = []
             else:
                 old_customer_list = eval(old_customer_list)
-            new_customer_list = list(set(customer_list)-set(old_customer_list))
+            # new_customer_list = list(set(customer_list)-set(old_customer_list))
+            new_customer_list = customer_list
             if not new_customer_list:
                 # 无新增符合触发条件的用户
                 logger.warning("No new customers.")
