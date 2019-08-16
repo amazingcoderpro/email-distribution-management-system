@@ -2095,7 +2095,7 @@ class AnalyzeCondition:
             elif store_id:
                 # 未删除的才取出来
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where store_id=%s and status=1""",
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where store_id=%s and status=1 and draft=0""",
                     (store_id,))
             elif condition_id:
                 cursor.execute(
@@ -2105,7 +2105,7 @@ class AnalyzeCondition:
                 # 未删除的才取出来
                 # 把admin剔除
                 cursor.execute(
-                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where status=1 and store_id!=1""")
+                    """select `store_id`, `id`, `title`, `relation_info`, `email_delay`, `note`, `customer_list`, `customer_list_id` from `email_trigger` where status=1 and store_id!=1 and draft=0""")
 
             res = cursor.fetchall()
             if res:
