@@ -19,6 +19,9 @@ class StoreSerializer(serializers.ModelSerializer):
                   "domain",
                   "url",
                   "email",
+                  "sender",
+                  "sender_address",
+                  "store_view_id",
                   "password"
         )
         extra_kwargs = {
@@ -44,10 +47,13 @@ class StoreSerializer(serializers.ModelSerializer):
             store_dict = {}
             store_dict["user"] = user_instance
             store_dict["name"] = validated_data["name"]
+            store_dict["email"] = validated_data["email"]
             store_dict["url"] = validated_data["url"]
             store_dict["domain"] = validated_data["domain"]
             store_dict["user"] = user_instance
-            store_dict["sender"] = validated_data["name"]
+            store_dict["sender"] = validated_data["sender"] if validated_data.get("sender") else validated_data["name"]
+            store_dict["sender_address"] = validated_data["sender_address"] if validated_data.get("sender_address") else validated_data["email"]
+            store_dict["store_view_id"] = validated_data["store_view_id"] if validated_data.get("store_view_id") else ""
             store_dict["init"] = 0
             instance = super(StoreSerializer, self).create(store_dict)
 
