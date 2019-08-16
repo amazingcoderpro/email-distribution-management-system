@@ -111,7 +111,6 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
         data["revenue"] = float(data["revenue"])
         data["click_rate"] = 0
         data["open_rate"] = 0
-        data["is_cart"] = instance.is_cart
         if sents > 0:
             data["click_rate"] = clicks/sents
             data["open_rate"] = opens/sents
@@ -162,7 +161,8 @@ class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
                   "html",
                   # "send_type",
                   "create_time",
-                  "update_time"
+                  "update_time",
+                  "is_cart"
         )
 
     def create(self, validated_data):
