@@ -422,10 +422,10 @@ class ShopifyDataProcessor:
                         else:
                             recent_30days_paid_products.append(pro.get("product_id", ""))
 
-                top6_product_ids_recent3days = [item[0] for item in Counter(recent_3days_paid_products).most_common(6)]
-                top6_product_ids_recent7days = [item[0] for item in Counter(recent_7days_paid_products).most_common(6)]
-                top6_product_ids_recent15days = [item[0] for item in Counter(recent_15days_paid_products).most_common(6)]
-                top6_product_ids_recent30days = [item[0] for item in Counter(recent_30days_paid_products).most_common(6)]
+                top6_product_ids_recent3days = [item[0] for item in Counter(recent_3days_paid_products).most_common(4)]
+                top6_product_ids_recent7days = [item[0] for item in Counter(recent_7days_paid_products).most_common(4)]
+                top6_product_ids_recent15days = [item[0] for item in Counter(recent_15days_paid_products).most_common(4)]
+                top6_product_ids_recent30days = [item[0] for item in Counter(recent_30days_paid_products).most_common(4)]
 
                 top6_products_3days = []
                 top6_products_7days = []
@@ -524,10 +524,10 @@ class ShopifyDataProcessor:
 
                 cursor_dict = conn.cursor(cursor=pymysql.cursors.DictCursor)
 
-                top_three_product_list = [item[0] for item in Counter(top_three_product_list).most_common(6)]
-                top_seven_product_list = [item[0] for item in Counter(top_seven_product_list).most_common(6)]
-                top_fifteen_product_list = [item[0] for item in Counter(top_fifteen_product_list).most_common(6)]
-                top_thirty_product_list = [item[0] for item in Counter(top_thirty_product_list).most_common(6)]
+                top_three_product_list = [item[0] for item in Counter(top_three_product_list).most_common(4)]
+                top_seven_product_list = [item[0] for item in Counter(top_seven_product_list).most_common(4)]
+                top_fifteen_product_list = [item[0] for item in Counter(top_fifteen_product_list).most_common(4)]
+                top_thirty_product_list = [item[0] for item in Counter(top_thirty_product_list).most_common(4)]
                 current_time = datetime.datetime.now()
 
                 # top_three
