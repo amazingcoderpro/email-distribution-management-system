@@ -152,7 +152,8 @@ class EmailRecord(models.Model):
     unsubscribe_rate = models.DecimalField(blank=True, null=True,  max_digits=10, decimal_places=4, verbose_name="邮件退订率")
     type_choice = ((0, 'Newsletter'), (1, 'Transactional'), (2, 'Test'))
     type = models.SmallIntegerField(blank=True, null=True, verbose_name="邮件类型")
-    if ENABLE_MIGRATE:
+    recipients = models.TextField(blank=True, null=True, default="[]", verbose_name="收件人ID列表")
+    if True:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
@@ -162,7 +163,7 @@ class EmailRecord(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = ENABLE_MIGRATE
+        # managed = ENABLE_MIGRATE
         db_table = 'email_record'
 
 

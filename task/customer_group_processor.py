@@ -2528,6 +2528,7 @@ class AnalyzeCondition:
                         send_error_info += msg + "; "
                     else:
                         status = 1
+                        # 发送成功的收件人记录email_record的表中
                 logger.info("send transactional messages {}".format("success" if status == 1 else "fialed"))
                 # 邮件发送完毕，回填数据
                 update_tuple_list.append((send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
