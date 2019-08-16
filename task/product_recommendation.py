@@ -12,12 +12,12 @@ class ProductRecommend(MongoDBUtil, DBUtil):
     def __init__(self, mongo_config=MONGO_CONFIG, db_config=MYSQL_CONFIG):
         MongoDBUtil.__init__(self, mongo_config)
         DBUtil.__init__(self, **db_config)
-        self.format_str = """<tr><td style="padding: 10px 0px;width: 50%;text-align: left;border-bottom: 1px solid #E8E8E8;margin: 10px 0;"><div style="width: calc(35% - 20px);display: inline-block;"><img src="{image_src}" style="width: 100%;"/></div><div style="width: calc(60% - 20px);display: inline-block;vertical-align: top;margin-left: 20px;line-height: 26px;"><div style="display: -webkit-box !important;overflow: hidden;text-overflow: ellipsis;word-break: break-all;-webkit-box-orient: vertical;-webkit-line-clamp: 2;"><a href="{product_url}" target="_blank" style="color: #000;text-decoration: none;">{title}</a></div><div style="color: #666;width: 100%;">Color:{color}</div><div style="color: #666;width: 100%;">Size:{size}</div></div></td><td valign="top" style="padding: 10px 0px;border-bottom: 1px solid #E8E8E8;line-height: 26px;"><div>${price}</div><div style="text-decoration: line-through;color: #666;">${compare_at_price}</div></td><td valign="top" style="padding: 10px 0px;border-bottom: 1px solid #E8E8E8;">{quantity}</td><td valign="top" style="padding: 10px 0px;border-bottom: 1px solid #E8E8E8;">${line_price}</td></tr>"""
+        self.cart_str = """<tr><td style="padding: 10px 0px;width: 50%;text-align: left;border-bottom: 1px solid #E8E8E8;margin: 10px 0;"><div style="width: calc(35% - 20px);display: inline-block;"><img src="{image_src}" style="width: 100%;"/></div><div style="width: calc(60% - 20px);display: inline-block;vertical-align: top;margin-left: 20px;line-height: 26px;"><div style="display: -webkit-box !important;overflow: hidden;text-overflow: ellipsis;word-break: break-all;-webkit-box-orient: vertical;-webkit-line-clamp: 2;"><a href="{product_url}" target="_blank" style="color: #000;text-decoration: none;">{title}</a></div><div style="color: #666;width: 100%;">Color:{color}</div><div style="color: #666;width: 100%;">Size:{size}</div></div></td><td valign="top" style="padding: 10px 0px;border-bottom: 1px solid #E8E8E8;line-height: 26px;"><div>${price}</div><div style="text-decoration: line-through;color: #666;">${compare_at_price}</div></td><td valign="top" style="padding: 10px 0px;border-bottom: 1px solid #E8E8E8;">{quantity}</td><td valign="top" style="padding: 10px 0px;border-bottom: 1px solid #E8E8E8;">${line_price}</td></tr>"""
         self.top_str = """ <div style="width:calc(50% - 24px);margin:10px;display:inline-block;vertical-align: top;">
-                                    <a href="{product_url}">
+                                    <a href="{url}">
                                         <img src="{image_url}" style="width:100%;"/>
                                     </a>
-                                    <h3 style="font-weight:700;white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">{product_name}</h3>
+                                    <h3 style="font-weight:700;white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">{name}</h3>
                                 </div>
         """
 
@@ -34,30 +34,45 @@ class ProductRecommend(MongoDBUtil, DBUtil):
             return new_html
         product_str = ""
         for product in product_list:
-            product_str += self.format_str.format(**product)
+            product_str += self.cart_str.format(**product)
         new_html = new_html.replace('<span style="display: none;">specialProduct</span>', product_str)
         return new_html
 
-    def generate_snippets(self, product_list):
+    def generate_snippets(self, cart_product_list, top_product_list):
         """
         生成需要替换的snippet片段
-        :param product_list: 产品信息列表
-        :return: dict
+        :param product_list: 购物车产品信息列表
+        :param product_list: top产品信息列表
+        :return: snippet_list
         """
-        store_info = product_list.pop(0)
+        store_info = cart_product_list.pop(0)
         shop_name, firstname = store_info["shop_name"], store_info["firstname"]
-        product_str = ""
+        # 拼接购物车产品html
+        cart_product_str = ""
         abandoned_checkout_url = "javascript:;"
-        for product in product_list:
+        for product in cart_product_list:
             abandoned_checkout_url = product["abandoned_checkout_url"]
-            product_str += self.format_str.format(**product)
+            cart_product_str += self.cart_str.format(**product)
+        # 拼接top产品html
+        top_product_str = ""
+        for product in top_product_list:
+            top_product_str += self.top_str.format(**product)
+
         snippet_dict = {"shop_name": shop_name,
                         "firstname": firstname,
-                        "cart_products": product_str,
-                        "abandoned_checkout_url": abandoned_checkout_url}
+                        "domain": store_info["domain"],
+                        "service_email": store_info["service_email"],
+                        "about_us_url": store_info["about_us_url"],
+                        "store_url": store_info["store_url"],
+                        "privacy_policy_url": store_info["privacy_policy_url"],
+                        "help_center_url": store_info["help_center_url"],
+                        "cart_products": cart_product_str,
+                        "abandoned_checkout_url": abandoned_checkout_url,
+                        "top_products": top_product_str}
+
         return [{"name": name, "value": value} for name, value in snippet_dict.items()]
 
-    def get_card_product_mongo(self, customer_email, store_name, length=3):
+    def get_card_product_mongo(self, customer_email, store_name, flow_title, template_id, domain, length=3):
         """
         获取该用户购物车中的产品信息
         :param customer_email: 用户邮箱
@@ -70,65 +85,91 @@ class ProductRecommend(MongoDBUtil, DBUtil):
             # mdb = MongoDBUtil(mongo_config=self.mongo_config)
             db = MongoDBUtil.get_instance(self)
             # 通过ID获取firstname和shop_name
-            res = db.shopify_customer.find_one({"email": customer_email, "site_name": store_name}, {"_id":0, "first_name": 1})
+            res = db.shopify_customer.find_one({"email": customer_email, "site_name": store_name},
+                                               {"_id": 0, "first_name": 1})
             firstname = res["first_name"]
-            products.append({"shop_name": store_name, "firstname": firstname})
+            products.append({"shop_name": store_name,
+                             "firstname": firstname,
+                             "domain": domain,
+                             "service_email": "service@{}.com".format(store_name),
+                             "about_us_url": "https://{}/pages/about-us".format(
+                                 domain) + f"&utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={template_id}",
+                             "store_url": "https://{}".format(
+                                 domain) + f"&utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={template_id}",
+                             "privacy_policy_url": "https://{}/pages/privacy-policy".format(
+                                 domain) + f"&utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={template_id}",
+                             "help_center_url": "https://{}/pages/faq".format(
+                                 domain) + f"&utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={template_id}"})
             # 获取购物车产品ID
-            cart_products = db.shopify_unpaid_order.find({"customer.email": customer_email, "site_name": store_name}, {"_id":0, "line_items": 1, "abandoned_checkout_url": 1},
+            cart_products = db.shopify_unpaid_order.find({"customer.email": customer_email, "site_name": store_name},
+                                                         {"_id": 0, "line_items": 1, "abandoned_checkout_url": 1},
                                                          limit=1, sort=[("updated_at", pymongo.DESCENDING)])
             product_dict = {}
             for cart in cart_products:
-                abandoned_checkout_url = cart["abandoned_checkout_url"]
+                abandoned_checkout_url = cart[
+                                             "abandoned_checkout_url"] + f"&utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={template_id}"
                 for pro in cart["line_items"]:
                     variant_title = pro["variant_title"]
                     color, size = variant_title.split("/") if "/" in variant_title else (variant_title, "")
-                    product_dict.update({pro["product_id"]: {"title": pro["title"], "color": color.strip(), "size": size.strip(), "compare_at_price": pro["compare_at_price"],
-                                                            "line_price": pro["line_price"], "price": pro["price"], "quantity": pro["quantity"],
+                    product_dict.update({pro["product_id"]: {"title": pro["title"], "color": color.strip(),
+                                                             "size": size.strip(),
+                                                             "compare_at_price": pro["compare_at_price"],
+                                                             "line_price": pro["line_price"], "price": pro["price"],
+                                                             "quantity": pro["quantity"],
                                                              "abandoned_checkout_url": abandoned_checkout_url}})
             if not product_dict:
                 return products
             # 获取这些产品的信息
-            product_infos= db.shopify_product.find({"id": {"$in": list(product_dict.keys())}},
-                {"_id":0, "id":1, "handle":1, "site_name":1, "image.src":1, "title":1, "variants":1})
+            product_infos = db.shopify_product.find({"id": {"$in": list(product_dict.keys())}},
+                                                    {"_id": 0, "id": 1, "handle": 1, "site_name": 1, "image.src": 1,
+                                                     "title": 1, "variants": 1})
             for product in product_infos:
-                if len(products) >= length+1:
+                if len(products) >= length + 1:
                     break
                 if product["id"] in product_dict:
-                    product_dict[product["id"]].update({"product_url": "https://{}.myshopify.com/products/{}".format(product["site_name"], product["handle"]),
-                                 "image_src": product["image"]["src"]})
+                    product_uuid_template_id = "{}_{}".format(product["id"], template_id)
+                    product_url = "https://{}.myshopify.com/products/{}".format(product["site_name"],
+                                                                                product["handle"]) + \
+                                  f"?utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={product_uuid_template_id}"
+                    product_dict[product["id"]].update(
+                        {"product_url": product_url, "image_src": product["image"]["src"]})
             products += list(product_dict.values())
             return products
         except Exception as e:
-            logger.exception("adapt_sign_up_time_mongo catch exception={}".format(e))
+            logger.exception("get_card_product_mongo catch exception={}".format(e))
             return products
         finally:
             MongoDBUtil.close(self)
 
-    # def get_template_by_condition(self):
-    #     """
-    #     获取需要符合条件的模板信息
-    #     :return:
-    #     """
-    #     customers = []
-    #     try:
-    #         conn = DBUtil.get_instance(self)
-    #         cursor = conn.cursor() if conn else None
-    #         if not cursor:
-    #             return customers
-    #
-    #
-    #         cursor.execute("""select `uuid` from `customer` where store_id=%s""",)
-    #
-    #         res = cursor.fetchall()
-    #         for uuid in res:
-    #             customers.append(uuid[0])
-    #         return customers
-    #     except Exception as e:
-    #         logger.exception("adapt_sign_up_time e={}".format(e))
-    #         return customers
-    #     finally:
-    #         cursor.close() if cursor else 0
-    #         conn.close() if conn else 0
+    def get_top_product_by_condition(self, condition, store_id, flow_title, template_id, length=4):
+        """
+        获取top_products信息
+        :return:
+        """
+        products = []
+        try:
+            conn = DBUtil.get_instance(self)
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return products
+            cursor.execute("""select %s from top_product where store_id=%s""", (condition, store_id))
+            res = cursor.fetchone()
+            # 对URL进行构建并控制返回数量
+            for product in res:
+                if len(products) >= 4:
+                    break
+                product_uuid_template_id = "{}_{}".format(product["uuid"], template_id)
+                product["url"] += f"?utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={product_uuid_template_id}"
+                products.append(product)
+            if len(products)%2 == 1:
+                products.pop(-1)
+            return products
+        except Exception as e:
+            logger.exception("get_top_product_by_condition e={}".format(e))
+            return products
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
 
 
 if __name__ == '__main__':

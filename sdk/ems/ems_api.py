@@ -413,17 +413,23 @@ class ExpertSender:
             "Data": {
                 "Receiver": {"Email": to_email,"ListId": list_id}}
             }}
-        cart_products = ""
+        cart_products, top_products = "", ""
         if snippets and isinstance(snippets, list):
             data["ApiRequest"]["Data"]["Snippets"] = {"Snippet": []}
             for snippet in snippets:
                 if snippet["name"] == "cart_products":
                     cart_products = snippet["value"]
-                    snippet["value"] = "%s"
+                    snippet["value"] = "{cart_products}"
+                if snippet["name"] == "top_products":
+                    top_products = snippet["value"]
+                    snippet["value"] = "{top_products}"
                 data["ApiRequest"]["Data"]["Snippets"]["Snippet"].append({"Name": snippet["name"], "Value": snippet["value"]})
         try:
             data = self.jsontoxml(data)
-            data = data % ("<![CDATA[%s]]>" % cart_products) if "%s" in data else data
+            if "{cart_products}" in data:
+                data = data.format("<![CDATA[%s]]>" % cart_products)
+            if "{top_products}" in data:
+                data = data.format("<![CDATA[%s]]>" % top_products)
             result = requests.post(url, data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("send transactional messages", result)
         except Exception as e:
