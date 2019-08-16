@@ -426,10 +426,12 @@ class ExpertSender:
                 data["ApiRequest"]["Data"]["Snippets"]["Snippet"].append({"Name": snippet["name"], "Value": snippet["value"]})
         try:
             data = self.jsontoxml(data)
-            if "{cart_products}" in data:
-                data = data.format("<![CDATA[%s]]>" % cart_products)
-            if "{top_products}" in data:
-                data = data.format("<![CDATA[%s]]>" % top_products)
+            if "{cart_products}" in data and "{top_products}" in data:
+                data = data.format(cart_products="<![CDATA[%s]]>" % cart_products, top_products="<![CDATA[%s]]>" % top_products)
+            elif "{cart_products}" in data:
+                data = data.format(cart_products="<![CDATA[%s]]>" % cart_products)
+            elif "{top_products}" in data:
+                data = data.format(top_products="<![CDATA[%s]]>" % top_products)
             result = requests.post(url, data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("send transactional messages", result)
         except Exception as e:
