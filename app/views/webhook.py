@@ -187,7 +187,7 @@ class EventDraftCustomersUpdate(APIView):
             costomer_instance.create_time = request.data["created_at"].replace("T", " ")[:-6]
             costomer_instance.update_time = request.data["updated_at"].replace("T", " ")[:-6]
             costomer_instance.save()
-        else:
+        if not costomer_instance:
             models.Customer.objects.create(
                  store_id=store_id,
                  uuid=event_uuid,
