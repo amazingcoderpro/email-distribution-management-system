@@ -15,8 +15,8 @@ class ExpertSender:
         self.api_key = api_key
         self.host = "https://api6.esv2.com/v2/"
         self.headers = {"Content-Type": "text/xml"}
-        self.from_name = from_name
-        self.from_email = from_email
+        self.from_name = from_name if from_name else "Leemon"
+        self.from_email = from_email if from_email else "leemon.li@orderplus.com"
 
     @staticmethod
     def xmltojson(xmlstr, type):
