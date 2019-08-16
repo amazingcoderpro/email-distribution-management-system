@@ -2293,7 +2293,7 @@ class AnalyzeCondition:
             logger.info("add subscriber success.customer_list_id is %s" % customer_list_id)
 
             # ToDo parse email_delay
-            excute_time = datetime.datetime.now() + datetime.timedelta(minutes=5)  # flow从此刻开始，为了避免程序运行时间耽搁，导致第一封邮件容易过去，自动延后5分钟
+            excute_time = datetime.datetime.now() + datetime.timedelta(minutes=3)  # flow从此刻开始，为了避免程序运行时间耽搁，导致第一封邮件容易过去，自动延后5分钟
             for item in json.loads(email_delay):
                 if item["type"] == "Email":  # 代表是邮件任务
                     template_id, unit = item["value"], item["unit"]
