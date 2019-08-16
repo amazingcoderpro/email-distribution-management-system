@@ -11,6 +11,7 @@ class StoreSerializer(serializers.ModelSerializer):
     domain = serializers.CharField(required=True, )
     url = serializers.CharField(required=True,)
     password = serializers.CharField(required=True,write_only=True)
+    timezone = serializers.CharField(required=True)
 
     class Meta:
         model = models.Store
@@ -22,6 +23,7 @@ class StoreSerializer(serializers.ModelSerializer):
                   "sender",
                   "sender_address",
                   "store_view_id",
+                  "timezone",
                   "password"
         )
         extra_kwargs = {
@@ -49,6 +51,7 @@ class StoreSerializer(serializers.ModelSerializer):
             store_dict["name"] = validated_data["name"]
             store_dict["email"] = validated_data["email"]
             store_dict["url"] = validated_data["url"]
+            store_dict["timezone"] = validated_data["timezone"]
             store_dict["domain"] = validated_data["domain"]
             store_dict["user"] = user_instance
             store_dict["sender"] = validated_data["sender"] if validated_data.get("sender") else validated_data["name"]
