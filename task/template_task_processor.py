@@ -193,8 +193,8 @@ class TemplateProcessor:
 
                         # 在email record中插入一条
                         cursor.execute("""insert into `email_record` (`uuid`, `store_id`, `email_template_id`, 
-                        `create_time`, `update_time`, `type`) values (%s, %s, %s, %s, %s, %s)""",
-                                       (str(email_id), store_id, template_id, time_now, time_now, 0))
+                        `create_time`, `update_time`, `type`, `recipients`) values (%s, %s, %s, %s, %s, %s, %s)""",
+                                       (str(email_id), store_id, template_id, time_now, time_now, 0, uuids))
                         conn.commit()
         except Exception as e:
             logger.exception("execute_email_task e={}".format(e))
