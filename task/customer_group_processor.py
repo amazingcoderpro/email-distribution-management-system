@@ -2522,7 +2522,7 @@ class AnalyzeCondition:
                     else:
                         rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
                     if rest["code"] != 1:
-                        logger.warning("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
+                        logger.error("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
                         msg = rest["msg"]["Message"] if isinstance(rest["msg"], dict) else str(rest["msg"])
                         send_error_info += msg + "; "
                     else:
