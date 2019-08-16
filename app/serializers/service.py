@@ -278,7 +278,8 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
                                                                                                 "enable",
                                                                                              "logo",
                                                                                              "banner",
-                                                                                             "is_cart"
+                                                                                             "is_cart",
+                                                                                             "product_title"
                                                                                              ).first()
                 template_dict = {
                     "store": store,
@@ -296,7 +297,8 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
                     "enable": email_template["enable"],
                     "logo": email_template["logo"],
                     "banner": email_template["banner"],
-                    "is_cart": email_template["is_cart"]
+                    "is_cart": email_template["is_cart"],
+                    "product_title": email_template["product_title"]
                 }
                 emailtemplate_instance = models.EmailTemplate.objects.create(**template_dict)
                 val["value"] = emailtemplate_instance.id

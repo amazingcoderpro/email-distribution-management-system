@@ -142,8 +142,13 @@ class ProductRecommend:
 
     def get_top_product_by_condition(self, condition, store_id, flow_title, template_id, length=4):
         """
-        获取top_products信息
-        :return:
+        获取店铺下top_products信息
+        :param condition: 条件字符串
+        :param store_id: 店铺ID
+        :param flow_title: flow的标题
+        :param template_id: 模板ID
+        :param length: 返回的最大产品数
+        :return: 符合条件的偶数个产品信息列表
         """
         products_list = []
         try:
