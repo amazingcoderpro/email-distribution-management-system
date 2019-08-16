@@ -824,7 +824,7 @@ class ShopifyDataProcessor:
                     customer_group_list[key] = template_record[val]
 
                 cursor_dict.execute(
-                    "insert into `email_template` (`title`, `description`, `subject`, `heading_text`, `customer_group_list`, `headline`, `body_text`, `send_rule`, `html`, `send_type`, `status`,`enable`,`revenue`,`sessions`,`transcations`, `logo`, `banner`, `is_cart`, `product_title`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    "insert into `email_template` (`title`, `description`, `subject`, `heading_text`, `customer_group_list`, `headline`, `body_text`, `send_rule`, `html`, `send_type`, `status`,`enable`,`revenue`,`sessions`,`transcations`, `logo`, `banner`, `is_cart`, `product_title`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                     (item["title"],item["description"],item["subject"],item["heading_text"],str(customer_group_list),item["headline"],item["body_text"],item["send_rule"],item["html"],item["send_type"],0,0,0,0,0,item["logo"],item["banner"],item["is_cart"],item["product_title"], store_id,create_time,update_time))
                 conn.commit()
                 email_template_record[item["id"]] = cursor_dict.lastrowid
@@ -833,7 +833,7 @@ class ShopifyDataProcessor:
 
 
             cursor_dict.execute(
-                """select title, description, relation_info, email_delay, note, is_open from email_trigger where store_id = 1 and draft = 0 and status != 2""")
+                """select title, description, relation_info, email_delay, note, is_open, status from email_trigger where store_id = 1 and draft = 0 and status != 2""")
             email_trigger = cursor_dict.fetchall()
 
             for item in email_trigger:
@@ -844,7 +844,7 @@ class ShopifyDataProcessor:
 
                 cursor_dict.execute(
                     "insert into `email_trigger` (`title`, `description`, `open_rate`, `click_rate`, `revenue`, `relation_info`, `email_delay`, `note`, `status`, `store_id`, `is_open`,`draft`,`create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (item["title"],item["description"],0,0,0,item["relation_info"],str(email_delay),item["note"],0,store_id,item["is_open"],0, create_time,update_time))
+                    (item["title"],item["description"],0,0,0,item["relation_info"],str(email_delay),item["note"],item["status"],store_id,item["is_open"],0, create_time,update_time))
                 conn.commit()
 
         except Exception as e:
