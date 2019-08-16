@@ -815,7 +815,7 @@ class ShopifyDataProcessor:
 
             email_template_record = {}
             cursor_dict.execute(
-                """select id, title, description, subject, heading_text, headline, body_text, customer_group_list, send_rule, send_type, html from email_template where store_id = 1 and status != 2""")
+                """select id, title, description, subject, heading_text, headline, body_text, customer_group_list, send_rule, send_type, html, logo, banner, is_cart, product_title from email_template where store_id = 1 and status != 2""")
             email_template = cursor_dict.fetchall()
 
             for item in email_template:
@@ -824,8 +824,8 @@ class ShopifyDataProcessor:
                     customer_group_list[key] = template_record[val]
 
                 cursor_dict.execute(
-                    "insert into `email_template` (`title`, `description`, `subject`, `heading_text`, `customer_group_list`, `headline`, `body_text`, `send_rule`, `html`, `send_type`, `status`,`enable`,`revenue`,`sessions`,`transcations`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (item["title"],item["description"],item["subject"],item["heading_text"],str(customer_group_list),item["headline"],item["body_text"],item["send_rule"],item["html"],item["send_type"],0,0,0,0,0,store_id,create_time,update_time))
+                    "insert into `email_template` (`title`, `description`, `subject`, `heading_text`, `customer_group_list`, `headline`, `body_text`, `send_rule`, `html`, `send_type`, `status`,`enable`,`revenue`,`sessions`,`transcations`, `logo`, `banner`, `is_cart`, `product_title`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (item["title"],item["description"],item["subject"],item["heading_text"],str(customer_group_list),item["headline"],item["body_text"],item["send_rule"],item["html"],item["send_type"],0,0,0,0,0,item["logo"],item["banner"],item["is_cart"],item["product_title"], store_id,create_time,update_time))
                 conn.commit()
                 email_template_record[item["id"]] = cursor_dict.lastrowid
 
