@@ -42,6 +42,5 @@ class EmailTriggerFilter(BaseFilterBackend):
                 filte_kwargs[self.filter_keys[filter_key]] = val
         if "status" not in filte_kwargs.keys():
             filte_kwargs["status__in"] = [0,1]
-        print(filte_kwargs)
         return queryset.filter(**filte_kwargs)
 

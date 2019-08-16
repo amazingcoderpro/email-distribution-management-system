@@ -422,10 +422,10 @@ class ShopifyDataProcessor:
                         else:
                             recent_30days_paid_products.append(pro.get("product_id", ""))
 
-                top6_product_ids_recent3days = [item[0] for item in Counter(recent_3days_paid_products).most_common(6)]
-                top6_product_ids_recent7days = [item[0] for item in Counter(recent_7days_paid_products).most_common(6)]
-                top6_product_ids_recent15days = [item[0] for item in Counter(recent_15days_paid_products).most_common(6)]
-                top6_product_ids_recent30days = [item[0] for item in Counter(recent_30days_paid_products).most_common(6)]
+                top6_product_ids_recent3days = [item[0] for item in Counter(recent_3days_paid_products).most_common(4)]
+                top6_product_ids_recent7days = [item[0] for item in Counter(recent_7days_paid_products).most_common(4)]
+                top6_product_ids_recent15days = [item[0] for item in Counter(recent_15days_paid_products).most_common(4)]
+                top6_product_ids_recent30days = [item[0] for item in Counter(recent_30days_paid_products).most_common(4)]
 
                 top6_products_3days = []
                 top6_products_7days = []
@@ -524,10 +524,10 @@ class ShopifyDataProcessor:
 
                 cursor_dict = conn.cursor(cursor=pymysql.cursors.DictCursor)
 
-                top_three_product_list = [item[0] for item in Counter(top_three_product_list).most_common(6)]
-                top_seven_product_list = [item[0] for item in Counter(top_seven_product_list).most_common(6)]
-                top_fifteen_product_list = [item[0] for item in Counter(top_fifteen_product_list).most_common(6)]
-                top_thirty_product_list = [item[0] for item in Counter(top_thirty_product_list).most_common(6)]
+                top_three_product_list = [item[0] for item in Counter(top_three_product_list).most_common(4)]
+                top_seven_product_list = [item[0] for item in Counter(top_seven_product_list).most_common(4)]
+                top_fifteen_product_list = [item[0] for item in Counter(top_fifteen_product_list).most_common(4)]
+                top_thirty_product_list = [item[0] for item in Counter(top_thirty_product_list).most_common(4)]
                 current_time = datetime.datetime.now()
 
                 # top_three
@@ -815,7 +815,7 @@ class ShopifyDataProcessor:
 
             email_template_record = {}
             cursor_dict.execute(
-                """select id, title, description, subject, heading_text, headline, body_text, customer_group_list, send_rule, send_type, html from email_template where store_id = 1 and status != 2""")
+                """select id, title, description, subject, heading_text, headline, body_text, customer_group_list, send_rule, send_type, html, logo, banner, is_cart, product_title from email_template where store_id = 1 and status != 2""")
             email_template = cursor_dict.fetchall()
 
             for item in email_template:
@@ -824,8 +824,8 @@ class ShopifyDataProcessor:
                     customer_group_list[key] = template_record[val]
 
                 cursor_dict.execute(
-                    "insert into `email_template` (`title`, `description`, `subject`, `heading_text`, `customer_group_list`, `headline`, `body_text`, `send_rule`, `html`, `send_type`, `status`,`enable`,`revenue`,`sessions`,`transcations`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (item["title"],item["description"],item["subject"],item["heading_text"],str(customer_group_list),item["headline"],item["body_text"],item["send_rule"],item["html"],item["send_type"],0,0,0,0,0,store_id,create_time,update_time))
+                    "insert into `email_template` (`title`, `description`, `subject`, `heading_text`, `customer_group_list`, `headline`, `body_text`, `send_rule`, `html`, `send_type`, `status`,`enable`,`revenue`,`sessions`,`transcations`, `logo`, `banner`, `is_cart`, `product_title`, `store_id`, `create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (item["title"],item["description"],item["subject"],item["heading_text"],str(customer_group_list),item["headline"],item["body_text"],item["send_rule"],item["html"],item["send_type"],0,0,0,0,0,item["logo"],item["banner"],item["is_cart"],item["product_title"], store_id,create_time,update_time))
                 conn.commit()
                 email_template_record[item["id"]] = cursor_dict.lastrowid
 
@@ -833,7 +833,7 @@ class ShopifyDataProcessor:
 
 
             cursor_dict.execute(
-                """select title, description, relation_info, email_delay, note, is_open from email_trigger where store_id = 1 and draft = 0 and status != 2""")
+                """select title, description, relation_info, email_delay, note, is_open, status from email_trigger where store_id = 1 and draft = 0 and status != 2""")
             email_trigger = cursor_dict.fetchall()
 
             for item in email_trigger:
@@ -844,7 +844,7 @@ class ShopifyDataProcessor:
 
                 cursor_dict.execute(
                     "insert into `email_trigger` (`title`, `description`, `open_rate`, `click_rate`, `revenue`, `relation_info`, `email_delay`, `note`, `status`, `store_id`, `is_open`,`draft`,`create_time`, `update_time`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (item["title"],item["description"],0,0,0,item["relation_info"],str(email_delay),item["note"],0,store_id,item["is_open"],0, create_time,update_time))
+                    (item["title"],item["description"],0,0,0,item["relation_info"],str(email_delay),item["note"],item["status"],store_id,item["is_open"],0, create_time,update_time))
                 conn.commit()
 
         except Exception as e:

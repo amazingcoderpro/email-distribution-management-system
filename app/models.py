@@ -112,6 +112,7 @@ class EmailTemplate(models.Model):
     body_text = models.TextField(verbose_name="邮件body_text")
     # top_type = models.TextField(verbose_name="选择的哪类top product")
     product_list = models.TextField(verbose_name="产品列表", blank=True, null=True)
+    product_title = models.TextField(verbose_name="产品标题", blank=True, null=True)
     product_condition = models.CharField(blank=True,null=True, max_length=255, verbose_name="邮件body_text")
     customer_group_list = models.TextField(verbose_name="邮件对应的客户组列表")
     send_rule = models.TextField(verbose_name="发送邮件规则")
