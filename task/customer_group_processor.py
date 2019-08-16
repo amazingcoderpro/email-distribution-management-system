@@ -2131,7 +2131,7 @@ class AnalyzeCondition:
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
                 return None
-            cursor.execute("select `name`, `sender`, `sender_address` from `store` where id=%s", (store_id,))
+            cursor.execute("select `name`, `sender`, `sender_address`, `domain` from `store` where id=%s", (store_id,))
             store = cursor.fetchone()
             if not store:
                 logger.warning("store is not found, store id={}".format(store_id))
@@ -2461,8 +2461,8 @@ class AnalyzeCondition:
                 return False
             now_time = datetime.datetime.now()
             cursor.execute("""select t.id as id,t.remark as remark,t.execute_time as execute_time,
-            t.customer_list as customer_list, t.uuid as uuid,f.store_id as store_id,f.note as note,
-            f.create_time as create_time,f.customer_list_id as customer_list_id, t.template_id as template_id
+            t.customer_list as customer_list, t.uuid as uuid,f.store_id as store_id,f.note as note,f.title as flow_title,
+            t.create_time as create_time,f.customer_list_id as customer_list_id, t.template_id as template_id
             from email_task as t join email_trigger as f on t.email_trigger_id=f.id 
             where t.type=1 and t.status=0 and t.uuid is not null and f.customer_list_id is not null and execute_time between %s and %s""",
                            (now_time-datetime.timedelta(seconds=70), now_time+datetime.timedelta(seconds=70)))
@@ -2481,7 +2481,7 @@ class AnalyzeCondition:
                     customer_list = list(set(customer_list)-set(customers_7day))
                     logger.info("filter the customer received an email from this campaign in the last 7 days.")
                 if "customer makes a purchase" in eval(res["note"]) and res["remark"] != "first":
-                    # 对customer_list里的收件人进行note筛选(从第一封邮件开始完成购买的人)
+                    # 对customer_list里的收件人进行note筛选(从task创建时间开始)
                     customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_name)
                     customer_list = list(set(customer_list) - set(customers_purchased))
                     logger.info("filter the customer makes a purchase.")
@@ -2503,15 +2503,22 @@ class AnalyzeCondition:
                 for customer in email_list:
                     # 发送邮件前，有可能需要先更新一下html,获取html模板
                     subject, html, product_condition, is_cart = self.get_template_info_by_id(res["template_id"])
-                    # if product_condition in ["Shopping cart goods",]:
-                    if int(is_cart) == 1:
+                    if int(is_cart) == 1 or "top" in product_condition:
                         # 筛选产品，并更新邮件
                         pr = ProductRecommend()
-                        # customer_id = self.customer_email_to_uuid_mongo([customer], store_name)[0]
-                        snippets_list = pr.generate_snippets(pr.get_card_product_mongo(customer, store_name))
-                        # ems.update_transactional_message(res["uuid"], subject, html=new_html)
+                        if int(is_cart) == 1:
+                            # 获取购物车产品
+                            cart_products = pr.get_card_product_mongo(customer, store_name, res["flow_title"], res["template_id"], store["domain"])
+                        else:
+                            # 获取店铺信息
+                            cart_products = pr.get_card_product_mongo(customer, store_name, res["flow_title"],
+                                                                      res["template_id"], store["domain"], length=0)
+                        top_products = []
+                        if "top" in product_condition:
+                            # 获取top_products
+                            top_products = pr.get_top_product_by_condition(product_condition, res["store_id"], res["flow_title"], res["template_id"])
+                        snippets_list = pr.generate_snippets(cart_products, top_products)
                         rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"], snippets=snippets_list)
-
                     else:
                         rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
                     if rest["code"] != 1:
