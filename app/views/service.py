@@ -80,9 +80,12 @@ class StoreExcelCreateView(generics.CreateAPIView):
         file = request.FILES["file"]
         reader = csv.DictReader(io.StringIO(file.read().decode('utf-8')))
         for item in reader:
-            serializer = self.get_serializer(data=item)
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
+            try:
+                serializer = self.get_serializer(data=item)
+                serializer.is_valid(raise_exception=True)
+                self.perform_create(serializer)
+            except Exception:
+                pass
             # headers = self.get_success_headers(serializer.data)
             # return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         return Response({"code": 200})
