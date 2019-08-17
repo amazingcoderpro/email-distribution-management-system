@@ -2460,7 +2460,7 @@ class AnalyzeCondition:
             if not cursor:
                 return False
             now_time = datetime.datetime.now()
-            cursor.execute("""select t.id as id,t.remark as remark,t.execute_time as execute_time,
+            cursor.execute("""select t.id as id,t.remark as remark,t.execute_time as execute_time,f.id as trigger_id,
             t.customer_list as customer_list, t.uuid as uuid,f.store_id as store_id,f.note as note,f.title as flow_title,
             t.create_time as create_time,f.customer_list_id as customer_list_id, t.template_id as template_id
             from email_task as t join email_trigger as f on t.email_trigger_id=f.id 
@@ -2469,6 +2469,7 @@ class AnalyzeCondition:
             result = cursor.fetchall()
             logger.info("get need to execute flow email tasks success.")
             update_tuple_list = []
+            recipients_list = []
             for res in result:
                 if not eval(str(res["customer_list"])):
                     continue
@@ -2477,7 +2478,8 @@ class AnalyzeCondition:
                 from_type, store_name = self.get_store_source(res["store_id"])
                 # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
                 if "customer received an email from this campaign in the last 7 days" in eval(res["note"]):
-                    customers_7day = self.filter_received_customer(res["store_id"], res["uuid"]) if from_type else self.filter_received_customer_mongo(res["store_id"], res["uuid"], store_name)
+                    # customers_7day = self.filter_received_customer(res["store_id"], res["uuid"]) if from_type else self.filter_received_customer_mongo(res["store_id"], res["uuid"], store_name)
+                    customers_7day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(days=-7))
                     customer_list = list(set(customer_list)-set(customers_7day))
                     logger.info("filter the customer received an email from this campaign in the last 7 days.")
                 if "customer makes a purchase" in eval(res["note"]) and res["remark"] != "first":
@@ -2500,6 +2502,7 @@ class AnalyzeCondition:
                 res["store_id"], set(unsubscribed_and_snoozed)))
                 send_error_info = ""
                 status = 2
+                recipients = []
                 for customer in email_list:
                     # 发送邮件前，有可能需要先更新一下html,获取html模板
                     subject, html, product_condition, is_cart = self.get_template_info_by_id(res["template_id"])
@@ -2511,8 +2514,7 @@ class AnalyzeCondition:
                             cart_products = pr.get_card_product_mongo(customer, store_name, res["flow_title"], res["template_id"], store["domain"])
                         else:
                             # 获取店铺信息
-                            cart_products = pr.get_card_product_mongo(customer, store_name, res["flow_title"],
-                                                                      res["template_id"], store["domain"], length=0)
+                            cart_products = pr.get_card_product_mongo(customer, store_name, res["flow_title"], res["template_id"], store["domain"], length=0)
                         top_products = []
                         if "top" in product_condition:
                             # 获取top_products
@@ -2528,9 +2530,17 @@ class AnalyzeCondition:
                     else:
                         status = 1
                         # 发送成功的收件人记录email_record的表中
+                        if customer not in recipients:
+                            recipients.append(customer)
                 logger.info("send transactional messages {}".format("success" if status == 1 else "fialed"))
+                customer_uuid_list = self.customer_email_to_uuid_mongo(recipients, store_name)
+                old_recipients_dict = self.get_recipients_list_from_email_record(res["store_id"], res["uuid"])
+                for c_uuid in customer_uuid_list:
+                        old_recipients_dict.update({c_uuid: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
                 # 邮件发送完毕，回填数据
                 update_tuple_list.append((send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
+                recipients_list.append((str(old_recipients_dict), res["uuid"]))
+            self.update_email_record_recipients_list(recipients_list)
             update_res = self.update_flow_email_task(update_tuple_list)
             logger.info("execute flow task finished.")
         except Exception as e:
@@ -2540,6 +2550,92 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
         return update_res
+
+    def get_recipients_from_email_record_by_timedelta(self, store_id, email_uuid, time_delta=datetime.timedelta(seconds=1)):
+        """
+        获取时间范围内的customer_uuid_list
+        :param store_id: 店铺ID
+        :param email_uuid: email uuid
+        :param time_delta: 时间范围
+        :return: 收件人uuid列表
+        """
+        logger.info("get_recipients_from_email_record_by_timedelta start")
+        recipients = []
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+            cursor.execute("""select recipients from email_record where store_id=%s and uuid=%s""", (store_id, email_uuid))
+            res = cursor.fetchone()
+            if not res:
+                return recipients
+            recipients_dict = {}
+            if res["recipients"] and eval(res["recipients"]):
+                recipients_dict = eval(res["recipients"])
+            for uuid, opt_time in recipients_dict.items():
+                if datetime.datetime.strptime(opt_time, "%Y-%m-%d %H:%M:%S") > (datetime.datetime.now()+ time_delta):
+                    recipients.append(uuid)
+            return recipients
+        except Exception as e:
+            logger.exception("get_recipients_from_email_record_by_timedelta exception: {}".format(e))
+            return recipients
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
+    def get_recipients_list_from_email_record(self, store_id, email_uuid):
+        """
+        获取已发送此邮件的收件人
+        :param store_id: 店铺ID
+        :param email_uuid:  email uuid
+        :return: recipients_list
+        """
+        logger.info("get_recipients_list_from_email_record start")
+        recipients_dict = {}
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+            cursor.execute("""select recipients from email_record where store_id=%s and uuid=%s""", (store_id, email_uuid))
+            res = cursor.fetchone()
+            if not res:
+                return recipients_dict
+            if res["recipients"] and eval(res["recipients"]):
+                recipients_dict = eval(res["recipients"])
+            return recipients_dict
+        except Exception as e:
+            logger.exception("get_recipients_list_from_email_record exception: {}".format(e))
+            return recipients_dict
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
+    def update_email_record_recipients_list(self, recipients_list):
+        """
+        更新已发送的收件人
+        :param recipients_list: 收件人email列表
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+            cursor.executemany("""update email_record set recipients=%s where uuid=%s""", recipients_list)
+            conn.commit()
+            logger.info("update flow email record recipients datas success.")
+        except Exception as e:
+            logger.exception("update flow email record recipients datas exception: {}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
 
     def update_flow_email_task(self, update_tuple_list):
         """
@@ -2607,6 +2703,9 @@ if __name__ == '__main__':
     # print(ac.adapt_last_order_status_mongo(1, [{"relation":"is paid","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
     # print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
     # print(ac.get_shop_timezone_mongo("charrcter"))
+    # print(ac.get_recipients_list_from_email_record(3,3))
+    # print(ac.update_email_record_recipients_list([("[1,2,3]", 501)]))
+    # print(ac.get_recipients_from_email_record_by_timedelta(4, 504, datetime.timedelta(days=-3)))
     # print(ac.timezone_transform("2019-08-09 05:31:41.350", 'UTC', 'Asia/Shanghai'))
     # print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
     # print(ac.customer_uuid_to_email_mongo([1077951529024,1078304604224,1079054073920], "Astrotrex"))
