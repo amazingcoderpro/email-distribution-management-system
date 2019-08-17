@@ -2537,6 +2537,7 @@ class AnalyzeCondition:
                             recipients.append(customer)
                 logger.info("send transactional messages {}".format("success" if status == 1 else "fialed"))
                 customer_uuid_list = self.customer_email_to_uuid_mongo(recipients, store_name)
+                logger.info("Successful e-mails are %s in store(%s)"% (str(customer_uuid_list), store_name))
                 old_recipients_dict = self.get_recipients_list_from_email_record(res["store_id"], res["uuid"])
                 for c_uuid in customer_uuid_list:
                         old_recipients_dict.update({c_uuid: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
