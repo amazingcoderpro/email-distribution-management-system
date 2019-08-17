@@ -7,6 +7,8 @@ from rest_framework.response import Response
 # import base64
 # from PIL import Image
 import random, string, os, json
+import csv
+import io
 
 from app import models
 from app.pageNumber.pageNumber import PNPagination
@@ -14,6 +16,7 @@ from app.serializers import service
 from app.filters import service as service_filter
 from app.permission.permission import CustomerGroupOptPermission, StorePermission
 from sdk.ems import ems_api
+from app.serializers import opstores_service
 
 
 class CustomerGroupView(generics.ListCreateAPIView):
@@ -64,6 +67,25 @@ class StoreOperView(generics.UpdateAPIView):
     serializer_class = service.StoreSerializer
     permission_classes = (IsAuthenticated, StorePermission)
     authentication_classes = (JSONWebTokenAuthentication,)
+
+
+class StoreExcelCreateView(generics.CreateAPIView):
+    """店铺 Excel创建"""
+    queryset = models.Store.objects.all()
+    serializer_class = opstores_service.StoreSerializer
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+    def create(self, request, *args, **kwargs):
+        file = request.FILES["file"]
+        reader = csv.DictReader(io.StringIO(file.read().decode('utf-8')))
+        for item in reader:
+            serializer = self.get_serializer(data=item)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            # headers = self.get_success_headers(serializer.data)
+            # return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response({"code": 200})
 
 
 class EmailTemplateView(generics.ListCreateAPIView):

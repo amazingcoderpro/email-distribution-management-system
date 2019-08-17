@@ -11,7 +11,7 @@ class StoreSerializer(serializers.ModelSerializer):
     domain = serializers.CharField(required=True, )
     url = serializers.CharField(required=True,)
     password = serializers.CharField(required=True,write_only=True)
-    timezone = serializers.CharField(required=True)
+    # timezone = serializers.CharField(required=True)
 
     class Meta:
         model = models.Store
@@ -47,8 +47,8 @@ class StoreSerializer(serializers.ModelSerializer):
         with transaction.atomic():
             # 增加用户
             user_dict = {}
-            user_dict["username"] = validated_data["url"]
-            user_dict["password"] = self.context["request"].data["password"]
+            user_dict["username"] = validated_data["name"]
+            user_dict["password"] = self.context["request"].data["password"] if not validated_data["password"] else validated_data["password"]
             user_dict["email"] = validated_data.get("email") if validated_data.get("email") else ""
             user_instance = models.User.objects.create(**user_dict)
             user_instance.set_password(user_dict["password"])
@@ -61,7 +61,7 @@ class StoreSerializer(serializers.ModelSerializer):
             store_dict["url"] = validated_data["url"]
             store_dict["logo"] = validated_data.get("logo") if validated_data.get("logo") else ""
             store_dict["service_email"] = validated_data.get("service_email") if validated_data.get("service_email") else "service@{shop_name}.com".format(shop_name=validated_data["name"].lower())
-            store_dict["timezone"] = validated_data["timezone"]
+            store_dict["timezone"] = validated_data["timezone"] if validated_data.get("timezone") else "(GMT+08:00) Asia/Shanghai"
             store_dict["domain"] = validated_data["domain"]
             store_dict["user"] = user_instance
             store_dict["sender"] = validated_data["sender"] if validated_data.get("sender") else validated_data["name"]
