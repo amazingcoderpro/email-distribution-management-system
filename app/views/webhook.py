@@ -236,14 +236,14 @@ class CheckoutsCreate(APIView):
         cart_instance = models.CheckoutEvent.objects.create(
                         store_id=store_id,
                         customer_uuid=customer_uuid,
-                        checkout_id = checkout_id,
-                        total_price= total_price,
+                        checkout_id=checkout_id,
+                        total_price=total_price,
                         status=0,
                         cart_token=cart_token,
-                        product_info = product_info,
-                        abandoned_checkout_url= abandoned_checkout_url,
-                        checkout_create_time= checkout_create_time,
-                        checkout_update_time= checkout_update_time,
+                        product_info=product_info,
+                        abandoned_checkout_url=abandoned_checkout_url,
+                        checkout_create_time=checkout_create_time,
+                        checkout_update_time=checkout_update_time,
                         create_time=create_time,
                         update_time=update_time
         )
@@ -285,7 +285,7 @@ class CheckoutsUpdate(APIView):
                 checkout_id=checkout_id,
                 total_price=total_price,
                 product_info=product_info,
-                cart_token = cart_token,
+                cart_token=cart_token,
                 abandoned_checkout_url=abandoned_checkout_url,
                 checkout_create_time=checkout_create_time,
                 checkout_update_time=checkout_update_time
