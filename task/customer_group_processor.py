@@ -2475,6 +2475,9 @@ class AnalyzeCondition:
                 if not eval(str(res["customer_list"])):
                     continue
                 customer_list = eval(res["customer_list"])
+                # 先排除2分钟之内收到过此邮件的收件人
+                customers_2minutes = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(minutes=-2))
+                customer_list = list(set(customer_list) - set(customers_2minutes))
                 # 获取store的from_type, store_name
                 from_type, store_name = self.get_store_source(res["store_id"])
                 # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
@@ -2540,7 +2543,7 @@ class AnalyzeCondition:
                         old_recipients_dict.update({c_uuid: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
                 # 邮件发送完毕，回填数据
                 update_tuple_list.append((send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
-                recipients_list.append((str(old_recipients_dict), res["uuid"]))
+                recipients_list.append((str(old_recipients_dict), datetime.datetime.now(), res["uuid"]))
             self.update_email_record_recipients_list(recipients_list)
             update_res = self.update_flow_email_task(update_tuple_list)
             logger.info("execute flow task finished.")
@@ -2627,7 +2630,7 @@ class AnalyzeCondition:
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
                 return False
-            cursor.executemany("""update email_record set recipients=%s where uuid=%s""", recipients_list)
+            cursor.executemany("""update email_record set recipients=%s, update_time=%s where uuid=%s""", recipients_list)
             conn.commit()
             logger.info("update flow email record recipients datas success.")
         except Exception as e:
