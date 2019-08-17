@@ -41,6 +41,8 @@ class Store(models.Model):
     # message_domain = models.CharField(blank=True, null=True, max_length=255, verbose_name="message_domain")
     customer_shop = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_shop")
     sender_address = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_email")
+    logo = models.CharField(blank=True, null=True, max_length=255, verbose_name="邮件logo")
+    service_email = models.EmailField(verbose_name='service_email',max_length=255,blank=True,null=True,)
     store_view_id = models.CharField(blank=True, null=True, max_length=100, verbose_name=u"店铺的GA中的view id")
     init_choices = ((0, '新店铺'), (1, '旧店铺'))
     init = models.SmallIntegerField(db_index=True, choices=init_choices, default=0, verbose_name="店铺初始化")
