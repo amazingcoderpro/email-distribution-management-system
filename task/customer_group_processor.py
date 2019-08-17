@@ -2541,7 +2541,7 @@ class AnalyzeCondition:
                 for c_uuid in customer_uuid_list:
                         old_recipients_dict.update({c_uuid: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
                 # 邮件发送完毕，回填数据
-                update_tuple_list.append((send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
+                update_tuple_list.append((str(customer_uuid_list), send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
                 recipients_list.append((str(old_recipients_dict), datetime.datetime.now(), res["uuid"]))
             self.update_email_record_recipients_list(recipients_list)
             update_res = self.update_flow_email_task(update_tuple_list)
@@ -2652,7 +2652,7 @@ class AnalyzeCondition:
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
                 return False
-            cursor.executemany("""update email_task set remark=%s,finished_time=%s,customer_list=%s,update_time=%s,status=%s 
+            cursor.executemany("""update email_task set customer_list=%s,remark=%s,finished_time=%s,customer_list=%s,update_time=%s,status=%s 
                         where id=%s""", update_tuple_list)
             conn.commit()
             logger.info("update flow email task datas success.")
