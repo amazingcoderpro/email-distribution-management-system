@@ -11,11 +11,11 @@ logging.getLogger("pymysql").setLevel(logging.ERROR)
 logging.getLogger("pymongo").setLevel(logging.ERROR)
 logging.getLogger("google-api-python-client").setLevel(logging.ERROR)
 
-WHEN = os.getenv("WHEN", 'H')
-INTERVAL = os.getenv("INTERVAL", 12)
+WHEN = os.getenv("WHEN", 'midnight')
+INTERVAL = os.getenv("INTERVAL", 1)
 
 log_config.FORMATTER = "%(asctime)s [%(filename)s:%(funcName)s:%(lineno)d] %(levelname)s %(message)s"
-log_config.init_log_config("logs", "edm", when=WHEN, interval=INTERVAL, backup_count=20)
+log_config.init_log_config("logs", "edm", when=WHEN, interval=INTERVAL, backup_count=20, crated_time_in_file_name=False)
 logger = logging .getLogger()
 
 SHOPIFY_CONFIG = {

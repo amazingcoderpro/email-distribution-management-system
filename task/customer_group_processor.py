@@ -2227,9 +2227,9 @@ class AnalyzeCondition:
         """
         # 获取所有trigger条件
         trigger_conditions = self.get_trigger_conditions()
-        update_list = []
-        insert_list = []
         for cond in trigger_conditions:
+            update_list = []
+            insert_list = []
             store_id, t_id, title, relation_info, email_delay, note, old_customer_list, customer_list_id = cond.values()
             customer_list = self.get_customers_by_condition(condition=json.loads(cond["relation_info"]),
                                                           store_id=cond["store_id"])
@@ -2254,6 +2254,10 @@ class AnalyzeCondition:
             logger.info("some new customers into customer_list. trigger_id = %s" % t_id)
             old_customer_list.extend(new_customer_list)
             update_list.append((str(old_customer_list), datetime.datetime.now(), t_id))
+
+            # 1、将customer_list反填回数据库
+            self.update_customer_list_from_trigger(update_list)
+            logger.info("email_trigger update_customer_list_from_trigger success.")
 
             # 创建任务之前，应该更新一下创建收件人列表
             store = self.store_sender_and_email_by_id(store_id)
@@ -2294,7 +2298,7 @@ class AnalyzeCondition:
             logger.info("add subscriber success.customer_list_id is %s" % customer_list_id)
 
             # ToDo parse email_delay
-            excute_time = datetime.datetime.now() + datetime.timedelta(minutes=3)  # flow从此刻开始，为了避免程序运行时间耽搁，导致第一封邮件容易过去，自动延后5分钟
+            excute_time = datetime.datetime.now()+ datetime.timedelta(minutes=1)  # flow从此刻开始，为了避免程序运行时间耽搁，导致第一封邮件容易过去，自动延后5分钟
             for item in json.loads(email_delay):
                 if item["type"] == "Email":  # 代表是邮件任务
                     template_id, unit = item["value"], item["unit"]
@@ -2314,14 +2318,9 @@ class AnalyzeCondition:
                     logger.error("type=%s is invalid."% item["type"])
                     return False
 
-        # 1、将customer_list反填回数据库
-        if not self.update_customer_list_from_trigger(update_list):
-            return False
-        logger.info("email_trigger table update success.")
-        # 2、拆解的任务入库email_task
-        if not self.insert_email_task_from_trigger(insert_list):
-            return False
-        logger.info("email_trigger table update success.")
+            # 2、拆解的任务入库email_task
+            self.insert_email_task_from_trigger(insert_list)
+            logger.info("email_trigger insert_email_task_from_trigger success.")
         return True
 
     def update_customer_list_from_trigger(self, customer_lists):
@@ -2466,7 +2465,7 @@ class AnalyzeCondition:
             t.create_time as create_time,f.customer_list_id as customer_list_id, t.template_id as template_id
             from email_task as t join email_trigger as f on t.email_trigger_id=f.id 
             where t.type=1 and t.status=0 and t.uuid is not null and f.customer_list_id is not null and execute_time between %s and %s""",
-                           (now_time-datetime.timedelta(seconds=70), now_time+datetime.timedelta(seconds=70)))
+                           (now_time-datetime.timedelta(seconds=35), now_time+datetime.timedelta(seconds=35)))
             result = cursor.fetchall()
             logger.info("get need to execute flow email tasks success.")
             update_tuple_list = []
@@ -2475,6 +2474,9 @@ class AnalyzeCondition:
                 if not eval(str(res["customer_list"])):
                     continue
                 customer_list = eval(res["customer_list"])
+                # 先排除2分钟之内收到过此邮件的收件人
+                customers_2minutes = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(minutes=-2))
+                customer_list = list(set(customer_list) - set(customers_2minutes))
                 # 获取store的from_type, store_name
                 from_type, store_name = self.get_store_source(res["store_id"])
                 # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
@@ -2535,12 +2537,13 @@ class AnalyzeCondition:
                             recipients.append(customer)
                 logger.info("send transactional messages {}".format("success" if status == 1 else "fialed"))
                 customer_uuid_list = self.customer_email_to_uuid_mongo(recipients, store_name)
+                logger.info("Successful e-mails are %s in store(%s)"% (str(customer_uuid_list), store_name))
                 old_recipients_dict = self.get_recipients_list_from_email_record(res["store_id"], res["uuid"])
                 for c_uuid in customer_uuid_list:
                         old_recipients_dict.update({c_uuid: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
                 # 邮件发送完毕，回填数据
-                update_tuple_list.append((send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
-                recipients_list.append((str(old_recipients_dict), res["uuid"]))
+                update_tuple_list.append((str(customer_uuid_list), send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
+                recipients_list.append((str(old_recipients_dict), datetime.datetime.now(), res["uuid"]))
             self.update_email_record_recipients_list(recipients_list)
             update_res = self.update_flow_email_task(update_tuple_list)
             logger.info("execute flow task finished.")
@@ -2627,7 +2630,7 @@ class AnalyzeCondition:
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
                 return False
-            cursor.executemany("""update email_record set recipients=%s where uuid=%s""", recipients_list)
+            cursor.executemany("""update email_record set recipients=%s, update_time=%s where uuid=%s""", recipients_list)
             conn.commit()
             logger.info("update flow email record recipients datas success.")
         except Exception as e:
@@ -2650,7 +2653,7 @@ class AnalyzeCondition:
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
                 return False
-            cursor.executemany("""update email_task set remark=%s,finished_time=%s,customer_list=%s,update_time=%s,status=%s 
+            cursor.executemany("""update email_task set customer_list=%s,remark=%s,finished_time=%s,customer_list=%s,update_time=%s,status=%s 
                         where id=%s""", update_tuple_list)
             conn.commit()
             logger.info("update flow email task datas success.")
