@@ -2227,9 +2227,9 @@ class AnalyzeCondition:
         """
         # 获取所有trigger条件
         trigger_conditions = self.get_trigger_conditions()
-        update_list = []
-        insert_list = []
         for cond in trigger_conditions:
+            update_list = []
+            insert_list = []
             store_id, t_id, title, relation_info, email_delay, note, old_customer_list, customer_list_id = cond.values()
             customer_list = self.get_customers_by_condition(condition=json.loads(cond["relation_info"]),
                                                           store_id=cond["store_id"])
@@ -2254,6 +2254,10 @@ class AnalyzeCondition:
             logger.info("some new customers into customer_list. trigger_id = %s" % t_id)
             old_customer_list.extend(new_customer_list)
             update_list.append((str(old_customer_list), datetime.datetime.now(), t_id))
+
+            # 1、将customer_list反填回数据库
+            self.update_customer_list_from_trigger(update_list)
+            logger.info("email_trigger update_customer_list_from_trigger success.")
 
             # 创建任务之前，应该更新一下创建收件人列表
             store = self.store_sender_and_email_by_id(store_id)
@@ -2294,7 +2298,7 @@ class AnalyzeCondition:
             logger.info("add subscriber success.customer_list_id is %s" % customer_list_id)
 
             # ToDo parse email_delay
-            excute_time = datetime.datetime.now() + datetime.timedelta(minutes=3)  # flow从此刻开始，为了避免程序运行时间耽搁，导致第一封邮件容易过去，自动延后5分钟
+            excute_time = datetime.datetime.now()+ datetime.timedelta(minutes=1)  # flow从此刻开始，为了避免程序运行时间耽搁，导致第一封邮件容易过去，自动延后5分钟
             for item in json.loads(email_delay):
                 if item["type"] == "Email":  # 代表是邮件任务
                     template_id, unit = item["value"], item["unit"]
@@ -2314,14 +2318,9 @@ class AnalyzeCondition:
                     logger.error("type=%s is invalid."% item["type"])
                     return False
 
-        # 1、将customer_list反填回数据库
-        if not self.update_customer_list_from_trigger(update_list):
-            return False
-        logger.info("email_trigger table update success.")
-        # 2、拆解的任务入库email_task
-        if not self.insert_email_task_from_trigger(insert_list):
-            return False
-        logger.info("email_trigger table update success.")
+            # 2、拆解的任务入库email_task
+            self.insert_email_task_from_trigger(insert_list)
+            logger.info("email_trigger insert_email_task_from_trigger success.")
         return True
 
     def update_customer_list_from_trigger(self, customer_lists):
@@ -2466,7 +2465,7 @@ class AnalyzeCondition:
             t.create_time as create_time,f.customer_list_id as customer_list_id, t.template_id as template_id
             from email_task as t join email_trigger as f on t.email_trigger_id=f.id 
             where t.type=1 and t.status=0 and t.uuid is not null and f.customer_list_id is not null and execute_time between %s and %s""",
-                           (now_time-datetime.timedelta(seconds=70), now_time+datetime.timedelta(seconds=70)))
+                           (now_time-datetime.timedelta(seconds=35), now_time+datetime.timedelta(seconds=35)))
             result = cursor.fetchall()
             logger.info("get need to execute flow email tasks success.")
             update_tuple_list = []
