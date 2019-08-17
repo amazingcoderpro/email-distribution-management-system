@@ -35,15 +35,15 @@ class StoreSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        # store_name = models.Store.objects.filter(name=validated_data["name"]).first()
-        # store_domain = models.Store.objects.filter(name=validated_data["domain"]).first()
-        # store_url = models.Store.objects.filter(name=validated_data["url"]).first()
-        # if store_name:
-        #     return store_name
-        # elif store_domain:
-        #     return store_domain
-        # elif store_url:
-        #     return store_url
+        store_name = models.Store.objects.filter(name=validated_data["name"]).first()
+        store_domain = models.Store.objects.filter(name=validated_data["domain"]).first()
+        store_url = models.Store.objects.filter(name=validated_data["url"]).first()
+        if store_name:
+            return store_name
+        elif store_domain:
+            return store_domain
+        elif store_url:
+            return store_url
         with transaction.atomic():
             # 增加用户
             user_dict = {}
