@@ -65,7 +65,7 @@ class ProductRecommend:
 
         return [{"name": name, "value": value} for name, value in snippet_dict.items()]
 
-    def get_card_product_mongo(self, customer_email, store_name, flow_title, template_id, domain, length=3):
+    def get_card_product_mongo(self, customer_email, store_name, flow_title, template_id, domain, service_email, length=3):
         """
         获取该用户购物车中的产品信息
         :param customer_email: 用户邮箱
@@ -84,7 +84,7 @@ class ProductRecommend:
             products.append({"shop_name": store_name,
                              "firstname": firstname,
                              "domain": domain,
-                             "service_email": "service@{}.com".format(store_name),
+                             "service_email": service_email,
                              "about_us_url": "https://{}/pages/about-us".format(
                                  domain) + f"?utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={template_id}",
                              "store_url": "https://{}".format(

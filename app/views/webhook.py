@@ -67,6 +67,9 @@ class EventOrderPaid(APIView):
         print(json.dumps(request.data))
         res = {}
         store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
+        if not store:
+            return Response({"code": 200})
+        store_id = store.id
         res["store"] = store
         res["order_uuid"] = request.data["id"]
         res["status"] = 1
@@ -128,8 +131,9 @@ class EventDraftCustomersCreate(APIView):
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
         store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"])
-        if store.exists():
-            store_id= store.first().id
+        if not store:
+            return Response({"code": 200})
+        store_id = store.id
         costomer_uuid = request.data["id"]
         # user = request.user
         # store_id  = user.store.id
@@ -168,9 +172,10 @@ class EventDraftCustomersUpdate(APIView):
         print("------------ Customer Update ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
-        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"])
-        if store.exists():
-            store_id = store.first().id
+        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
+        if not store:
+            return Response({"code": 200})
+        store_id = store.id
         event_uuid = request.data["id"]
         # user = request.user
         # store_id  = user.store.id
@@ -213,9 +218,10 @@ class CheckoutsCreate(APIView):
         print(json.dumps(request.data))
 
         result = request.data
-        if not result.get("customer", ""):
+        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
+        if not store or not result.get("customer", ""):
             return Response({"code": 200})
-        store_id = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first().id
+        store_id = store.id
         checkout_id = result.get("id")
         customer_info = result.get("customer", "")
         product_info = []
@@ -257,9 +263,9 @@ class CheckoutsUpdate(APIView):
         print("------------ Checkouts Update ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
-        if not request.data.get("customer"):
-            return Response({"code": 200})
         store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
+        if not store or not request.data.get("customer"):
+            return Response({"code": 200})
         store_id = store.id
         product_info = []
         for product in request.data["line_items"]:
@@ -309,9 +315,9 @@ class CheckoutsDelete(APIView):
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
         result = request.data
-        if not result.get("id"):
-            return Response({"code": 200})
         store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
+        if not store or not result.get("id"):
+            return Response({"code": 200})
         models.CheckoutEvent.objects.filter(store=store, checkout_id=request.data["id"]).update(status=2)
         return Response({"code": 200})
 
@@ -322,6 +328,8 @@ class CartsUpdate(APIView):
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
         store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
+        if not store:
+            return Response({"code": 200})
         store_id = store.id
         product_info = []
         for product in request.data["line_items"]:
