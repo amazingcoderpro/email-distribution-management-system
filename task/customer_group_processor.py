@@ -2131,7 +2131,7 @@ class AnalyzeCondition:
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
                 return None
-            cursor.execute("select `name`, `sender`, `sender_address`, `domain` from `store` where id=%s", (store_id,))
+            cursor.execute("select `name`, `sender`, `sender_address`, `domain`, `service_email` from `store` where id=%s", (store_id,))
             store = cursor.fetchone()
             if not store:
                 logger.warning("store is not found, store id={}".format(store_id))
@@ -2514,10 +2514,10 @@ class AnalyzeCondition:
                         pr = ProductRecommend()
                         if int(is_cart) == 1:
                             # 获取购物车产品
-                            cart_products = pr.get_card_product_mongo(customer, store_name, res["flow_title"], res["template_id"], store["domain"])
+                            cart_products = pr.get_card_product_mongo(customer, store_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"])
                         else:
                             # 获取店铺信息
-                            cart_products = pr.get_card_product_mongo(customer, store_name, res["flow_title"], res["template_id"], store["domain"], length=0)
+                            cart_products = pr.get_card_product_mongo(customer, store_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"], length=0)
                         top_products = []
                         if "top" in product_condition:
                             # 获取top_products
