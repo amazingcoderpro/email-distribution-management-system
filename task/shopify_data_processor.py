@@ -411,21 +411,29 @@ class ShopifyDataProcessor:
 
                 logger.info("start parse top products from mongo, store id={}, name={}".format(store_id, store_site))
                 order_collection = db["shopify_order"]
-                orders = order_collection.find({"site_name": store_site, "updated_at": {"$gte": time_beg}}, {"line_items": 1, "updated_at": 1})
+                orders = order_collection.find({"site_name": store_site, "updated_at": {"$gte": time_beg}, "financial_status": "paid"}, {"_id": 0, "line_items": 1, "updated_at": 1})
+
+                top_three_time = datetime.datetime.now() - datetime.timedelta(days=3)
+                top_seven_time = datetime.datetime.now() - datetime.timedelta(days=7)
+                top_fifteen_time = datetime.datetime.now() - datetime.timedelta(days=15)
+                top_thirty_time = datetime.datetime.now() - datetime.timedelta(days=30)
+
                 for order in orders:
                     line_items = order.get("line_items", [])
                     order_updated_time = order.get("updated_at", "")
                     order_updated = datetime.datetime.strptime(order_updated_time[0: 19], "%Y-%m-%dT%H:%M:%S")
-                    delta_days = (time_now - order_updated).total_seconds()/3600/24
                     for pro in line_items:
-                        if delta_days <= 3:
-                            recent_3days_paid_products.append(pro.get("product_id", ""))
-                        elif delta_days <= 7:
-                            recent_7days_paid_products.append(pro.get("product_id", ""))
-                        elif delta_days <= 15:
-                            recent_15days_paid_products.append(pro.get("product_id", ""))
-                        else:
+                        if not pro.get("product_exists", False):
+                            continue
+
+                        if order_updated >= top_thirty_time:
                             recent_30days_paid_products.append(pro.get("product_id", ""))
+                        if order_updated >= top_fifteen_time:
+                            recent_15days_paid_products.append(pro.get("product_id", ""))
+                        if order_updated >= top_seven_time:
+                            recent_7days_paid_products.append(pro.get("product_id", ""))
+                        if order_updated >= top_three_time:
+                            recent_3days_paid_products.append(pro.get("product_id", ""))
 
                 top6_product_ids_recent3days = [item[0] for item in Counter(recent_3days_paid_products).most_common(4)]
                 top6_product_ids_recent7days = [item[0] for item in Counter(recent_7days_paid_products).most_common(4)]
@@ -441,7 +449,7 @@ class ShopifyDataProcessor:
                 all_top = [int(item) for item in all_top]
                 all_top = list(set(all_top))
                 if all_top:
-                    products = product_col.find({"id": {"$in": all_top}}, {"id": 1, "title": 1, "handle": 1, "variants.price": 1, "image.src": 1})
+                    products = product_col.find({"id": {"$in": all_top}}, {"_id": 0, "id": 1, "title": 1, "handle": 1, "variants.price": 1, "image.src": 1})
                     # products = product_col.find({"id": {"$in": all_top}, "site_name": store_site},
                     #                             {"id": 1, "title": 1, "handle": 1})
                     for pro in products:
@@ -508,13 +516,16 @@ class ShopifyDataProcessor:
                 top_fifteen_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=15),datetime.time.min)
                 top_thirty_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=30),datetime.time.min)
                 cursor.execute(
-                    """select id, product_info,order_update_time from order_event where store_id = %s and order_update_time >= %s""",(store_id,top_thirty_time))
+                    """select id, product_info,order_update_time from order_event where store_id = %s and order_update_time >= %s and status==1""",(store_id,top_thirty_time))
                 order_events = cursor.fetchall()
                 if not order_events:
                     continue
                 for item in order_events:
                     id, product_info, order_update_time = item
                     product_info = json.loads(product_info)
+                    if not product.get("product_id", None):
+                        continue
+
                     if order_update_time >= top_thirty_time:
                         for product in product_info:
                             top_thirty_product_list.append(product["product_id"])
