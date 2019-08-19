@@ -11,7 +11,7 @@ from task.db_util import MongoDBUtil, DBUtil
 
 class ProductRecommend:
     def __init__(self):
-        self.cart_str = """<tr><td style="padding: 10px 0px;width: 50%;text-align: left;border-bottom: 1px solid #E8E8E8;margin: 10px 0;"><div style="width: calc(35% - 20px);display: inline-block;"><img src="{image_src}" style="width: 100%;"/></div><div style="width: calc(60% - 20px);display: inline-block;vertical-align: top;margin-left: 20px;line-height: 26px;"><div style="display: -webkit-box !important;overflow: hidden;text-overflow: ellipsis;word-break: break-all;-webkit-box-orient: vertical;-webkit-line-clamp: 2;"><a href="{product_url}" target="_blank" style="color: #000;text-decoration: none;">{title}</a></div><div style="color: #666;width: 100%;">Color:{color}</div><div style="color: #666;width: 100%;">Size:{size}</div></div></td><td valign="top" style="padding: 10px 0px;border-bottom: 1px solid #E8E8E8;line-height: 26px;"><div>${price}</div><div style="text-decoration: line-through;color: #666;">${compare_at_price}</div></td><td valign="top" style="padding: 10px 0px;border-bottom: 1px solid #E8E8E8;">{quantity}</td><td valign="top" style="padding: 10px 0px;border-bottom: 1px solid #E8E8E8;">${line_price}</td></tr>"""
+        self.cart_str = """<tr><td style="padding: 10px 0px;width: 50%;text-align: left;border-bottom: 1px solid #E8E8E8;margin: 10px 0;"><div style="width: calc(35% - 20px);display: inline-block;"><img src="{image_src}" style="width: 100%;"/></div><div style="width: calc(60% - 20px);display: inline-block;vertical-align: top;margin-left: 20px;line-height: 26px;"><div style="display: -webkit-box !important;overflow: hidden;text-overflow: ellipsis;word-break: break-all;-webkit-box-orient: vertical;-webkit-line-clamp: 2;"><a href="{product_url}" target="_blank" style="color: #000;text-decoration: none;">{title}</a></div><div style="color: #666;width: 100%;">Color:{color}</div><div style="color: #666;width: 100%;">Size:{size}</div></div></td><td valign="top" style="padding: 10px 0px;border-bottom: 1px solid #E8E8E8;line-height: 26px;"><div>{price}</div><div style="text-decoration: line-through;color: #666;">{compare_at_price}</div></td><td valign="top" style="padding: 10px 0px;border-bottom: 1px solid #E8E8E8;">{quantity}</td><td valign="top" style="padding: 10px 0px;border-bottom: 1px solid #E8E8E8;">{line_price}</td></tr>"""
         self.top_str = """ <div style="width:calc(50% - 24px);margin:10px;display:inline-block;vertical-align: top;"><a href="{url}"><img src="{image_url}" style="width:100%;"/></a><h3 style="font-weight:700;white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">{name}</h3></div>"""
 
     def generate_new_html_with_product_block(self, product_list, html):
@@ -48,6 +48,7 @@ class ProductRecommend:
             cart_product_str += self.cart_str.format(**product)
         # 拼接top产品html
         top_product_str = ""
+        product_title = top_product_list.pop(-1)
         for product in top_product_list:
             top_product_str += self.top_str.format(**product)
 
@@ -62,7 +63,7 @@ class ProductRecommend:
                         "cart_products": cart_product_str,
                         "abandoned_checkout_url": abandoned_checkout_url,
                         "top_products": top_product_str}
-
+        snippet_dict.update(product_title)
         return [{"name": name, "value": value} for name, value in snippet_dict.items()]
 
     def get_card_product_mongo(self, customer_email, store_name, flow_title, template_id, domain, service_email, length=3):
@@ -77,6 +78,13 @@ class ProductRecommend:
         try:
             mdb = MongoDBUtil(mongo_config=MONGO_CONFIG)
             db = mdb.get_instance()
+            # 通过store_name获取money_in_emails_format
+            money_format = db.shopify_shop_info.find_one({"site_name": store_name}, {"_id": 0, "money_in_emails_format": 1})
+            try:
+                money_in_emails_format = money_format["money_in_emails_format"].split("{{")[0][-1]
+            except Exception as e:
+                logger.exception("get store's(store_name: %s) money_in_emails_format exception, use default '$'." % store_name)
+                money_in_emails_format = "$"
             # 通过ID获取firstname和shop_name
             res = db.shopify_customer.find_one({"email": customer_email, "site_name": store_name},
                                                {"_id": 0, "first_name": 1})
@@ -106,8 +114,9 @@ class ProductRecommend:
                     color, size = variant_title.split("/") if "/" in variant_title else (variant_title, "")
                     product_dict.update({pro["product_id"]: {"title": pro["title"], "color": color.strip(),
                                                              "size": size.strip(),
-                                                             "compare_at_price": pro["compare_at_price"],
-                                                             "line_price": pro["line_price"], "price": pro["price"],
+                                                             "compare_at_price": money_in_emails_format+pro["compare_at_price"],
+                                                             "line_price": money_in_emails_format+pro["line_price"],
+                                                             "price": money_in_emails_format+pro["price"],
                                                              "quantity": pro["quantity"],
                                                              "abandoned_checkout_url": abandoned_checkout_url}})
             if not product_dict:
@@ -167,7 +176,11 @@ class ProductRecommend:
                         products_list.append(product)
                     if len(products_list) % 2 == 1:
                         products_list.pop(-1)
-
+            if len(products_list):
+                products_title = ""
+            else:
+                products_title = "hide"
+            products_list.append({"products_title": products_title})
             return products_list
         except Exception as e:
             logger.exception("get_top_product_by_condition e={}".format(e))

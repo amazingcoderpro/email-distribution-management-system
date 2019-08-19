@@ -257,6 +257,7 @@ class SendMailView(generics.CreateAPIView):
         html = request.data["html"]
         subject = request.data["subject"]
         html = html.replace(store_url+"?utm_source=smartsend", store_url+"?utm_source=smartsend&utm_medium=newsletter")
+        html = html.replace("*[tr_shop_name]*", store.name)
         product_list = request.data.get("product_list", None)
         if product_list:
             if product_list != "[]":
