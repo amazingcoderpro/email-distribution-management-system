@@ -43,12 +43,13 @@ class Store(models.Model):
     sender_address = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_email")
     logo = models.CharField(blank=True, null=True, max_length=255, verbose_name="邮件logo")
     service_email = models.EmailField(verbose_name='service_email',max_length=255,blank=True,null=True,)
+    currency = models.CharField(verbose_name='currency',max_length=255,blank=True,null=True,)
     store_view_id = models.CharField(blank=True, null=True, max_length=100, verbose_name=u"店铺的GA中的view id")
     init_choices = ((0, '新店铺'), (1, '旧店铺'))
     init = models.SmallIntegerField(db_index=True, choices=init_choices, default=0, verbose_name="店铺初始化")
     source_choices = ((0, 'opstores'), (1, 'foreign_store'))
     source = models.SmallIntegerField(db_index=True, choices=source_choices, default=0, verbose_name="店铺来自")
-    if ENABLE_MIGRATE:
+    if True:
         user_id = models.IntegerField(db_index=True, verbose_name="用户id")
     else:
         user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
@@ -58,7 +59,7 @@ class Store(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = ENABLE_MIGRATE
+        managed = True
         db_table = 'store'
 
 
