@@ -79,7 +79,7 @@ class ProductRecommend:
             mdb = MongoDBUtil(mongo_config=MONGO_CONFIG)
             db = mdb.get_instance()
             # 通过store_name获取money_in_emails_format
-            money_format = db.shopify_shop_info.find_one({"site_name": store_name}, {"_id": 0, "money_in_emails_format": 1})
+            money_format = db.shopify_shop_info.find_one({"site_name": store_name}, {"_id": 0, "money_in_emails_format": 1, "name": 1})
             try:
                 money_in_emails_format = money_format["money_in_emails_format"].split("{{")[0][-1]
             except Exception as e:
@@ -89,7 +89,7 @@ class ProductRecommend:
             res = db.shopify_customer.find_one({"email": customer_email, "site_name": store_name},
                                                {"_id": 0, "first_name": 1})
             firstname = res["first_name"]
-            products.append({"shop_name": store_name,
+            products.append({"shop_name": money_format["name"],
                              "firstname": firstname,
                              "domain": domain,
                              "service_email": service_email,
