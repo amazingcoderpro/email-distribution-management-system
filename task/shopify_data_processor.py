@@ -376,6 +376,7 @@ class ShopifyDataProcessor:
             logger.warning("There have not stores to update top products")
             return False
 
+        logger.info("update_top_products_mongo, store={}".format(store))
         try:
             mdb = MongoDBUtil(mongo_config=MONGO_CONFIG)
             db = mdb.get_instance()
@@ -872,37 +873,38 @@ class ShopifyDataProcessor:
 
             cursor.execute(
                 """select store.id, store.url, store.token, store_create_time, store.source, store.domain, store.name, store.site_name from store left join user on store.user_id = user.id where user.is_active = 1 and store.init = 0 and store.id>1""")
-            store = cursor.fetchone()
-            if not store:
+            uninit_stores = cursor.fetchall()
+            if not uninit_stores:
                 logger.info("update_new_shopify is ending...")
                 return False
 
-            update_time = datetime.datetime.now()
+            for store in uninit_stores:
+                update_time = datetime.datetime.now()
 
-            cursor.execute(
-                '''update `store` set init=%s,update_time=%s where id=%s''',(1, update_time, store[0]))
-            conn.commit()
-            logger.info("update_new_shopify begin update data store_id={}".format(store[0]))
+                cursor.execute(
+                    '''update `store` set init=%s,update_time=%s where id=%s''',(1, update_time, store[0]))
+                conn.commit()
+                logger.info("update_new_shopify begin update data store_id={}".format(store[0]))
 
-            store = (store,)
-            if store[0][4] == 1:
-                self.create_template(store)
-                self.update_shopify_collections(store)
-                self.update_shopify_orders(store)
-                self.update_shopify_product(store)
-                self.update_top_product(store)
+                store = (store,)
+                if store[0][4] == 1:
+                    self.create_template(store)
+                    self.update_shopify_collections(store)
+                    self.update_shopify_orders(store)
+                    self.update_shopify_product(store)
+                    self.update_top_product(store)
 
-                # 新店铺拉客户, 初始拉取一次，以后由webhook推送新顾客的创建事件
-                self.update_shopify_customers(store=store)
-                self.update_shopify_order_customer(store)
-                self.update_store_webhook(store)
+                    # 新店铺拉客户, 初始拉取一次，以后由webhook推送新顾客的创建事件
+                    self.update_shopify_customers(store=store)
+                    self.update_shopify_order_customer(store)
+                    self.update_store_webhook(store)
 
-                logger.info("update_new_shopify end init data store_id={}".format(store[0]))
-            else:
-                # 对来自opstores的新入店铺，拉取top　products
-                logger.info("update_new_shopify store from opstores, store={}".format(store[0]))
-                self.sync_shop_info_from_mongo(store)
-                self.update_top_products_mongo(store)
+                    logger.info("update_new_shopify end init data store_id={}".format(store[0]))
+                else:
+                    # 对来自opstores的新入店铺，拉取top　products
+                    logger.info("update_new_shopify store from opstores, store={}".format(store[0]))
+                    store = self.sync_shop_info_from_mongo(store)
+                    self.update_top_products_mongo(store)
 
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
@@ -913,11 +915,11 @@ class ShopifyDataProcessor:
 
     def sync_shop_info_from_mongo(self, store):
         if not store:
-            return False
+            return None
 
         store_id, shopify_domain, *_ = store[0]
         if not shopify_domain:
-            return False
+            return None
 
         logger.info("sync_shop_info_from_mongo shopify_domain={}".format(shopify_domain))
         try:
@@ -925,7 +927,7 @@ class ShopifyDataProcessor:
             db = mdb.get_instance()
             if not db:
                 logger.error("update_top_products_mongo error, connect mongo db failed.")
-                return False
+                return store
 
             shop_collection = db["shopify_shop_info"]
             shop = shop_collection.find_one({"myshopify_domain": shopify_domain},
@@ -933,9 +935,11 @@ class ShopifyDataProcessor:
                                             "money_in_emails_format": 1, "timezone": 1, "customer_email": 1})
             if not shop:
                 logger.error("Not find shop information in mongo db. shopify_domain={}".format(shopify_domain))
-                return False
+                return store
 
             site_name = shop.get("site_name", "")
+            store[0][7] = site_name # 补充site_name(只有从mongo同步完信息后才行)
+
             name = shop.get("name", "")
             domain = shop.get("domain", "")
             sender = name
@@ -952,7 +956,7 @@ class ShopifyDataProcessor:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 logger.error("cannot connect MySQL.")
-                return False
+                return store
 
             cursor.execute("update `store` set name=%s, domain=%s, email=%s, timezone=%s, sender=%s, sender_address=%s, "
                            "service_email=%s, currency=%s, site_name=%s, update_time=%s where id=%s", (name, domain, email,
@@ -962,7 +966,7 @@ class ShopifyDataProcessor:
             conn.commit()
         except Exception as e:
             logger.exception("sync_shop_info_from_mongo e={}".format(e))
-            return False
+            return store
         finally:
             mdb.close()
             cursor.close() if cursor else 0
@@ -1136,7 +1140,7 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).create_template()
 
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
     #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
