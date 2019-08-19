@@ -112,7 +112,7 @@ class AnalyzeCondition:
             cursor = conn.cursor() if conn else None
             if not cursor:
                 return 0, None
-            cursor.execute("select `source`, `name` from `store` where id=%s", (store_id, ))
+            cursor.execute("select `source`, `site_name` from `store` where id=%s", (store_id, ))
             store = cursor.fetchone()
             if not store:
                 return 0, None
