@@ -152,6 +152,7 @@ class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
                   "heading_text",
                   "logo",
                   "banner",
+                  "banner_text",
                   "headline",
                   "body_text",
                   "product_list",
