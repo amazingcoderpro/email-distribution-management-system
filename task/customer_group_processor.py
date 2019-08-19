@@ -105,7 +105,7 @@ class AnalyzeCondition:
         """
         获取某一店铺的from_type和name
         :param store_id: 店铺id
-        :return: 元组(from_type, name) from_type:0--来自opstores, 1--来自edm
+        :return: 元组(from_type, site_name) from_type:0--来自opstores, 1--来自edm
         """
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
@@ -1738,7 +1738,7 @@ class AnalyzeCondition:
                 group_id = value["group_id"]
                 store_id = value["store_id"]
                 group_title = value["group_title"]
-                source, store_name = self.get_store_source(store_id)
+                source, store_site_name = self.get_store_source(store_id)
                 # 新的顾客列表，转成邮件
                 new_customer_list = value["customer_list"]
                 dt_now = datetime.datetime.now()
@@ -1754,7 +1754,7 @@ class AnalyzeCondition:
                 logger.info("update group id={}, new customer list length={}".format(group_id, len(new_customer_list)))
                 if new_customer_list:
                     if source == 0:
-                        new_customer_email_list = self.customer_uuid_to_email_mongo(new_customer_list, store_name)
+                        new_customer_email_list = self.customer_uuid_to_email_mongo(new_customer_list, store_site_name)
                     else:
                         new_customer_email_list = self.customer_uuid_to_email(new_customer_list)
 
@@ -1773,7 +1773,7 @@ class AnalyzeCondition:
                         old_customer_list = eval(customer_group["customer_list"])
                         if old_customer_list:
                             if source == 0:
-                                old_email_list = self.customer_uuid_to_email_mongo(old_customer_list, store_name)
+                                old_email_list = self.customer_uuid_to_email_mongo(old_customer_list, store_site_name)
                             else:
                                 old_email_list = self.customer_uuid_to_email(old_customer_list)
 
@@ -1803,7 +1803,7 @@ class AnalyzeCondition:
                     delete_customers = list(set(old_customer_list) - set(new_customer_list))     #需要删除的客户id
                     if new_add_customers:
                         if source == 0:
-                            new_add_customers_email_list = self.customer_uuid_to_email_mongo(new_add_customers, store_name)
+                            new_add_customers_email_list = self.customer_uuid_to_email_mongo(new_add_customers, store_site_name)
                         else:
                             new_add_customers_email_list = self.customer_uuid_to_email(new_add_customers)
 
@@ -1826,7 +1826,7 @@ class AnalyzeCondition:
 
                     if delete_customers:
                         if source == 0:
-                            delete_customers_email_list = self.customer_uuid_to_email_mongo(delete_customers, store_name)
+                            delete_customers_email_list = self.customer_uuid_to_email_mongo(delete_customers, store_site_name)
                         else:
                             delete_customers_email_list = self.customer_uuid_to_email(delete_customers)
 
@@ -2308,9 +2308,9 @@ class AnalyzeCondition:
                     logger.error("insert_customer_list_id_from_email_trigger failed")
                     return False
             # 获取store的from_type, store_name
-            from_type, store_name = self.get_store_source(store_id)
+            from_type, store_site_name = self.get_store_source(store_id)
             # 将new_customer_list转换成邮箱地址列表
-            email_list = self.customer_uuid_to_email(new_customer_list) if from_type else self.customer_uuid_to_email_mongo(new_customer_list, store_name)
+            email_list = self.customer_uuid_to_email(new_customer_list) if from_type else self.customer_uuid_to_email_mongo(new_customer_list, store_site_name)
             # 对new_customer_list里的收件人进行取消订阅或休眠过滤
             unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(store_id)
             if ENABLE_SUBSCRIBE:
@@ -2341,7 +2341,7 @@ class AnalyzeCondition:
                     subject, html, product_condition, is_cart = self.get_template_info_by_id(template_id)
                     email_uuid = self.create_trigger_email_by_template(store_id, template_id, subject, html, t_id)[0]
                     # 将触发邮件任务参数增加到待入库数据列表中
-                    valid_email_id_list = self.customer_email_to_uuid(valid_email, store_id) if from_type else self.customer_email_to_uuid_mongo(valid_email, store_name)
+                    valid_email_id_list = self.customer_email_to_uuid(valid_email, store_id) if from_type else self.customer_email_to_uuid_mongo(valid_email, store_site_name)
                     insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(valid_email_id_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now(), store_id))
                 elif item["type"] == "Delay":  # 代表是delay
                     num, unit = item["value"], item["unit"]
@@ -2514,7 +2514,7 @@ class AnalyzeCondition:
                 customers_2minutes = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(minutes=-2))
                 customer_list = list(set(customer_list) - set(customers_2minutes))
                 # 获取store的from_type, store_name
-                from_type, store_name = self.get_store_source(res["store_id"])
+                from_type, store_site_name = self.get_store_source(res["store_id"])
                 # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
                 if "customer received an email from this campaign in the last 7 days" in eval(res["note"]):
                     # customers_7day = self.filter_received_customer(res["store_id"], res["uuid"]) if from_type else self.filter_received_customer_mongo(res["store_id"], res["uuid"], store_name)
@@ -2523,7 +2523,7 @@ class AnalyzeCondition:
                     logger.info("filter the customer received an email from this campaign in the last 7 days.")
                 if "customer makes a purchase" in eval(res["note"]) and res["remark"] != "first":
                     # 对customer_list里的收件人进行note筛选(从task创建时间开始)
-                    customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_name)
+                    customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_site_name)
                     customer_list = list(set(customer_list) - set(customers_purchased))
                     logger.info("filter the customer makes a purchase.")
                 # 开始对筛选过的用户发送邮件
@@ -2533,7 +2533,7 @@ class AnalyzeCondition:
                     return False
                 ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
                 # 需要将uuid 转换成email
-                email_list = self.customer_uuid_to_email(customer_list) if from_type else self.customer_uuid_to_email_mongo(customer_list, store_name)
+                email_list = self.customer_uuid_to_email(customer_list) if from_type else self.customer_uuid_to_email_mongo(customer_list, store_site_name)
                 # 对customer_list里的收件人进行取消订阅或休眠过滤
                 unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(res["store_id"])
                 email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
@@ -2550,10 +2550,10 @@ class AnalyzeCondition:
                         pr = ProductRecommend()
                         if int(is_cart) == 1:
                             # 获取购物车产品
-                            cart_products = pr.get_card_product_mongo(customer, store_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"])
+                            cart_products = pr.get_card_product_mongo(customer, store_site_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"])
                         else:
                             # 获取店铺信息
-                            cart_products = pr.get_card_product_mongo(customer, store_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"], length=0)
+                            cart_products = pr.get_card_product_mongo(customer, store_site_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"], length=0)
                         top_products = []
                         if "top" in product_condition:
                             # 获取top_products
@@ -2572,8 +2572,8 @@ class AnalyzeCondition:
                         if customer not in recipients:
                             recipients.append(customer)
                 logger.info("send transactional messages {}".format("success" if status == 1 else "fialed"))
-                customer_uuid_list = self.customer_email_to_uuid_mongo(recipients, store_name)
-                logger.info("Successful e-mails are %s in store(%s)"% (str(customer_uuid_list), store_name))
+                customer_uuid_list = self.customer_email_to_uuid_mongo(recipients, store_site_name)
+                logger.info("Successful e-mails are %s in store(%s)"% (str(customer_uuid_list), store_site_name))
                 old_recipients_dict = self.get_recipients_list_from_email_record(res["store_id"], res["uuid"])
                 for c_uuid in customer_uuid_list:
                         old_recipients_dict.update({c_uuid: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
