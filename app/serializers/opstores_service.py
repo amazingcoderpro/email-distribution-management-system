@@ -7,15 +7,17 @@ import json
 
 
 class StoreSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(required=True, )
-    domain = serializers.CharField(required=True, )
-    url = serializers.CharField(required=True,)
+    # name = serializers.CharField(required=True, )
+    # domain = serializers.CharField(required=True, )
+    # url = serializers.CharField(required=True,)
+    shopify_domain = serializers.CharField(required=True,write_only=True)
     password = serializers.CharField(required=True,write_only=True)
     # timezone = serializers.CharField(required=True)
 
     class Meta:
         model = models.Store
         fields = (
+                  "shopify_domain",
                   "name",
                   "domain",
                   "url",
@@ -28,44 +30,40 @@ class StoreSerializer(serializers.ModelSerializer):
                   "timezone",
                   "password"
         )
-        extra_kwargs = {
-            'name': {'read_only': True},
-            'domain': {'read_only': True},
-            'url': {'read_only': True},
-        }
+        # extra_kwargs = {
+        #     'name': {'read_only': True},
+        #     'domain': {'read_only': True},
+        #     'url': {'read_only': True},
+        # }
 
     def create(self, validated_data):
-        store_name = models.Store.objects.filter(name=validated_data["name"]).first()
-        store_domain = models.Store.objects.filter(name=validated_data["domain"]).first()
-        store_url = models.Store.objects.filter(name=validated_data["url"]).first()
-        if store_name:
-            return store_name
-        elif store_domain:
-            return store_domain
-        elif store_url:
-            return store_url
+        # shopify_domain = models.Store.objects.filter(url=validated_data["shopify_domain"]).first()
+        # if shopify_domain:
+        #     return shopify_domain
         with transaction.atomic():
             # 增加用户
             user_dict = {}
-            user_dict["username"] = validated_data["name"]
+            user_dict["username"] = validated_data["shopify_domain"]
             user_dict["password"] = self.context["request"].data["password"] if not validated_data["password"] else validated_data["password"]
-            user_dict["email"] = validated_data.get("email") if validated_data.get("email") else ""
+            # user_dict["email"] = validated_data.get("email") if validated_data.get("email") else ""
             user_instance = models.User.objects.create(**user_dict)
             user_instance.set_password(user_dict["password"])
             user_instance.save()
             # 增加店铺
             store_dict = {}
             store_dict["user"] = user_instance
-            store_dict["name"] = validated_data["name"]
-            store_dict["email"] = validated_data.get("email") if validated_data.get("email") else ""
-            store_dict["url"] = validated_data["url"]
+            # store_dict["name"] = validated_data["name"]
+            # store_dict["email"] = validated_data.get("email") if validated_data.get("email") else ""
+            # store_dict["url"] = validated_data["url"]
+            #store_dict["logo"] = validated_data.get("logo") if validated_data.get("logo") else ""
+            # store_dict["service_email"] = validated_data.get("service_email") if validated_data.get("service_email") else "service@{shop_name}.com".format(shop_name=validated_data["name"].lower())
+            # store_dict["timezone"] = validated_data["timezone"] if validated_data.get("timezone") else "(GMT+08:00) Asia/Shanghai"
+            # store_dict["domain"] = validated_data["domain"]
+            # store_dict["user"] = user_instance
+            # store_dict["sender"] = validated_data["sender"] if validated_data.get("sender") else validated_data["name"]
+            # store_dict["sender_address"] = validated_data["sender_address"] if validated_data.get("sender_address") else "noreply@letter.{shop_name}.com".format(shop_name=validated_data["name"].lower())
+            store_dict["url"] = validated_data["shopify_domain"]
             store_dict["logo"] = validated_data.get("logo") if validated_data.get("logo") else ""
-            store_dict["service_email"] = validated_data.get("service_email") if validated_data.get("service_email") else "service@{shop_name}.com".format(shop_name=validated_data["name"].lower())
-            store_dict["timezone"] = validated_data["timezone"] if validated_data.get("timezone") else "(GMT+08:00) Asia/Shanghai"
-            store_dict["domain"] = validated_data["domain"]
-            store_dict["user"] = user_instance
-            store_dict["sender"] = validated_data["sender"] if validated_data.get("sender") else validated_data["name"]
-            store_dict["sender_address"] = validated_data["sender_address"] if validated_data.get("sender_address") else "noreply@letter.{shop_name}.com".format(shop_name=validated_data["name"].lower())
             store_dict["store_view_id"] = validated_data["store_view_id"] if validated_data.get("store_view_id") else ""
             store_dict["init"] = 0
             instance = super(StoreSerializer, self).create(store_dict)
@@ -86,7 +84,7 @@ class StoreSerializer(serializers.ModelSerializer):
             email_template = models.EmailTemplate.objects.filter(store_id=1, status__in=[0, 1]).values("id", "title", "description", "subject", "logo", "banner",
                                                                                     "heading_text", "headline",
                                                                                     "body_text", "customer_group_list",
-                                                                                    "html", "send_rule", "send_type","product_condition", "is_cart", "product_title")
+                                                                                    "html", "send_rule", "send_type","product_condition", "is_cart", "product_title", "banner_text")
 
             email_template_record = {}
             for item in email_template:
@@ -109,7 +107,8 @@ class StoreSerializer(serializers.ModelSerializer):
                     "send_type": item["send_type"],
                     "product_condition": item["product_condition"],
                     "is_cart": item["is_cart"],
-                    "product_title": item["product_title"]
+                    "product_title": item["product_title"],
+                    "banner_text": item["banner_text"]
                 }
                 emailtemplate_instance = models.EmailTemplate.objects.create(**template_dict)
                 email_template_record[item["id"]] = emailtemplate_instance.id
@@ -188,6 +187,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
                   "heading_text",
                   "logo",
                   "banner",
+                  "banner_text",
                   "headline",
                   "body_text",
                   "product_list",

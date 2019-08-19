@@ -58,6 +58,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
                   "heading_text",
                   "logo",
                   "banner",
+                  "banner_text",
                   "headline",
                   "body_text",
                   "product_list",
@@ -83,7 +84,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
         html = validated_data["html"]
         store_url = store.domain
         html = html.replace(store_url+"?utm_source=smartsend", store_url+f"?utm_source=smartsend&utm_medium=newsletter&utm_campaign={instance.title}&utm_term={instance.id}")
-
+        html = html.replace("*[tr_shop_name]*", store.name)
         product_list = validated_data.get("product_list", None)
         if product_list:
             if product_list != "[]":
@@ -177,6 +178,7 @@ class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
         html = validated_data["html"]
         store_url = store.domain
         html = html.replace(store_url+"?utm_source=smartsend", store_url+f"?utm_source=smartsend&utm_medium=flow&utm_capaign={instance.subject}&utm_term={instance.id}")
+        html = html.replace("*[tr_shop_name]*", store.name)
         product_list = validated_data.get("product_list", None)
         if product_list:
             if product_list != "[]":
@@ -282,7 +284,8 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
                                                                                              "logo",
                                                                                              "banner",
                                                                                              "is_cart",
-                                                                                             "product_title"
+                                                                                             "product_title",
+                                                                                             "banner_text"
                                                                                              ).first()
                 template_dict = {
                     "store": store,
@@ -301,7 +304,8 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
                     "logo": email_template["logo"],
                     "banner": email_template["banner"],
                     "is_cart": email_template["is_cart"],
-                    "product_title": email_template["product_title"]
+                    "product_title": email_template["product_title"],
+                    "banner_text": email_template["banner_text"]
                 }
                 emailtemplate_instance = models.EmailTemplate.objects.create(**template_dict)
                 val["value"] = emailtemplate_instance.id
