@@ -229,7 +229,7 @@ class EmailTask(models.Model):
     update_time = models.DateTimeField(db_index=True, auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = True
+        managed = ENABLE_MIGRATE
         db_table = 'email_task'
 
 
