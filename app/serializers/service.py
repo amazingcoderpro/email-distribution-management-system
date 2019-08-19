@@ -178,6 +178,7 @@ class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
         html = validated_data["html"]
         store_url = store.domain
         html = html.replace(store_url+"?utm_source=smartsend", store_url+f"?utm_source=smartsend&utm_medium=flow&utm_capaign={instance.subject}&utm_term={instance.id}")
+        html = html.replace("*[tr_shop_name]*", store.name)
         product_list = validated_data.get("product_list", None)
         if product_list:
             if product_list != "[]":
