@@ -86,7 +86,7 @@ class StoreSerializer(serializers.ModelSerializer):
             email_template = models.EmailTemplate.objects.filter(store_id=1, status__in=[0, 1]).values("id", "title", "description", "subject", "logo", "banner",
                                                                                     "heading_text", "headline",
                                                                                     "body_text", "customer_group_list",
-                                                                                    "html", "send_rule", "send_type","product_condition", "is_cart", "product_title")
+                                                                                    "html", "send_rule", "send_type","product_condition", "is_cart", "product_title", "banner_text")
 
             email_template_record = {}
             for item in email_template:
@@ -109,7 +109,8 @@ class StoreSerializer(serializers.ModelSerializer):
                     "send_type": item["send_type"],
                     "product_condition": item["product_condition"],
                     "is_cart": item["is_cart"],
-                    "product_title": item["product_title"]
+                    "product_title": item["product_title"],
+                    "banner_text": item["banner_text"]
                 }
                 emailtemplate_instance = models.EmailTemplate.objects.create(**template_dict)
                 email_template_record[item["id"]] = emailtemplate_instance.id
