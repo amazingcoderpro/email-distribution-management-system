@@ -2150,6 +2150,7 @@ class AnalyzeCondition:
         :param customer_uuid_list: customer uuid列表
         :return: email 列表
         """
+        email_list = []
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
                           password=self.db_password).get_instance()
@@ -2160,16 +2161,45 @@ class AnalyzeCondition:
             store = cursor.fetchall()
             if not store:
                 logger.warning("not found any data")
-                return None
+                return email_list
 
             email_list = list(set([s["customer_email"] for s in store if s["customer_email"]]))
         except Exception as e:
             logger.exception("customer uuid to customer email exception: {}".format(e))
-            return None
+            return email_list
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
         return email_list
+
+    def customer_email_to_uuid(self, email_list, store_id):
+        """
+        将emial 转换成 uuid
+        :param email_list: email 列表
+        :param store_id: 所属店铺
+        :return: uuid 列表
+        """
+        uuid_list = []
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return None
+            cursor.execute("select `uuid` from `customer` where customer_email in %s and store_id=%s", (email_list, store_id))
+            store = cursor.fetchall()
+            if not store:
+                logger.warning("not found any data")
+                return uuid_list
+
+            uuid_list = list(set([s["uuid"] for s in store if s["uuid"]]))
+        except Exception as e:
+            logger.exception("customer_email_to_uuid exception: {}".format(e))
+            return uuid_list
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return uuid_list
 
     def customer_uuid_to_email_mongo(self, customer_uuid_list, store_name):
         """
@@ -2295,8 +2325,13 @@ class AnalyzeCondition:
                 if rest["code"]==-1 or rest["code"]==2:
                     logger.error("add subscribers failed")
                     return False
+            invalid_email = rest.get("invalid_email", [])
+            valid_email = list(set(email_list) - set(invalid_email))  # 添加到收件人列表成功的邮箱
             logger.info("add subscriber success.customer_list_id is %s" % customer_list_id)
-
+            if not valid_email:
+                # 无新增符合触发条件的用户
+                logger.warning("No new customers were successfully added to the subscriber list.")
+                continue
             # ToDo parse email_delay
             excute_time = datetime.datetime.now()+ datetime.timedelta(minutes=1)  # flow从此刻开始，为了避免程序运行时间耽搁，导致第一封邮件容易过去，自动延后5分钟
             for item in json.loads(email_delay):
@@ -2306,7 +2341,8 @@ class AnalyzeCondition:
                     subject, html, product_condition, is_cart = self.get_template_info_by_id(template_id)
                     email_uuid = self.create_trigger_email_by_template(store_id, template_id, subject, html, t_id)[0]
                     # 将触发邮件任务参数增加到待入库数据列表中
-                    insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(new_customer_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now()))
+                    valid_email_id_list = self.customer_email_to_uuid(valid_email, store_id) if from_type else self.customer_email_to_uuid_mongo(valid_email, store_name)
+                    insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(valid_email_id_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now()))
                 elif item["type"] == "Delay":  # 代表是delay
                     num, unit = item["value"], item["unit"]
                     if unit in ["weeks", "days", "hours", "minutes"]:
@@ -2315,7 +2351,7 @@ class AnalyzeCondition:
                         logger.error("delay unit is error, please amend it to days or hours.")
                         return False
                 else:
-                    logger.error("type=%s is invalid."% item["type"])
+                    logger.error("type=%s is invalid." % item["type"])
                     return False
 
             # 2、拆解的任务入库email_task
