@@ -110,7 +110,7 @@ class EmailTemplate(models.Model):
     transcations = models.IntegerField(default=0, verbose_name="交易次数")
     logo = models.CharField(blank=True, null=True, max_length=255,verbose_name="邮件logo")
     banner = models.CharField(blank=True, null=True, max_length=255,verbose_name="邮件banner")
-    banner_text = JSONField(blank=True, null=True,verbose_name="banner_text")
+    banner_text = models.TextField(blank=True, null=True, verbose_name="banner_text")
     headline = models.TextField(verbose_name="邮件headline")
     body_text = models.TextField(verbose_name="邮件body_text")
     # top_type = models.TextField(verbose_name="选择的哪类top product")
