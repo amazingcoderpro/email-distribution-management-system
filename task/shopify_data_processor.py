@@ -950,7 +950,7 @@ class ShopifyDataProcessor:
             shop_collection = db["shopify_shop_info"]
             shop = shop_collection.find_one({"myshopify_domain": shopify_domain},
                                            {"_id": 0, "site_name": 1, "email": 1, "domain": 1, "name": 1,
-                                            "money_in_emails_format": 1, "timezone": 1, "customer_email": 1})
+                                            "money_in_emails_format": 1, "timezone": 1, "customer_email": 1, "created_at": 1})
             if not shop:
                 logger.error("Not find shop information in mongo db. shopify_domain={}".format(shopify_domain))
                 return None
@@ -966,7 +966,8 @@ class ShopifyDataProcessor:
                 service_email = "service@{}.com".format(name.lower())
             currency = shop.get("money_in_emails_format", "$").split("{{")[0][-2:]
             timezone = shop.get("timezone", "(GMT+08:00) Asia/Shanghai")
-
+            create_time_str = shop.get("created_at", "")
+            create_time = datetime.datetime.strptime(create_time_str[0:19], "%Y-%m-%dT%H:%M:%S")
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
                           password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
@@ -974,11 +975,15 @@ class ShopifyDataProcessor:
                 logger.error("cannot connect MySQL.")
                 return site_name
 
-            cursor.execute("update `store` set name=%s, domain=%s, email=%s, timezone=%s, sender=%s, sender_address=%s, "
-                           "service_email=%s, currency=%s, site_name=%s, update_time=%s where id=%s", (name, domain, email,
-                                                                                           timezone, sender, sender_address,
-                                                                                           service_email, currency, site_name,
-                                                                                           datetime.datetime.now(), store_id))
+            cursor.execute(
+                "update `store` set name=%s, domain=%s, email=%s, timezone=%s, sender=%s, sender_address=%s, "
+                "service_email=%s, currency=%s, site_name=%s, update_time=%s, store_create_time=%s where id=%s",
+                (name, domain, email,
+                 timezone, sender, sender_address,
+                 service_email, currency, site_name,
+                 datetime.datetime.now(),
+                 create_time, store_id))
+
             conn.commit()
             return site_name
         except Exception as e:
