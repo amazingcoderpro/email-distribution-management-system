@@ -110,7 +110,7 @@ class EmailTemplate(models.Model):
     transcations = models.IntegerField(default=0, verbose_name="交易次数")
     logo = models.CharField(blank=True, null=True, max_length=255,verbose_name="邮件logo")
     banner = models.CharField(blank=True, null=True, max_length=255,verbose_name="邮件banner")
-    banner_text = models.TextField(blank=True, null=True,verbose_name="邮件headline")
+    banner_text = JSONField(blank=True, null=True,verbose_name="banner_text")
     headline = models.TextField(verbose_name="邮件headline")
     body_text = models.TextField(verbose_name="邮件body_text")
     # top_type = models.TextField(verbose_name="选择的哪类top product")
@@ -130,7 +130,7 @@ class EmailTemplate(models.Model):
     send_type_choices = ((0, '定时邮件'), (1, '触发邮件'), (3, '测试邮件'))
     send_type = models.SmallIntegerField(db_index=True, choices=send_type_choices, default=0, verbose_name="邮件模板发送类型")
     html = models.TextField(blank=True, null=True, verbose_name="描述")
-    if ENABLE_MIGRATE:
+    if True:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
@@ -138,7 +138,7 @@ class EmailTemplate(models.Model):
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = ENABLE_MIGRATE
+        managed = True
         db_table = 'email_template'
         ordering = ["-id"]
 
