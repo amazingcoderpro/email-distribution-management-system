@@ -2342,7 +2342,7 @@ class AnalyzeCondition:
                     email_uuid = self.create_trigger_email_by_template(store_id, template_id, subject, html, t_id)[0]
                     # 将触发邮件任务参数增加到待入库数据列表中
                     valid_email_id_list = self.customer_email_to_uuid(valid_email, store_id) if from_type else self.customer_email_to_uuid_mongo(valid_email, store_name)
-                    insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(valid_email_id_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now()))
+                    insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(valid_email_id_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now(), store_id))
                 elif item["type"] == "Delay":  # 代表是delay
                     num, unit = item["value"], item["unit"]
                     if unit in ["weeks", "days", "hours", "minutes"]:
@@ -2401,8 +2401,8 @@ class AnalyzeCondition:
                 return False
             if datas:
                 cursor.executemany(
-                    """insert into email_task (uuid, template_id,status,remark,execute_time,customer_list,email_trigger_id,type,create_time,update_time) 
-                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (datas))
+                    """insert into email_task (uuid, template_id,status,remark,execute_time,customer_list,email_trigger_id,type,create_time,update_time,store_id) 
+                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (datas))
                 conn.commit()
                 logger.info("insert email task from trigger success.")
             else:
