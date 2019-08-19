@@ -130,7 +130,7 @@ class EventDraftCustomersCreate(APIView):
         print("------------ Customer Create ------------:")
         # print(request.META, type(request.META))
         print(json.dumps(request.data))
-        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"])
+        store = models.Store.objects.filter(url=request.META["HTTP_X_SHOPIFY_SHOP_DOMAIN"]).first()
         if not store:
             return Response({"code": 200})
         store_id = store.id
