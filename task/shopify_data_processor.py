@@ -391,13 +391,12 @@ class ShopifyDataProcessor:
                 logger.error("update_top_products_mongo error, connect mysql db failed.")
                 return False
 
-            time_now = datetime.datetime.now()
             time_beg = (datetime.datetime.now()-datetime.timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
-            recent_3days_paid_products = []
-            recent_7days_paid_products = []
-            recent_15days_paid_products = []
-            recent_30days_paid_products = []
             for store in stores:
+                recent_3days_paid_products = []
+                recent_7days_paid_products = []
+                recent_15days_paid_products = []
+                recent_30days_paid_products = []
                 store_site = store.get("site_name", "")
                 if not store_site:
                     continue
@@ -509,7 +508,7 @@ class ShopifyDataProcessor:
 
             for store in stores:
                 store_id, store_url, store_token, *_ = store
-                logger.info("update_top_product is cheking... store_id={}".format(store_id))
+                logger.info("update_top_product is checking... store_id={}".format(store_id))
                 top_three_product_list,top_seven_product_list,top_fifteen_product_list,top_thirty_product_list = [],[],[],[]
                 top_three_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=3),datetime.time.min)
                 top_seven_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=7),datetime.time.min)
@@ -950,7 +949,7 @@ class ShopifyDataProcessor:
             shop_collection = db["shopify_shop_info"]
             shop = shop_collection.find_one({"myshopify_domain": shopify_domain},
                                            {"_id": 0, "site_name": 1, "email": 1, "domain": 1, "name": 1,
-                                            "money_in_emails_format": 1, "timezone": 1, "customer_email": 1})
+                                            "money_in_emails_format": 1, "timezone": 1, "customer_email": 1, "created_at": 1})
             if not shop:
                 logger.error("Not find shop information in mongo db. shopify_domain={}".format(shopify_domain))
                 return None
@@ -966,7 +965,8 @@ class ShopifyDataProcessor:
                 service_email = "service@{}.com".format(name.lower())
             currency = shop.get("money_in_emails_format", "$").split("{{")[0][-2:]
             timezone = shop.get("timezone", "(GMT+08:00) Asia/Shanghai")
-
+            create_time_str = shop.get("created_at", "")
+            create_time = datetime.datetime.strptime(create_time_str[0:19], "%Y-%m-%dT%H:%M:%S")
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
                           password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
@@ -974,11 +974,15 @@ class ShopifyDataProcessor:
                 logger.error("cannot connect MySQL.")
                 return site_name
 
-            cursor.execute("update `store` set name=%s, domain=%s, email=%s, timezone=%s, sender=%s, sender_address=%s, "
-                           "service_email=%s, currency=%s, site_name=%s, update_time=%s where id=%s", (name, domain, email,
-                                                                                           timezone, sender, sender_address,
-                                                                                           service_email, currency, site_name,
-                                                                                           datetime.datetime.now(), store_id))
+            cursor.execute(
+                "update `store` set name=%s, domain=%s, email=%s, timezone=%s, sender=%s, sender_address=%s, "
+                "service_email=%s, currency=%s, site_name=%s, update_time=%s, store_create_time=%s where id=%s",
+                (name, domain, email,
+                 timezone, sender, sender_address,
+                 service_email, currency, site_name,
+                 datetime.datetime.now(),
+                 create_time, store_id))
+
             conn.commit()
             return site_name
         except Exception as e:
@@ -1157,7 +1161,7 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).create_template()
 
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
     #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步

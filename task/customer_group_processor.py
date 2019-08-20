@@ -2516,11 +2516,15 @@ class AnalyzeCondition:
                 # 获取store的from_type, store_name
                 from_type, store_site_name = self.get_store_source(res["store_id"])
                 # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
-                if "customer received an email from this campaign in the last 7 days" in eval(res["note"]):
-                    # customers_7day = self.filter_received_customer(res["store_id"], res["uuid"]) if from_type else self.filter_received_customer_mongo(res["store_id"], res["uuid"], store_name)
-                    customers_7day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(days=-7))
-                    customer_list = list(set(customer_list)-set(customers_7day))
-                    logger.info("filter the customer received an email from this campaign in the last 7 days.")
+                if "customer received an email from this campaign in the last" in res["note"]:
+                    for note in eval(res["note"]):
+                        if "customer received an email from this campaign in the last" in note:
+                            num, unit = note.split("last")[-1].strip()[0:-1].split(" ")
+                            time_dict = {unit: -int(num)}
+                            # customers_7day = self.filter_received_customer(res["store_id"], res["uuid"]) if from_type else self.filter_received_customer_mongo(res["store_id"], res["uuid"], store_name)
+                            customers_7day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(**time_dict))
+                            customer_list = list(set(customer_list)-set(customers_7day))
+                            logger.info("filter %s" % note)
                 if "customer makes a purchase" in eval(res["note"]) and res["remark"] != "first":
                     # 对customer_list里的收件人进行note筛选(从task创建时间开始)
                     customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_site_name)

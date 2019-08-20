@@ -188,18 +188,18 @@ def run():
     tp.create_periodic_task(sdp.update_new_shopify, seconds=20, max_instances=50)   # 新店铺拉 产品类目 产品 订单 top_product
     # tp.create_cron_task(sdp.update_shopify_collections, "*", 12, 00)
     # tp.create_cron_task(sdp.update_shopify_product, "*", 12, 00)
-    tp.create_cron_task(sdp.update_top_product, "*", 12, 00)
-    tp.create_cron_task(sdp.update_top_products_mongo, "*", 12, 00)
+    tp.create_cron_task(sdp.update_top_product, "*", 23, 40)
+    tp.create_cron_task(sdp.update_top_products_mongo, "*", 23, 50)
 
-    tp.create_cron_task(sdp.updata_shopify_ga, "*", 0, 30)
+    tp.create_cron_task(sdp.updata_shopify_ga, "*", 23, 40)
     # tp.create_cron_task(sdp.update_shopify_order_customer, "*", 3, 00)
 
     # ems 定时更新任务请放在这下面
     ems = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
-    tp.create_cron_task(ems.insert_subscriber_activity, "*", 0, 30)  # 每天00:30:00拉取昨天一整天的行为记录
-    tp.create_cron_task(ems.update_customer_group_data, "*", 0, 5)  # 每天00:05:00更新到目前时间用户组最新ems数据
-    tp.create_cron_task(ems.update_email_reocrd_data, "*", 0, 5)  # 每天00:05:00更新到目前时间已发送邮件最新ems数据
-    tp.create_cron_task(ems.insert_dashboard_data, "*", 1, 0)  # 每天01:00:00更新dashboard最新数据
+    tp.create_cron_task(ems.insert_subscriber_activity, "*", 23, 20)  # 每天00:30:00拉取昨天一整天的行为记录
+    tp.create_cron_task(ems.update_customer_group_data, "*", 23, 35)  # 每天00:05:00更新到目前时间用户组最新ems数据
+    tp.create_cron_task(ems.update_email_reocrd_data, "*", 23, 40)  # 每天00:05:00更新到目前时间已发送邮件最新ems数据
+    tp.create_cron_task(ems.insert_dashboard_data, "*", 23, 50)  # 每天01:00:00更新dashboard最新数据
     tp.create_periodic_task(ems.update_unsubscriber_and_snoozed_customers, seconds=60)  # 每一分钟更新一下取消订阅和休眠的收件人，因为flow是两分钟检测一次customer
     while 1:
         time.sleep(1)
