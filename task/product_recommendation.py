@@ -31,7 +31,7 @@ class ProductRecommend:
         new_html = new_html.replace('<span style="display: none;">specialProduct</span>', product_str)
         return new_html
 
-    def generate_snippets(self, cart_product_list, top_product_list):
+    def generate_snippets(self, cart_product_list, top_product_list, flow=True):
         """
         生成需要替换的snippet片段
         :param product_list: 购物车产品信息列表
@@ -64,9 +64,11 @@ class ProductRecommend:
                         "abandoned_checkout_url": abandoned_checkout_url,
                         "top_products": top_product_str}
         snippet_dict.update(product_title)
+        if not flow:
+            return snippet_dict
         return [{"name": name, "value": value} for name, value in snippet_dict.items()]
 
-    def get_card_product_mongo(self, customer_email, store_name, flow_title, template_id, domain, service_email, length=3):
+    def get_card_product_mongo(self, customer_email, store_name, flow_title, template_id, domain, service_email, length=3, utm_medium="flow"):
         """
         获取该用户购物车中的产品信息
         :param customer_email: 用户邮箱
@@ -86,22 +88,26 @@ class ProductRecommend:
                 logger.exception("get store's(store_name: %s) money_in_emails_format exception, use default '$'." % store_name)
                 money_in_emails_format = "$"
             # 通过ID获取firstname和shop_name
-            res = db.shopify_customer.find_one({"email": customer_email, "site_name": store_name},
-                                               {"_id": 0, "first_name": 1})
-            firstname = res["first_name"]
+
+            if customer_email:
+                res = db.shopify_customer.find_one({"email": customer_email, "site_name": store_name},
+                                                   {"_id": 0, "first_name": 1})
+            firstname = res["first_name"] if customer_email else ""
             products.append({"shop_name": money_format["name"],
                              "firstname": firstname,
                              "domain": domain,
                              "service_email": service_email,
                              "about_us_url": "https://{}/pages/about-us".format(
-                                 domain) + f"?utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={template_id}",
+                                 domain) + f"?utm_source=smartsend&utm_medium={utm_medium}&utm_campaign={flow_title}&utm_term={template_id}",
                              "store_url": "https://{}".format(
-                                 domain) + f"?utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={template_id}",
+                                 domain) + f"?utm_source=smartsend&utm_medium={utm_medium}&utm_campaign={flow_title}&utm_term={template_id}",
                              "privacy_policy_url": "https://{}/pages/privacy-policy".format(
-                                 domain) + f"?utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={template_id}",
+                                 domain) + f"?utm_source=smartsend&utm_medium={utm_medium}&utm_campaign={flow_title}&utm_term={template_id}",
                              "help_center_url": "https://{}/pages/faq".format(
-                                 domain) + f"?utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={template_id}"})
+                                 domain) + f"?utm_source=smartsend&utm_medium={utm_medium}&utm_campaign={flow_title}&utm_term={template_id}"})
             # 获取购物车产品ID
+            if length == 0:
+                return products
             cart_products = db.shopify_unpaid_order.find({"customer.email": customer_email, "site_name": store_name},
                                                          {"_id": 0, "line_items": 1, "abandoned_checkout_url": 1},
                                                          limit=1, sort=[("updated_at", pymongo.DESCENDING)])
@@ -145,7 +151,7 @@ class ProductRecommend:
         finally:
             mdb.close()
 
-    def get_top_product_by_condition(self, condition, store_id, flow_title, template_id, length=4):
+    def get_top_product_by_condition(self, condition, store_id, flow_title, template_id, length=4, utm_medium="flow"):
         """
         获取店铺下top_products信息
         :param condition: 条件字符串
@@ -172,7 +178,7 @@ class ProductRecommend:
                     products = products[0:4]
                     for product in products:
                         product_uuid_template_id = "{}_{}".format(product["uuid"], template_id)
-                        product["url"] += f"?utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={product_uuid_template_id}"
+                        product["url"] += f"?utm_source=smartsend&utm_medium={utm_medium}&utm_campaign={flow_title}&utm_term={product_uuid_template_id}"
                         products_list.append(product)
                     if len(products_list) % 2 == 1:
                         products_list.pop(-1)

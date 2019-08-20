@@ -81,24 +81,24 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
         store = models.Store.objects.filter(user=self.context["request"].user).first()
         validated_data["store"] = store
         instance = super(EmailTemplateSerializer, self).create(validated_data)
-        html = validated_data["html"]
-        store_url = store.domain
-        html = html.replace(store_url+"?utm_source=smartsend", store_url+f"?utm_source=smartsend&utm_medium=newsletter&utm_campaign={instance.title}&utm_term={instance.id}")
-        html = html.replace("*[tr_shop_name]*", store.name)
-        product_list = validated_data.get("product_list", None)
-        if product_list:
-            if product_list != "[]":
-                try:
-                    product_list = json.loads(validated_data["product_list"])
-                    for item in product_list:
-                        dic = {"email_category": "newsletter", "template_name": instance.title, "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
-                        uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
-                        new_iamge_url = item["url"] + uri_structure
-                        html = html.replace(item["url"], new_iamge_url)
-                except Exception as e:
-                    raise serializers.ValidationError("Param 'product_list' must be a json format")
-                instance.html = html
-                instance.save()
+        # html = validated_data["html"]
+        # store_url = store.domain
+        # html = html.replace(store_url+"?utm_source=smartsend", store_url+f"?utm_source=smartsend&utm_medium=newsletter&utm_campaign={instance.title}&utm_term={instance.id}")
+        # html = html.replace("*[tr_shop_name]*", store.name)
+        # product_list = validated_data.get("product_list", None)
+        # if product_list:
+        #     if product_list != "[]":
+        #         try:
+        #             product_list = json.loads(validated_data["product_list"])
+        #             for item in product_list:
+        #                 dic = {"email_category": "newsletter", "template_name": instance.title, "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
+        #                 uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(**dic)
+        #                 new_iamge_url = item["url"] + uri_structure
+        #                 html = html.replace(item["url"], new_iamge_url)
+        #         except Exception as e:
+        #             raise serializers.ValidationError("Param 'product_list' must be a json format")
+        #         instance.html = html
+        #         instance.save()
         return instance
 
     def to_representation(self, instance):
@@ -175,26 +175,26 @@ class TriggerEmailTemplateSerializer(serializers.ModelSerializer):
         validated_data["status"] = 0    # 默认为禁用状态
         validated_data["send_type"] = 1
         instance = super(TriggerEmailTemplateSerializer, self).create(validated_data)
-        html = validated_data["html"]
-        store_url = store.domain
-        html = html.replace(store_url+"?utm_source=smartsend", store_url+f"?utm_source=smartsend&utm_medium=flow&utm_capaign={instance.subject}&utm_term={instance.id}")
-        html = html.replace("*[tr_shop_name]*", store.name)
-        product_list = validated_data.get("product_list", None)
-        if product_list:
-            if product_list != "[]":
-                try:
-                    product_list = json.loads(validated_data["product_list"])
-                    for item in product_list:
-                        dic = {"email_category": "flow", "template_name": instance.subject,
-                               "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
-                        uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(
-                            **dic)
-                        new_iamge_url = item["url"] + uri_structure
-                        html = html.replace(item["url"], new_iamge_url)
-                except Exception as e:
-                    raise serializers.ValidationError("Param 'product_list' must be a json format")
-                instance.html = html
-                instance.save()
+        # html = validated_data["html"]
+        # store_url = store.domain
+        # html = html.replace(store_url+"?utm_source=smartsend", store_url+f"?utm_source=smartsend&utm_medium=flow&utm_capaign={instance.subject}&utm_term={instance.id}")
+        # html = html.replace("*[tr_shop_name]*", store.name)
+        # product_list = validated_data.get("product_list", None)
+        # if product_list:
+        #     if product_list != "[]":
+        #         try:
+        #             product_list = json.loads(validated_data["product_list"])
+        #             for item in product_list:
+        #                 dic = {"email_category": "flow", "template_name": instance.subject,
+        #                        "product_uuid_template_id": str(item["uuid"]) + "_" + str(instance.id)}
+        #                 uri_structure = "?utm_source=smartsend&utm_medium={email_category}&utm_campaign={template_name}&utm_term={product_uuid_template_id}".format(
+        #                     **dic)
+        #                 new_iamge_url = item["url"] + uri_structure
+        #                 html = html.replace(item["url"], new_iamge_url)
+        #         except Exception as e:
+        #             raise serializers.ValidationError("Param 'product_list' must be a json format")
+        #         instance.html = html
+        #         instance.save()
         return instance
 
 
