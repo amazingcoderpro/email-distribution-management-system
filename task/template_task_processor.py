@@ -6,6 +6,7 @@ import pymysql
 import datetime
 import json
 # from dateutil.relativedelta import relativedelta
+from task.product_recommendation import ProductRecommend
 from config import logger
 from task.shopify_data_processor import DBUtil
 from sdk.ems import ems_api
@@ -129,8 +130,10 @@ class TemplateProcessor:
 
             logger.info("execute_email_task checking..")
             # 先找出当前巡查周期内应该发送的邮件任务
-            dt_min = datetime.datetime.now()-datetime.timedelta(seconds=interval/2+10)
-            dt_max = datetime.datetime.now()+datetime.timedelta(seconds=interval/2+10)
+            # dt_min = datetime.datetime.now()-datetime.timedelta(seconds=interval/2+10)
+            # dt_max = datetime.datetime.now()+datetime.timedelta(seconds=interval/2+10)
+            dt_min = datetime.datetime.now() - datetime.timedelta(seconds=interval / 2 + 10000)
+            dt_max = datetime.datetime.now() + datetime.timedelta(seconds=interval / 2 + 10000)
             cursor.execute("""select id, template_id from `email_task` 
             where status=0 and type=0 and execute_time>=%s and execute_time<=%s""", (dt_min, dt_max))
 
@@ -143,11 +146,11 @@ class TemplateProcessor:
                 # 遍历每一个任务，找到他对应的模板　
                 task_id, template_id = task
                 logger.info("execute_email_task get need execute task={}".format(task_id))
-                cursor.execute("select `status`, `enable`, `customer_group_list`, `subject`, `html`, `store_id` from `email_template` where id=%s", (template_id, ))
+                cursor.execute("select `status`, `enable`, `customer_group_list`, `subject`, `html`, `store_id`, `title`, `product_condition` from `email_template` where id=%s", (template_id, ))
 
                 # 如果模板的状态变成了已经删除，则不再发送，且把该模板对就的所有未发送的task全置成已删除
                 ret = cursor.fetchone()
-                template_state, enable, template_group_list, subject, html, store_id = ret
+                template_state, enable, template_group_list, subject, html, store_id, template_title, product_condition = ret
                 if template_state == 2:#删除了
                     pass
                     #模板的禁用和删除由接口处理，这里不再做处理了
@@ -163,12 +166,27 @@ class TemplateProcessor:
                     ret = cursor.fetchall()
                     uuids = [uid[0] for uid in ret]
                     uuids = [uid for uid in uuids if uid]   # 去掉里面的空包弹
-                    cursor.execute("select `sender`, `sender_address` from `store` where id=%s", (store_id, ))
+                    cursor.execute("select `sender`, `sender_address`, `site_name`, `domain`, `service_email` from `store` where id=%s", (store_id, ))
                     sender = cursor.fetchone()
 
                     if sender and uuids:
                         # 拿到了所对应的邮件组id, 开始发送邮件
                         exp = ems_api.ExpertSender(from_name=sender[0], from_email=sender[1])
+
+                        # 替换 html
+                        pr = ProductRecommend()
+                        shop_info = pr.get_card_product_mongo("", sender[2], template_title, template_id, sender[3],
+                                                                      sender[4], length=0, utm_medium="Newsletter")
+
+                        top_products = []
+                        if "top" in product_condition:
+                            # 获取top_products
+                            top_products = pr.get_top_product_by_condition(product_condition, store_id,
+                                                                           template_title, template_id, utm_medium="Newsletter")
+
+                        snippets_dict = pr.generate_snippets(shop_info, top_products, flow=False)
+                        for key,val in snippets_dict.items():
+                            html = html.replace("*[tr_{}]*".format(key),val)
 
                         result = exp.create_and_send_newsletter(uuids, subject=subject, html=html)
                         send_result = result["code"]
@@ -206,6 +224,7 @@ class TemplateProcessor:
 
 if __name__ == '__main__':
     at = TemplateProcessor(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
-    at.analyze_templates()
+    # at.analyze_templates()
+    at.execute_email_task()
     # at.execute_email_task(interval=666600)
 
