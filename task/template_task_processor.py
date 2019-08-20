@@ -43,7 +43,7 @@ class TemplateProcessor:
             else:
                 # 找到所有状态是待解析，已启用且类型为模板邮件的模板
                 # 剔除admin店铺
-                cursor.execute("""select id, send_rule from `email_template` where status=0 and send_type=0 and enable=1 and store_id>1""")
+                cursor.execute("""select id, send_rule, store_id from `email_template` where status=0 and send_type=0 and enable=1 and store_id>1""")
 
             data = cursor.fetchall()
             if not data:
@@ -51,7 +51,7 @@ class TemplateProcessor:
                 return True
 
             for value in data:
-                template_id, send_rule = value
+                template_id, send_rule, store_id = value
                 logger.info("analyze template, template id={}".format(template_id))
                 #{"begin_time": "2019-10-01 00:00:00", "end_time": "2019-10-02 00:00:00", "cron_type": "Monday", "cron_time": "18:40:00"}
                 send_rule = json.loads(send_rule)
@@ -99,7 +99,7 @@ class TemplateProcessor:
                 time_now = datetime.datetime.now()
                 for exet in execute_times:
                     cursor.execute("insert into `email_task` (`status`, `execute_time`, `create_time`, `update_time`, "
-                                   "`template_id`, `type`) values (%s, %s, %s, %s, %s, %s)", (0, exet, time_now, time_now, template_id, 0))
+                                   "`template_id`, `type`, `store_id`) values (%s, %s, %s, %s, %s, %s, %s)", (0, exet, time_now, time_now, template_id, 0, store_id))
                 conn.commit()
 
                 time_now = datetime.datetime.now()
