@@ -189,7 +189,7 @@ class EMSDataProcessor:
                 store_id = store[0]
                 # 从emailReocrd表中获取当前店铺所有非测试邮件的数据
                 cursor.execute("""select sum(sents),sum(opens),sum(clicks),sum(unsubscribes),sum(open_rate),sum(click_rate),
-                sum(unsubscribe_rate),count(uuid) from email_record where type in (0,1) and store_id=%s""", (store_id,))
+                sum(unsubscribe_rate),count(uuid) from email_record where store_id=%s""", (store_id,))
                 new_res = []
                 for r in cursor.fetchone():
                     if not r:
