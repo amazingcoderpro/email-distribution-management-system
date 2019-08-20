@@ -113,7 +113,7 @@ class TemplateProcessor:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
-    def execute_email_task(self, interval=120):
+    def execute_email_task(self, interval=30):
         """
         执行邮件发送任务(只执行template型邮件的任务)
         :param interval:　间隔周期

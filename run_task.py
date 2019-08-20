@@ -179,10 +179,10 @@ def run():
 
     # 模板解析定时任务
     tmp = TemplateProcessor(db_info=db_info)
-    tp.create_periodic_task(tmp.analyze_templates,  seconds=120, max_instances=50)
+    tp.create_periodic_task(tmp.analyze_templates,  seconds=40, max_instances=50)
 
     # 模板邮件定时发送任务
-    tp.create_periodic_task(tmp.execute_email_task, seconds=60, max_instances=50)
+    tp.create_periodic_task(tmp.execute_email_task, seconds=30, max_instances=50)
 
     # shopify 定时更新任务, 请放在这下面
     sdp = ShopifyDataProcessor(db_info=db_info)
