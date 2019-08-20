@@ -191,7 +191,7 @@ class TemplateProcessor:
                         send_msg = "email id: {} ".format(email_id)     # 发送成功后把email id存在remark中
                         if send_result != 1:
                             send_result = 3     # 发送失败
-                            send_msg += result["msg"]
+                            send_msg += str(result.get("msg", ""))
                             logger.error(
                                 "send template email failed, task={}, template={}, uuids={}, error={}".format(task_id, template_id, uuids, send_msg))
                         else:
@@ -221,7 +221,6 @@ class TemplateProcessor:
 
 if __name__ == '__main__':
     at = TemplateProcessor(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
-    # at.analyze_templates()
     at.execute_email_task()
     # at.execute_email_task(interval=666600)
 
