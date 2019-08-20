@@ -123,7 +123,7 @@ class ExpertSender:
                             "FromEmail": self.from_email,
                             "Subject": subject,
                             "Plain": plain,
-                            "Html": "%s",
+                            "Html": "{}",
                         },
                         "DeliverySettings": {
                             "ThrottlingMethod": "Auto",
@@ -140,7 +140,7 @@ class ExpertSender:
             data["ApiRequest"]["Data"]["DeliverySettings"].update({"DeliveryDate": delivery_date.replace(" ", "T")})
         try:
             xml_data = self.jsontoxml(data)
-            xml_data = xml_data % ("<![CDATA[%s]]>" % html)
+            xml_data = xml_data.format("<![CDATA[{}]]>".format(html))
             result = requests.post(url, xml_data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("create and send newsletter", result)
         except Exception as e:
