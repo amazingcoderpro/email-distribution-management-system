@@ -130,10 +130,8 @@ class TemplateProcessor:
 
             logger.info("execute_email_task checking..")
             # 先找出当前巡查周期内应该发送的邮件任务
-            # dt_min = datetime.datetime.now()-datetime.timedelta(seconds=interval/2+10)
-            # dt_max = datetime.datetime.now()+datetime.timedelta(seconds=interval/2+10)
-            dt_min = datetime.datetime.now() - datetime.timedelta(seconds=interval / 2 + 10000)
-            dt_max = datetime.datetime.now() + datetime.timedelta(seconds=interval / 2 + 10000)
+            dt_min = datetime.datetime.now()-datetime.timedelta(seconds=interval/2+10)
+            dt_max = datetime.datetime.now()+datetime.timedelta(seconds=interval/2+10)
             cursor.execute("""select id, template_id from `email_task` 
             where status=0 and type=0 and execute_time>=%s and execute_time<=%s""", (dt_min, dt_max))
 
