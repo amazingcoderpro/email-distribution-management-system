@@ -27,7 +27,7 @@ v1_urlpatterns = [
     # 邮件管理
     url(r'^email_template/$', service.EmailTemplateView.as_view()),                         # 模板列表，创建模板
     url(r'^email_template/trigger/$', service.TriggerEmailTemplateView.as_view()),          # 通过flow创建邮件模板
-    url(r'^email_template/detail/(?P<pk>[0-9]+)/$', service.EmailTemplateRetrieveView.as_view()),  # 模板详情
+    url(r'^email_template/detail/(?P<pk>[0-9]+)/$', service.EmailTemplateRetrieveView.as_view()),  # 模板详情 更改
     url(r'^email_template/(?P<pk>[0-9]+)/$', service.EmailTemplateUpdateView.as_view()),    # 更改状态
 
     url(r'^top_product/$', service.TopProductView.as_view()),
