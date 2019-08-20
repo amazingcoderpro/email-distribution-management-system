@@ -391,13 +391,12 @@ class ShopifyDataProcessor:
                 logger.error("update_top_products_mongo error, connect mysql db failed.")
                 return False
 
-            time_now = datetime.datetime.now()
             time_beg = (datetime.datetime.now()-datetime.timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
-            recent_3days_paid_products = []
-            recent_7days_paid_products = []
-            recent_15days_paid_products = []
-            recent_30days_paid_products = []
             for store in stores:
+                recent_3days_paid_products = []
+                recent_7days_paid_products = []
+                recent_15days_paid_products = []
+                recent_30days_paid_products = []
                 store_site = store.get("site_name", "")
                 if not store_site:
                     continue
@@ -509,7 +508,7 @@ class ShopifyDataProcessor:
 
             for store in stores:
                 store_id, store_url, store_token, *_ = store
-                logger.info("update_top_product is cheking... store_id={}".format(store_id))
+                logger.info("update_top_product is checking... store_id={}".format(store_id))
                 top_three_product_list,top_seven_product_list,top_fifteen_product_list,top_thirty_product_list = [],[],[],[]
                 top_three_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=3),datetime.time.min)
                 top_seven_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=7),datetime.time.min)
@@ -1162,7 +1161,7 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).create_template()
 
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
     #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
