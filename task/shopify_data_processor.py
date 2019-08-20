@@ -1162,7 +1162,7 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).create_template()
 
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
     #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
