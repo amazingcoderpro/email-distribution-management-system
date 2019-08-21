@@ -375,7 +375,7 @@ class ShopifyDataProcessor:
             logger.warning("There have not stores to update top products")
             return False
 
-        logger.info("update_top_products_mongo, store={}, site_name={}".format(store, site_name))
+        logger.info("update_top_products_mongo, site_name={}".format(site_name))
         try:
             mdb = MongoDBUtil(mongo_config=MONGO_CONFIG)
             db = mdb.get_instance()
