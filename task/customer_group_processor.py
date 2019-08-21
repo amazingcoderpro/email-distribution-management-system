@@ -121,7 +121,7 @@ class AnalyzeCondition:
                 filter_dict = {"$lte": max_time}
             else:
                 filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
-            unpaid_order = db.shopify_unpaid_order.find({"site_name": store_name, "gateway": {"$ne": None}, "updated_at": filter_dict}, {"_id": 0, "id": 1, "token": 1, "customer.id": 1})
+            unpaid_order = db.shopify_unpaid_order.find({"site_name": store_name, "gateway": {"$ne": None}, "updated_at": filter_dict, "customer": {"$exists": 1}}, {"_id": 0, "id": 1, "token": 1, "customer.id": 1})
             paid_order = [item["checkout_token"] for item in db.shopify_order.find({"site_name": store_name}, {"_id": 0, "checkout_token": 1})]
             for unpaid in unpaid_order:
                 if unpaid["token"] in paid_order:
@@ -720,7 +720,7 @@ class AnalyzeCondition:
             else:
                 filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
             order_customers = [item["customer"]["id"] for item in db.shopify_order.find({"site_name": store_name, "updated_at": filter_dict}, {"_id": 0, "id": 1, "customer.id": 1})]
-            unpaid_customers = [item["customer"]["id"] for item in db.shopify_unpaid_order.find({"site_name": store_name, "updated_at": filter_dict, "customer": {"$exists": True}}, {"_id": 0, "id": 1, "customer.id": 1})]
+            unpaid_customers = [item["customer"]["id"] for item in db.shopify_unpaid_order.find({"site_name": store_name, "updated_at": filter_dict, "customer": {"$exists": 1}}, {"_id": 0, "id": 1, "customer.id": 1})]
             customers = list(set(order_customers + unpaid_customers))
             return customers
         except Exception as e:
