@@ -471,9 +471,9 @@ class AnalyzeCondition:
 
                     customer_res = shopify_customer.find({"site_name": store_name}, {"id": 1, "_id": 0})
                     # zero_order_customer = []
-                    for customers in customer_res:
-                        if customers["id"] not in unpaid_customer_list:
-                            customers.append(customers["id"])
+                    for cust in customer_res:
+                        if cust["id"] not in unpaid_customer_list:
+                            customers.append(cust["id"])
                 else:
                     # 查询未支付的customer_uuid
                     unpaid_res = self.unpaid_order_customers_mongo(store_name, min_time, max_time)
@@ -495,14 +495,14 @@ class AnalyzeCondition:
                     # 订单数为零
                     paid_res = paid_results.find({"updated_at": filter_dict, "site_name": store_name}, {"customer.id": 1, "_id": 0})
                     order_customer_list = []
-                    for customers in paid_res:
-                        order_customer_list.append(customers["customer"]["id"])
+                    for cus in paid_res:
+                        order_customer_list.append(cus["customer"]["id"])
 
                     shopify_customer = db["shopify_customer"]
                     customer_res = shopify_customer.find({"site_name": store_name}, {"id": 1, "_id": 0})
-                    for customers in customer_res:
-                        if customers["id"] not in order_customer_list:
-                            customers.append(customers["id"])
+                    for cus in customer_res:
+                        if cus["id"] not in order_customer_list:
+                            customers.append(cus["id"])
                 else:
                     group = {
                         '_id': "$customer.id",
@@ -2817,6 +2817,7 @@ if __name__ == '__main__':
     # print(ac.create_trigger_email_by_template(5, 186, "Update Html TEST", """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>jquery</title></head><body><div style="width:1200px;margin:0 auto;"><div class="showBox" style="overflow-wrap: break-word; text-align: center; font-size: 14px;"><div style="margin: 0px auto; width: 100%; border-bottom: 1px solid rgb(204, 204, 204); padding-bottom: 20px;"><div style="margin: 0px auto; width: 30%;"><h2>Subject Line</h2><div>UPDATE HTML CONTENT</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="margin: 0px auto; width: 70%; line-height: 20px; padding: 20px 0px;"><div style="padding: 10px 0px;">UPDATE HTML CONTENT</div><div style="padding: 10px 0px;">If you are having trouble viewing this email, please <a href="http://www.charrcter.com?utm_source=smartsend" target="_blank">click here</a> .</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="width: 30%; margin: 0px auto;"><img src="https://smartsend.seamarketings.com/media/5/0kvndz1fsiyeq9x.jpg" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 30px; border: 1px solid rgb(221, 221, 221); font-weight: 900; padding: 130px;">YOUR BANNER</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 28px; font-weight: 700;">UPDATE HTML CONTENT</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-family: &quot;Segoe UI Emoji&quot;; font-weight: 400; font-style: normal; font-size: 16px;">Dear {firstname}:
     #      welcome to my shop {shop_name}</div></div><div style="width: calc(100% - 24px); padding: 20px 12px;"></div><div style="width: 100%; padding-bottom: 20px;"><a href="88888888" style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px; text-decoration: none;">Go to Shopping Cart</a></div><div style="width: 100%; padding-bottom: 20px;"><a href="http://www.charrcter.com?utm_source=smartsend" target="_blank"><div style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px;">Back to Shop &gt;&gt;&gt;</div></a></div><div style="width: 100%; padding-bottom: 20px;"><div>neal.zhang@orderplus.com</div></div><div style="width: 100%; padding-bottom: 20px;"><div>2019 charrcter. All rights reserved.</div></div><div style="width: 100%; padding-bottom: 20px;"><div>www.charrcter.com</div></div><div style="width: 100%; padding-bottom: 20px;"><a href="*[link_unsubscribe]*"><div style="display: inline-block; padding: 10px; color: rgb(204, 204, 204); font-size: 14px; border-radius: 10px; border: 1px solid rgb(204, 204, 204);">Unsubscribe</div></a></div></div></div></body></html>""", 146))
     print(ac.parse_new_customer_group_list())
+    print(ac.parse_trigger_tasks())
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
