@@ -463,12 +463,25 @@ class AnalyzeCondition:
             paid_results = db["shopify_order"]
             relation_dict = {"equals": "==", "more than": ">", "less than": "<"}
             if status == 0 or status == 2:  # 状态为0或者2的时候需要筛选的用户
-                # 查询未支付的customer_uuid
-                unpaid_res = self.unpaid_order_customers_mongo(store_name, min_time, max_time)
-                for uuid, count_list in unpaid_res.items():
-                    just_str = "{} {} {}".format(len(set(count_list)), relation_dict.get(relation), value)
-                    if eval(just_str):
-                        customers.append(uuid)
+                if int(value) <= 0:
+                    unpaid_res = self.unpaid_order_customers_mongo(store_name, min_time, max_time)
+                    unpaid_customer_list = unpaid_res.keys()
+
+                    shopify_customer = db["shopify_customer"]
+
+                    customer_res = shopify_customer.find({"site_name": store_name}, {"id": 1, "_id": 0})
+                    zero_order_customer = []
+                    for customers in customer_res:
+                        if customers["id"] not in unpaid_customer_list:
+                            zero_order_customer.append(customers["id"])
+                    return zero_order_customer
+                else:
+                    # 查询未支付的customer_uuid
+                    unpaid_res = self.unpaid_order_customers_mongo(store_name, min_time, max_time)
+                    for uuid, count_list in unpaid_res.items():
+                        just_str = "{} {} {}".format(len(set(count_list)), relation_dict.get(relation), value)
+                        if eval(just_str):
+                            customers.append(uuid)
             if status == 1 or status == 2:  # 状态为1或者2的时候需要筛选的用户
                 if min_time and max_time:
                     filter_dict = {"$lte": max_time, "$gte": min_time}
@@ -479,17 +492,33 @@ class AnalyzeCondition:
                 else:
                     filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
 
-                group = {
-                    '_id': "$customer.id",
-                    'count': {'$sum': 1}
-                }
-                paid_res = paid_results.aggregate(
-                    [{"$match": {"updated_at": filter_dict, "site_name": store_name}}, {"$group": group}],
-                    allowDiskUse=True)
-                for item in paid_res:
-                    just_str = "{} {} {}".format(item["count"], relation_dict.get(relation), value)
-                    if eval(just_str):
-                        customers.append(item["_id"])
+                if int(value) <= 0:
+                    # 订单数为零
+                    paid_res = paid_results.find({"updated_at": filter_dict, "site_name": store_name}, {"customer.id": 1, "_id": 0})
+                    order_customer_list = []
+                    for customers in paid_res:
+                        order_customer_list.append(customers["customer"]["id"])
+
+                    shopify_customer = db["shopify_customer"]
+                    customer_res = shopify_customer.find({"site_name": store_name}, {"id": 1, "_id": 0})
+                    no_order_customer = []
+                    for customers in customer_res:
+                        if customers["id"] not in order_customer_list:
+                            no_order_customer.append(customers["id"])
+                    return no_order_customer
+                else:
+                    group = {
+                        '_id': "$customer.id",
+                        'count': {'$sum': 1}
+                    }
+                    paid_res = paid_results.aggregate(
+                        [{"$match": {"updated_at": filter_dict, "site_name": store_name}}, {"$group": group}],
+                        allowDiskUse=True)
+
+                    for item in paid_res:
+                        just_str = "{} {} {}".format(item["count"], relation_dict.get(relation), value)
+                        if eval(just_str):
+                            customers.append(item["_id"])
             return customers
         except Exception as e:
             logger.exception("order_filter_mongo catch exception={}".format(e))
