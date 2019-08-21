@@ -1505,6 +1505,8 @@ class AnalyzeCondition:
             elif relation.lower() == "is between" or relation.lower() == "between":
                 max_time = time_now - unit_convert(unit_=unit, value=values[0])
                 min_time = time_now - unit_convert(unit_=unit, value=values[1])
+            elif relation.lower() == "is more than":
+                max_time = time_now - unit_convert(unit_=unit, value=values[0])
             else:
                 # over all time
                 min_time = None

@@ -410,7 +410,9 @@ class ShopifyDataProcessor:
 
                 logger.info("start parse top products from mongo, store id={}, name={}".format(store_id, store_site))
                 order_collection = db["shopify_order"]
-                orders = order_collection.find({"site_name": store_site, "updated_at": {"$gte": time_beg}, "financial_status": "paid"}, {"_id": 0, "line_items": 1, "updated_at": 1})
+                orders = order_collection.find(
+                    {"site_name": store_site, "updated_at": {"$gte": time_beg}, "financial_status": "paid"},
+                    {"_id": 0, "line_items": 1, "updated_at": 1})
 
                 top_three_time = datetime.datetime.now() - datetime.timedelta(days=3)
                 top_seven_time = datetime.datetime.now() - datetime.timedelta(days=7)
@@ -448,7 +450,9 @@ class ShopifyDataProcessor:
                 all_top = [int(item) for item in all_top]
                 all_top = list(set(all_top))
                 if all_top:
-                    products = product_col.find({"id": {"$in": all_top}}, {"_id": 0, "id": 1, "title": 1, "handle": 1, "variants.price": 1, "image.src": 1})
+                    products = product_col.find({"id": {"$in": all_top}, "site_name": store_site},
+                                                {"_id": 0, "id": 1, "title": 1, "handle": 1, "variants.price": 1,
+                                                 "image.src": 1})
                     # products = product_col.find({"id": {"$in": all_top}, "site_name": store_site},
                     #                             {"id": 1, "title": 1, "handle": 1})
                     for pro in products:
