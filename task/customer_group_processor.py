@@ -1310,7 +1310,7 @@ class AnalyzeCondition:
                 return list(set(customers))
             elif relations[0]["relation"] == "is unpaid":
                 result_dict = self.unpaid_order_customers_mongo(store_name,
-                                                                min_time=(datetime.datetime.now()-datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S"),
+                                                                min_time=(datetime.datetime.now()-datetime.timedelta(days=120)).strftime("%Y-%m-%dT%H:%M:%S"),
                                                                 max_time=datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
                 return list(result_dict.keys())
         except Exception as e:
