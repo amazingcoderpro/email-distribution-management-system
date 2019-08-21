@@ -88,7 +88,7 @@ class AnalyzeCondition:
                 filter_dict = {"$lte": max_time}
             else:
                 filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
-            customers_res = db.shopify_customer.find({"site_name": store_name, "created_at": filter_dict},
+            customers_res = db.shopify_customer.find({"site_name": store_name, "accepts_marketing_updated_at": filter_dict},
                                                      {"_id": 0, "id": 1})
             for cus in customers_res:
                 customers.append(cus["id"])
