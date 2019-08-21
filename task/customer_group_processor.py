@@ -1273,15 +1273,16 @@ class AnalyzeCondition:
                 filter_dict = {"$lte": max_time}
             else:
                 filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
-            unpaid_order = db.shopify_unpaid_order.find({"site_name": store_name, "gateway": {"$ne": None}, "updated_at": filter_dict}, {"_id": 0, "id": 1, "token": 1, "customer.id": 1})
+            unpaid_order = db.shopify_unpaid_order.find({"site_name": store_name, "gateway": {"$ne": None}, "updated_at": filter_dict, "customer": {"$exists": 1}}, {"_id": 0, "id": 1, "token": 1, "customer.id": 1})
             paid_order = [item["checkout_token"] for item in db.shopify_order.find({"site_name": store_name, "updated_at": {"$gte": min_time}}, {"_id": 0, "checkout_token": 1})]
             for unpaid in unpaid_order:
                 if unpaid["token"] in paid_order:
                     continue
-                if "customer" in unpaid.keys() and unpaid["customer"]["id"] not in result_dict:
-                    result_dict[unpaid["customer"]["id"]] = [unpaid["id"],]
-                else:
-                    result_dict[unpaid["customer"]["id"]].append(unpaid["id"])
+                if "customer" in unpaid.keys():
+                    if unpaid["customer"]["id"] not in result_dict:
+                        result_dict[unpaid["customer"]["id"]] = [unpaid["id"],]
+                    else:
+                        result_dict[unpaid["customer"]["id"]].append(unpaid["id"])
             return result_dict
         except Exception as e:
             logger.exception("unpaid_order_customers_mongo catch exception={}".format(e))
