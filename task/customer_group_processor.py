@@ -470,11 +470,10 @@ class AnalyzeCondition:
                     shopify_customer = db["shopify_customer"]
 
                     customer_res = shopify_customer.find({"site_name": store_name}, {"id": 1, "_id": 0})
-                    zero_order_customer = []
+                    # zero_order_customer = []
                     for customers in customer_res:
                         if customers["id"] not in unpaid_customer_list:
-                            zero_order_customer.append(customers["id"])
-                    return zero_order_customer
+                            customers.append(customers["id"])
                 else:
                     # 查询未支付的customer_uuid
                     unpaid_res = self.unpaid_order_customers_mongo(store_name, min_time, max_time)
@@ -501,11 +500,9 @@ class AnalyzeCondition:
 
                     shopify_customer = db["shopify_customer"]
                     customer_res = shopify_customer.find({"site_name": store_name}, {"id": 1, "_id": 0})
-                    no_order_customer = []
                     for customers in customer_res:
                         if customers["id"] not in order_customer_list:
-                            no_order_customer.append(customers["id"])
-                    return no_order_customer
+                            customers.append(customers["id"])
                 else:
                     group = {
                         '_id': "$customer.id",
