@@ -1748,10 +1748,10 @@ class AnalyzeCondition:
                 # 剔除amdin
                 if only_new:
                     cursor.execute(
-                        """select `store_id`, `id`, `title`, `relation_info` from `customer_group` where id>=1 and state=0""")
+                        """select `store_id`, `id`, `title`, `relation_info` from `customer_group` where id>1 and state=0""")
                 else:
                     cursor.execute(
-                        """select `store_id`, `id`, `title`, `relation_info` from `customer_group` where id>=1 and state!=2""")
+                        """select `store_id`, `id`, `title`, `relation_info` from `customer_group` where id>1 and state!=2""")
 
             res = cursor.fetchall()
             if res:
@@ -2274,7 +2274,7 @@ class AnalyzeCondition:
             customer = db["shopify_customer"]
             customers = customer.find({"id": {"$in": customer_uuid_list}, "site_name": store_name}, {"_id": 0, "id": 1, "email": 1})
             for cus in customers:
-                if cus["email"]:
+                if cus.get("email", ""):
                     email_list.append(cus["email"])
         except Exception as e:
             logger.exception("customer_uuid_to_email_mongo catch exception={}".format(e))
