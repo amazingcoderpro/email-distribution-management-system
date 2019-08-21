@@ -344,7 +344,7 @@ class ShopifyDataProcessor:
         logger.info("update_shopify_orders id finished")
         return True
 
-    def get_opstores_stores(self):
+    def get_opstores_stores(self, site_name=None):
         """
         获取所有来自opstores的店铺id及名称
         :return:
@@ -355,7 +355,11 @@ class ShopifyDataProcessor:
             if not cursor:
                 return None
 
-            cursor.execute("""select id, site_name, url, domain, source from store where id>1 and source=0""")
+            if site_name:
+                cursor.execute("""select id, site_name, url, domain, source from store where id>1 and source=0 and site_name=%s""", (site_name, ))
+            else:
+                cursor.execute("""select id, site_name, url, domain, source from store where id>1 and source=0""")
+
             stores = cursor.fetchall()
             return stores
         except Exception as e:
@@ -365,13 +369,8 @@ class ShopifyDataProcessor:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
-    def update_top_products_mongo(self, store=None, site_name=None):
-        if not store:
-            stores = self.get_opstores_stores()
-        else:
-            # store.id, store.url, store.token, store_create_time, store.source, store.domain, store.name
-            stores = ({"id": store[0][0], "url": store[0][1], "source": store[0][4], "domain": store[0][5], "site_name": site_name}, )
-
+    def update_top_products_mongo(self, site_name=None):
+        stores = self.get_opstores_stores(site_name=site_name)
         if not stores:
             logger.warning("There have not stores to update top products")
             return False
@@ -925,7 +924,7 @@ class ShopifyDataProcessor:
                     logger.info("update_new_shopify store from opstores, store={}".format(store[0]))
                     site_name = self.sync_shop_info_from_mongo(store)
                     if site_name:
-                        self.update_top_products_mongo(store, site_name)
+                        self.update_top_products_mongo(site_name)
 
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
