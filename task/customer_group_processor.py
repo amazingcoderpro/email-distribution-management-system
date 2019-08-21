@@ -36,6 +36,7 @@ class AnalyzeCondition:
                               "Customer who accept marketing": "adapt_is_accept_marketing",  # 已完成
                               "Customer Email": "adapt_customer_email",  # 已完成
                               "Customer total order payment amount": "adapt_total_order_amount",  # 已完成
+                              "Customer subscribe time": "adapt_subscribe_time", # 只实现了mongo方法
                             }
         self.note_dict = {"customer makes a purchase": self.filter_purchase_customer,  # 已完成
                           "customer received an email from this campaign in the last 7 days": self.filter_received_customer,  # 已完成
@@ -62,6 +63,41 @@ class AnalyzeCondition:
             return adapter(store_id, relations, store_name)
         else:
             return adapter(store_id, relations)
+
+    def adapt_subscribe_time_mongo(self, store_id, relations, store_name):
+        """
+        适配出订阅时间所有符合条件的customer
+        :param store_id:
+        :param relations:
+        :param store_name:
+        :return:
+        """
+        min_time, max_time = self.date_relation_convert_mongo(relations[0]["relation"], relations[0]["values"],
+                                                              store_name,
+                                                              relations[0].get("unit", "days"))
+        customers = []
+        try:
+            mdb = MongoDBUtil(mongo_config=self.mongo_config)
+            db = mdb.get_instance()
+            # TODO
+            if min_time and max_time:
+                filter_dict = {"$lte": max_time, "$gte": min_time}
+            elif min_time:
+                filter_dict = {"$gte": min_time}
+            elif max_time:
+                filter_dict = {"$lte": max_time}
+            else:
+                filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
+            customers_res = db.shopify_customer.find({"site_name": store_name, "created_at": filter_dict},
+                                                     {"_id": 0, "id": 1})
+            for cus in customers_res:
+                customers.append(cus["id"])
+            return customers
+        except Exception as e:
+            logger.exception("adapt_subscribe_time_mongo catch exception={}".format(e))
+            return customers
+        finally:
+            mdb.close()
 
     def unpaid_order_customers_mongo(self, store_name, min_time=None, max_time=None):
         """
@@ -2751,10 +2787,10 @@ if __name__ == '__main__':
     # print(ac.filter_purchase_customer(1, datetime.datetime(2019, 7, 24, 0, 0)))
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
     # print(ac.filter_received_customer(1, 346))
-    print(ac.update_customer_group_list(store_id=29))
+    # print(ac.update_customer_group_list(store_id=29))
     # print(ac.create_trigger_email_by_template(5, 186, "Update Html TEST", """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>jquery</title></head><body><div style="width:1200px;margin:0 auto;"><div class="showBox" style="overflow-wrap: break-word; text-align: center; font-size: 14px;"><div style="margin: 0px auto; width: 100%; border-bottom: 1px solid rgb(204, 204, 204); padding-bottom: 20px;"><div style="margin: 0px auto; width: 30%;"><h2>Subject Line</h2><div>UPDATE HTML CONTENT</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="margin: 0px auto; width: 70%; line-height: 20px; padding: 20px 0px;"><div style="padding: 10px 0px;">UPDATE HTML CONTENT</div><div style="padding: 10px 0px;">If you are having trouble viewing this email, please <a href="http://www.charrcter.com?utm_source=smartsend" target="_blank">click here</a> .</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="width: 30%; margin: 0px auto;"><img src="https://smartsend.seamarketings.com/media/5/0kvndz1fsiyeq9x.jpg" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 30px; border: 1px solid rgb(221, 221, 221); font-weight: 900; padding: 130px;">YOUR BANNER</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 28px; font-weight: 700;">UPDATE HTML CONTENT</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-family: &quot;Segoe UI Emoji&quot;; font-weight: 400; font-style: normal; font-size: 16px;">Dear {firstname}:
     #      welcome to my shop {shop_name}</div></div><div style="width: calc(100% - 24px); padding: 20px 12px;"></div><div style="width: 100%; padding-bottom: 20px;"><a href="88888888" style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px; text-decoration: none;">Go to Shopping Cart</a></div><div style="width: 100%; padding-bottom: 20px;"><a href="http://www.charrcter.com?utm_source=smartsend" target="_blank"><div style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px;">Back to Shop &gt;&gt;&gt;</div></a></div><div style="width: 100%; padding-bottom: 20px;"><div>neal.zhang@orderplus.com</div></div><div style="width: 100%; padding-bottom: 20px;"><div>2019 charrcter. All rights reserved.</div></div><div style="width: 100%; padding-bottom: 20px;"><div>www.charrcter.com</div></div><div style="width: 100%; padding-bottom: 20px;"><a href="*[link_unsubscribe]*"><div style="display: inline-block; padding: 10px; color: rgb(204, 204, 204); font-size: 14px; border-radius: 10px; border: 1px solid rgb(204, 204, 204);">Unsubscribe</div></a></div></div></div></body></html>""", 146))
-    # print(ac.execute_flow_task())
+    print(ac.execute_flow_task())
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))

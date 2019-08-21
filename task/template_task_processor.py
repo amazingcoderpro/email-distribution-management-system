@@ -185,7 +185,6 @@ class TemplateProcessor:
                         snippets_dict = pr.generate_snippets(shop_info, top_products, flow=False)
                         for key,val in snippets_dict.items():
                             html = html.replace("*[tr_{}]*".format(key),val)
-
                         result = exp.create_and_send_newsletter(uuids, subject=subject, html=html)
                         send_result = result["code"]
                         email_id = result["data"]
