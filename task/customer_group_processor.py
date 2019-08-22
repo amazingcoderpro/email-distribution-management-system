@@ -2603,7 +2603,7 @@ class AnalyzeCondition:
                 if "customer received an email from this campaign in the last" in res["note"]:
                     for note in eval(res["note"]):
                         if "customer received an email from this campaign in the last" in note:
-                            num, unit = note.split("last")[-1].strip()[0:-1].split(" ")
+                            num, unit = note.split("last")[-1].strip().split(".")[0].split(" ")
                             time_dict = {unit: -int(num)}
                             # customers_7day = self.filter_received_customer(res["store_id"], res["uuid"]) if from_type else self.filter_received_customer_mongo(res["store_id"], res["uuid"], store_name)
                             customers_7day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(**time_dict))
