@@ -545,7 +545,7 @@ if __name__ == '__main__':
     # print(ems.get_message_statistics(372))
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))
-    # print(ems.add_subscriber(25, ["fatty091@gmail.com","yacineh1604@mail.ru", "aaaaesd"]))
+    print(ems.add_subscriber(25, ['suzanne@gmail.com', 'g_bozzolo@libero.it', 'felicia@flochildrenswear.com.au']))
     # html = open("index.html")
     # print(ems.create_and_send_newsletter([86], "取消订阅完测试", html="<a href='https://baidu.com'>Unsubscribe</a>")) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))
@@ -554,7 +554,7 @@ if __name__ == '__main__':
     # print(ems.get_summary_statistics(63))
     # print(ems.get_server_time())
     # print(ems.get_message_statistics(349))
-    print(ems.create_and_send_newsletter([26], "two listID", html=html_b)) # ,"2019-07-09 21:09:00"
+    # print(ems.create_and_send_newsletter([26], "two listID", html=html_b)) # ,"2019-07-09 21:09:00"
     # print(ems.get_messages(349))
     # print(ems.get_subscriber_lists())
     # print(ems.create_subscribers_list("Test001"))
