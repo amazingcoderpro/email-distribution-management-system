@@ -993,8 +993,8 @@ class ShopifyDataProcessor:
             return None
         finally:
             mdb.close()
-            cursor.close() if cursor else 0
-            conn.close() if conn else 0
+            cursor.close() if 'cursor' in locals().keys() else 0
+            conn.close() if 'conn' in locals().keys() else 0
 
     def update_shopify_customers(self, store=None):
         """
@@ -1164,7 +1164,7 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).create_template()
 
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
+    # ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
     #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
@@ -1174,6 +1174,6 @@ if __name__ == '__main__':
     #ShopifyDataProcessor(db_info=db_info).update_store_webhook((4,"tiptopfree.myshopify.com","84ae42dd2bda781f84d8fd1d199dba88", "iii"))
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
 
-    # ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    ShopifyDataProcessor(db_info=db_info).update_new_shopify()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
 
