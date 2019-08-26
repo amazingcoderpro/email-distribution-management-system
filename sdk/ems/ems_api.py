@@ -244,7 +244,7 @@ class ExpertSender:
                 email.encode('latin-1')
             except Exception as e:
                 invalid_email.append(email)
-                logger.warning("add this email exception: %s" % str(e))
+                logger.warning("add this email warning: %s" % str(e))
                 continue
             data["ApiRequest"]["MultiData"]["Subscriber"].append(
                 {
