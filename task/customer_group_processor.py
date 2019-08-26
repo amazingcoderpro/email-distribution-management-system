@@ -1800,7 +1800,7 @@ class AnalyzeCondition:
         :param store_id:
         :return:
         """
-        logger.info("update_customer_group_list trigger, store_id={}".format(store_id))
+        logger.info("update_customer_group_list trigger, store_id={}, only_new={}".format(store_id, only_new))
         conditions = self.get_conditions(store_id=store_id, only_new=only_new)
         values = []
         for cond in conditions:
