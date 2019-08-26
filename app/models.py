@@ -113,6 +113,7 @@ class EmailTemplate(models.Model):
     logo = models.CharField(blank=True, null=True, max_length=255,verbose_name="邮件logo")
     banner = models.CharField(blank=True, null=True, max_length=255,verbose_name="邮件banner")
     banner_text = models.TextField(blank=True, null=True, verbose_name="banner_text")
+    customer_text = models.TextField(blank=True, null=True, verbose_name="customer_text")
     headline = models.TextField(blank=True, null=True,verbose_name="邮件headline")
     body_text = models.TextField(blank=True, null=True, verbose_name="邮件body_text")
     # top_type = models.TextField(verbose_name="选择的哪类top product")
