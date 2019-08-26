@@ -1955,7 +1955,7 @@ class AnalyzeCondition:
                                 new_customer_email_list = []
 
                             add_result = exp.add_subscriber(str(uuid), front_99)
-                            if add_result["code"] != 1:
+                            if add_result["code"] != 1 and add_result["code"] != 3:
                                 logger.error("update_customer_group_list add_subscriber failed, group id={}, uuid={}, result={}".format(group_id, uuid, add_result))
                         cursor.execute(
                             "update `customer_group` set uuid=%s, customer_list=%s, members=%s, update_time=%s, state=1 where id=%s",
