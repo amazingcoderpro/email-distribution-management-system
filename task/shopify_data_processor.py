@@ -489,8 +489,8 @@ class ShopifyDataProcessor:
             logger.exception("update_top_products_mongo e={}".format(e))
         finally:
             mdb.close()
-            cursor.close() if cursor else 0
-            conn.close() if conn else 0
+            cursor.close() if "cursor" in locals() else 0
+            conn.close() if "conn" in locals() else 0
 
     def update_top_product(self, store=None):
         """更新tot product"""
@@ -658,9 +658,9 @@ class ShopifyDataProcessor:
             logger.exception("update_top_product e={}".format(e))
             return False
         finally:
-            cursor.close() if cursor else 0
-            cursor_dict.close() if cursor_dict else 0
-            conn.close() if conn else 0
+            cursor.close() if "cursor" in locals() else 0
+            cursor_dict.close() if "cursor_dict" in locals() else 0
+            conn.close() if "conn" in locals() else 0
         logger.info("update_top_product is finished...")
         return True
 
