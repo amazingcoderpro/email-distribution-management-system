@@ -2607,6 +2607,9 @@ class AnalyzeCondition:
                 # 先排除2分钟之内收到过此邮件的收件人
                 customers_2minutes = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(minutes=-2))
                 customer_list = list(set(customer_list) - set(customers_2minutes))
+                if not customer_list:
+                    logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
+                    continue
                 # 获取store的from_type, store_name
                 from_type, store_site_name = self.get_store_source(res["store_id"])
                 # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
@@ -2618,11 +2621,17 @@ class AnalyzeCondition:
                             # customers_7day = self.filter_received_customer(res["store_id"], res["uuid"]) if from_type else self.filter_received_customer_mongo(res["store_id"], res["uuid"], store_name)
                             customers_7day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(**time_dict))
                             customer_list = list(set(customer_list)-set(customers_7day))
+                            if not customer_list:
+                                logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
+                                continue
                             logger.info("filter %s" % note)
                 if "customer makes a purchase" in eval(res["note"]) and res["remark"] != "first":
                     # 对customer_list里的收件人进行note筛选(从task创建时间开始)
                     customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_site_name)
                     customer_list = list(set(customer_list) - set(customers_purchased))
+                    if not customer_list:
+                        logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
+                        continue
                     logger.info("filter the customer makes a purchase.")
                 # 开始对筛选过的用户发送邮件
                 store = self.store_sender_and_email_by_id(res["store_id"])
@@ -2637,29 +2646,32 @@ class AnalyzeCondition:
                 email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
                 logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (
                 res["store_id"], set(unsubscribed_and_snoozed)))
+                if not email_list:
+                    logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
+                    continue
                 send_error_info = ""
                 status = 2
                 recipients = []
                 for customer in email_list:
                     # 发送邮件前，有可能需要先更新一下html,获取html模板
                     subject, html, product_condition, is_cart = self.get_template_info_by_id(res["template_id"])
-                    if int(is_cart) == 1 or "top" in product_condition:
-                        # 筛选产品，并更新邮件
-                        pr = ProductRecommend()
-                        if int(is_cart) == 1:
-                            # 获取购物车产品
-                            cart_products = pr.get_card_product_mongo(customer, store_site_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"])
-                        else:
-                            # 获取店铺信息
-                            cart_products = pr.get_card_product_mongo(customer, store_site_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"], length=0)
-                        top_products = []
-                        if "top" in product_condition:
-                            # 获取top_products
-                            top_products = pr.get_top_product_by_condition(product_condition, res["store_id"], res["flow_title"], res["template_id"])
-                        snippets_list = pr.generate_snippets(cart_products, top_products)
-                        rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"], snippets=snippets_list)
+                    # if int(is_cart) == 1 or "top" in product_condition:
+                    # 筛选产品，并更新邮件
+                    pr = ProductRecommend()
+                    if int(is_cart) == 1:
+                        # 获取购物车产品
+                        cart_products = pr.get_card_product_mongo(customer, store_site_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"])
                     else:
-                        rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
+                        # 获取店铺信息
+                        cart_products = pr.get_card_product_mongo(customer, store_site_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"], length=0)
+                    top_products = []
+                    if "top" in product_condition:
+                        # 获取top_products
+                        top_products = pr.get_top_product_by_condition(product_condition, res["store_id"], res["flow_title"], res["template_id"])
+                    snippets_list = pr.generate_snippets(cart_products, top_products)
+                    rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"], snippets=snippets_list)
+                    # else:
+                    #     rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
                     if rest["code"] != 1:
                         logger.error("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
                         msg = rest["msg"]["Message"] if isinstance(rest["msg"], dict) else str(rest["msg"])
@@ -2826,8 +2838,8 @@ if __name__ == '__main__':
     # print(ac.update_customer_group_list(store_id=29))
     # print(ac.create_trigger_email_by_template(53, 216, "Update Html TEST", """Update Html TEST""", 124))
     # print(ac.parse_new_customer_group_list())
-    print(ac.parse_trigger_tasks())
-    # print(ac.execute_flow_task())
+    # print(ac.parse_trigger_tasks())
+    print(ac.execute_flow_task())
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
