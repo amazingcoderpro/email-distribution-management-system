@@ -55,9 +55,6 @@ MYSQL_CONFIG = {
 }
 
 
-logger.exception("-----------{}, {}".format(MYSQL_CONFIG["host"], MYSQL_CONFIG["password"]))
-
-
 MONGO_CONFIG = {
     "host": "dds-j6cd6095509954a41348-pub.mongodb.rds.aliyuncs.com",
     "port": 3717,

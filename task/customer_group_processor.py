@@ -16,6 +16,18 @@ from sdk.ems import ems_api
 from task.product_recommendation import ProductRecommend
 
 
+def count_time(func):
+    def wrapper(*args, **kwargs):
+        tn = datetime.datetime.now()
+        logger.info("----start call {} at {}".format(func.__name__, tn))
+        ret = func(*args, **kwargs)
+        logger.info("----call {}, spend time={}".format(
+            func.__name__, round((datetime.datetime.now()-tn).microseconds/1000, 6)
+        ))
+        return ret
+
+    return wrapper
+
 class AnalyzeCondition:
     def __init__(self, mysql_config, mongo_config):
         self.db_host = mysql_config.get("host", "")
@@ -2810,6 +2822,7 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
         return True
+
 
 
 if __name__ == '__main__':
