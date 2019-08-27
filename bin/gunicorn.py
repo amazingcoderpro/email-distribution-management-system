@@ -10,7 +10,7 @@ workers = multiprocessing.cpu_count() * 2 + 1
 # 每个进程的开启线程
 threads = 1
 # 监听端口80
-bind = '0.0.0.0:8000'
+bind = '0.0.0.0:8002'
 # 设置守护进程,将进程交给supervisor管理
 daemon = True
 # 开启debug模式
