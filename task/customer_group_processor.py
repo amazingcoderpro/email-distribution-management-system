@@ -1331,7 +1331,7 @@ class AnalyzeCondition:
             # 从customer表中查找对应的uuid
             # customer = db["shopify_customer"]
             if relations[0]["relation"] == "is paid":  # 最后一笔订单已支付
-                customers = [item["customer"]["id"] for item in db.shopify_order.find({"fulfillment_status": "fulfilled", "site_name": store_name},
+                customers = [item["customer"]["id"] for item in db.shopify_order.find({"financial_status": "paid", "site_name": store_name},
                                            {"_id": 0, "id": 1, "customer.id": 1})]
                 return list(set(customers))
             elif relations[0]["relation"] == "is unpaid":
@@ -2838,8 +2838,8 @@ if __name__ == '__main__':
     # print(ac.update_customer_group_list(store_id=29))
     # print(ac.create_trigger_email_by_template(53, 216, "Update Html TEST", """Update Html TEST""", 124))
     # print(ac.parse_new_customer_group_list())
-    # print(ac.parse_trigger_tasks())
-    print(ac.execute_flow_task())
+    print(ac.parse_trigger_tasks())
+    # print(ac.execute_flow_task())
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
