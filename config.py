@@ -54,6 +54,10 @@ MYSQL_CONFIG = {
     "password": os.getenv("MYSQL_PASSWD", "edm@orderplus.com")
 }
 
+
+logger.exception("-----------{}, {}".format(MYSQL_CONFIG["host"], MYSQL_CONFIG["password"]))
+
+
 MONGO_CONFIG = {
     "host": "dds-j6cd6095509954a41348-pub.mongodb.rds.aliyuncs.com",
     "port": 3717,
