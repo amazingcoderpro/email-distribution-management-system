@@ -123,7 +123,7 @@ class ExpertSender:
                             "FromEmail": self.from_email,
                             "Subject": subject,
                             "Plain": plain,
-                            "Html": "{}",
+                            "Html": "*{html_content}*",
                         },
                         "DeliverySettings": {
                             "ThrottlingMethod": "Auto",
@@ -140,7 +140,8 @@ class ExpertSender:
             data["ApiRequest"]["Data"]["DeliverySettings"].update({"DeliveryDate": delivery_date.replace(" ", "T")})
         try:
             xml_data = self.jsontoxml(data)
-            xml_data = xml_data.format("<![CDATA[{}]]>".format(html))
+            # xml_data = xml_data.format("<![CDATA[{}]]>".format(html))
+            xml_data = xml_data.replace("*{html_content}*", "<![CDATA[{}]]>".format(html))
             result = requests.post(url, xml_data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("create and send newsletter", result)
         except Exception as e:
@@ -386,7 +387,7 @@ class ExpertSender:
                     "FromEmail": self.from_email,
                     "Subject": subject,
                     "Plain": plain,
-                    "Html": "%s",
+                    "Html": "*{html_content}*",
                 },
             }
         }}
@@ -394,7 +395,8 @@ class ExpertSender:
             data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": {"Url": content_from_url}})
         try:
             xml_data = self.jsontoxml(data)
-            xml_data = xml_data % ("<![CDATA[%s]]>" % html)
+            # xml_data = xml_data % ("<![CDATA[%s]]>" % html)
+            xml_data = xml_data.replace("*{html_content}*", "<![CDATA[{}]]>".format(html))
             result = requests.post(url, xml_data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("create transactional message", result)
         except Exception as e:
@@ -456,7 +458,7 @@ class ExpertSender:
                     "FromEmail": self.from_email,
                     "Subject": subject,
                     "Plain": plain,
-                    "Html": "%s",
+                    "Html": "*{html_content}*",
                 },
             }
         }}
@@ -464,7 +466,8 @@ class ExpertSender:
             data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": {"Url": content_from_url}})
         try:
             xml_data = self.jsontoxml(data)
-            xml_data = xml_data % ("<![CDATA[%s]]>" % html)
+            # xml_data = xml_data % ("<![CDATA[%s]]>" % html)
+            xml_data = xml_data.replace("*{html_content}*", "<![CDATA[{}]]>".format(html))
             result = requests.put(url, xml_data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("update transactional message", result)
         except Exception as e:
@@ -552,7 +555,7 @@ if __name__ == '__main__':
     # print(ems.get_summary_statistics(63))
     # print(ems.get_server_time())
     # print(ems.get_message_statistics(349))
-    print(ems.create_and_send_newsletter([26], "Multilingual Mail Sending Test", html=html_b)) # ,"2019-07-09 21:09:00"
+    # print(ems.create_and_send_newsletter([26], "Multilingual Mail Sending Test", html=html_b)) # ,"2019-07-09 21:09:00"
     # print(ems.get_messages(349))
     # print(ems.get_subscriber_lists())
     # print(ems.create_subscribers_list("Test001"))
@@ -565,7 +568,7 @@ if __name__ == '__main__':
     # print(ems.get_export_progress(11))  # 11
     # print(ems.clear_subscriber(25, ""))  # 11
     # print(ems.add_subscriber(86, ["leemon.li@orderplus.com"]))
-    # print(ems.create_transactional_message("snippet transactiona message test1", html="<a href='www.baidu.com'>*[tr_snippetname]*</a>"))  # 462
+    print(ems.create_transactional_message('Special Treat: {$/%} discount for you', html="<a href='www.baidu.com'>*[tr_snippetname]*</a>"))  # 462
     # print(ems.send_transactional_messages(462, "leemon.li@orderplus.com", 25, [{"name": "href", "value": "https://www.baidu.com"}, {"name": "linkname", "value": "<p style='color:red'>百度百度</p>"}]))  # 350
     # print(ems.send_transactional_messages(461, "leemon.li@orderplus.com", 25, [{"name": "ShopName", "value": "aaaaa"},{"name": "Firstname", "value": "bbbbb"},{"name": "CartProducts", "value": "<tr></tr>"},{"name": "AbandonedCheckoutUrl", "value": "dddddd"}]))  # 350
     # print(ems.update_transactional_message(551, "Did you forget something?", html="""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>jquery</title><style>a:hover{text-decoration: underline!important; }.hide{display:none!important;}.bannerText{border:0px!important;}</style></head><body><div style="width:880px;margin:0 auto;"><div class="showBox" style="overflow-wrap: break-word; text-align: center; font-size: 14px; width: 100%; margin: 0px auto;"><div style="width: 100%; padding: 20px 0px;"><div style="width: 30%; margin: 0px auto;"><img src="https://smartsend.seamarketings.com/media/33/oj8xqis4fp02bra.jpg" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px; position: relative; overflow: hidden;"><div class="bannerText" style="position: absolute; left: 3px; top: -21px; text-align: left; width: 318px; line-height: 30px; font-size: 17px; color: rgb(0, 0, 0); border: 0px dashed rgb(204, 204, 204);"><div></div><div></div><div><p><span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);">Sehr geehrte</span> *[tr_firstname]*,</p><p><span style="color: rgb(153, 153, 153);">  W</span><span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);">ir haben gefunden</span> *[tr_shop_name]* <span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);">dass sich Sie ohne Abschluss der Bestellung</span>. <span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);">Keine Sorge!</span> <span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);">Wir haben Ihren Einkaufswagen gespeichert, sodass Sie jederzeit zurückklicken und beim Einkauf fortfahren können</span>.<span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);">Bei </span>*[tr_shop_name]*<span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);"> warten wir immer noch auf Sie.</span></p><p><span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);"><span class="ql-cursor">﻿</span>Mit freundlichen Grüßen</span></p></div></div><div style="width: 100%;"><img src="https://smartsend.seamarketings.com/media/33/hsg6krpwodu8mnc.jpg" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px; position: relative;"><div style="position: absolute; width: 100%; height: 3px; background: rgb(0, 0, 0); top: 40px; left: 0px;"></div><table border="0" cellspacing="0" style="width: 840px; font-weight: 800; margin-left: 20px;"><thead style="padding: 20px 0px; line-height: 50px; border-bottom: 3px solid rgb(221, 221, 221);"><tr style="font-size: 18px; border-bottom: 10px solid rgb(0, 0, 0);"><td style="width: 50%;">ITEM(S)</td><td>UNIT PRICE</td><td>QUANTITY</td><td>AMOUNT</td></tr></thead><tbody>
