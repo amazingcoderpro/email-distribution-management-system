@@ -48,9 +48,11 @@ class ProductRecommend:
             cart_product_str += self.cart_str.format(**product)
         # 拼接top产品html
         top_product_str = ""
-        product_title = top_product_list.pop(-1)
-        for product in top_product_list:
-            top_product_str += self.top_str.format(**product)
+        product_title = {"products_title": "hide"}
+        if top_product_list:
+            product_title = top_product_list.pop(-1)
+            for product in top_product_list:
+                top_product_str += self.top_str.format(**product)
 
         snippet_dict = {"shop_name": shop_name,
                         "firstname": firstname,
