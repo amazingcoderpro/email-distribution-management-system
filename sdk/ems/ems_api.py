@@ -241,7 +241,7 @@ class ExpertSender:
         invalid_email = []
         for email in email_list:
             try:
-                email.encode('latin-1')   # 排除邮箱地址中存在特殊字符的email
+                email.encode('latin-1')   # 排除邮箱地址中存在特殊字符的email, eg: ă
             except Exception as e:
                 invalid_email.append(email)
                 logger.warning("add this email warning: %s" % str(e))
@@ -531,21 +531,19 @@ class ExpertSender:
 
 
 if __name__ == '__main__':
-    html_b = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>jquery</title><style>a:hover{text-decoration: underline!important; }.hide{display:none!important;}.bannerText{border:0px!important;}</style></head><body><div style="width:880px;margin:0 auto;"><div class="showBox" style="overflow-wrap: break-word; text-align: center; font-size: 14px; width: 100%; margin: 0px auto;"><div style="width: 100%; padding: 20px 0px;"><div style="font-size: 30px; border: 1px solid rgb(221, 221, 221); font-weight: 900; padding: 12px 0px; width: 30%; margin: 0px auto;">YOUR LOGO</div></div><div style="width: 100%; padding-bottom: 20px; position: relative; overflow: hidden;"><div class="bannerText" style="position: absolute; left: 180px; top: 147px; text-align: left; width: 400px; line-height: 30px; font-size: 17px; color: rgb(0, 0, 0); border: 2px dashed rgb(204, 204, 204);"><div></div><div>we really miss you, please enjoy this specially customized 20% coupon. Happy shopping day! </div><div></div><div></div></div><div style="width: 100%;"><img src="https://smartsend.seamarketings.com/media/29/io8w9r7gcnx34fd.jpg" style="width: 100%;"></div></div><!----><!----><div class="" style="width: 100%; padding-bottom: 20px; font-size: 20px; font-weight: 800;">
-                                Product Title
-                        </div><div style="width: 856px; padding: 20px 12px;">
-                            <div style="width:46%;margin:10px;display:inline-block;vertical-align: top;"><a href="https://www.charrcter.com/products/womens-v-neck-lace-fringe-dress?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=1280400293935_216"><img src="https://cdn.shopify.com/s/files/1/0062/9106/2831/products/3448384_672c5fe89e_0a032732-313b-4ba3-8a41-f5062375f28d.jpg?v=1562581258" style="width:100%;"/></a><h3 style="font-weight:700;white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">Women's V-Neck Lace Fringe Dress</h3></div><div style="width:46%;margin:10px;display:inline-block;vertical-align: top;"><a href="https://www.charrcter.com/products/5fb51d2696d7?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=2173743431734_216"><img src="https://cdn.shopify.com/s/files/1/0152/7218/1814/products/3239958_5522f421c0.jpg?v=1560926774" style="width:100%;"/></a><h3 style="font-weight:700;white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">Topshe Krawattehalsband Feder</h3></div><div style="width:46%;margin:10px;display:inline-block;vertical-align: top;"><a href="https://www.charrcter.com/products/6ebc7a65768c?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=2173760176182_216"><img src="https://cdn.shopify.com/s/files/1/0152/7218/1814/products/3273500_3ca3e8baca.jpg?v=1560928063" style="width:100%;"/></a><h3 style="font-weight:700;white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">Topshe V Lockere Passform Drucken</h3></div><div style="width:46%;margin:10px;display:inline-block;vertical-align: top;"><a href="https://www.charrcter.com/products/casual-printed-round-neck-short-sleeve-shirt?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=3631119302761_216"><img src="https://cdn.shopify.com/s/files/1/0250/5818/1225/products/3488953_c85ee5eb1b.jpg?v=1563764695" style="width:100%;"/></a><h3 style="font-weight:700;white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">Casual Printed Round Neck Short Sleeve Shirt</h3></div>
-                        </div><div style="width: calc(100% - 24px); padding: 20px 12px; text-align: center;">
-                        @2006-2019 <a href="https://www.charrcter.com?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=216" target="_blank">www.charrcter.com</a>  Copyright,All Rights Reserved
-                    </div><div style="width: calc(100% - 24px); padding: 20px 12px; text-align: center;"><a href="*[link_unsubscribe]*" target="_blank" style="text-decoration: none; cursor: pointer; color: rgb(254, 34, 46); padding: 0px 10px; border-right: 2px solid rgb(204, 204, 204); font-size: 24px;">UNSUBSCRIBE</a><a href="https://www.charrcter.com/pages/faq?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=216" target="_blank" style="text-decoration: none; cursor: pointer; color: rgb(254, 34, 46); padding: 0px 10px; border-right: 2px solid rgb(204, 204, 204); font-size: 24px;">HELP CENTER</a><a href="https://www.charrcter.com/pages/privacy-policy?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=216" target="_blank" style="text-decoration: none; cursor: pointer; color: rgb(254, 34, 46); padding: 0px 10px; border-right: 2px solid rgb(204, 204, 204); font-size: 24px;">PRIVACY POLICY</a><a href="https://www.charrcter.com/pages/about-us?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=216" target="_blank" style="text-decoration: none; cursor: pointer; color: rgb(254, 34, 46); padding: 0px 10px; font-size: 24px;">ABOUT US</a></div><div style="width: calc(100% - 24px); padding: 20px 12px; text-align: center;">
-                        This email was sent a notification-only address that cannot accept incoming email PLEASE
-                        DO NOT REPLY to this message. if you have any questions or concerns.please email us:neal.zhang@orderplus.com
-                    </div></div></div></body></html>"""
+    html_b = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><body>
+    <p>多言語メール送信テスト</p>
+    <p>多语言邮件发送测试</p>
+    <p>Mehrsprachiger Versandtest</p>
+    <p>проверка отправки многоязыковой почты</p>
+    <p>Prueba de envío de correo multilingüe</p>
+    <p>다중 언어 메일 보내기 테스트</p>
+    </body></html>"""
     ems = ExpertSender("Leemon", "leemon.li@orderplus.com")
     # print(ems.get_message_statistics(372))
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))
-    print(ems.add_subscriber(25, ['suzanne@gmail.com', 'g_bozzolo@libero.it', 'felicia@flochildrenswear.com.au']))
+    # print(ems.add_subscriber(25, ['suzanne@gmail.com', 'g_bozzolo@libero.it', 'felicia@flochildrenswear.com.au']))
     # html = open("index.html")
     # print(ems.create_and_send_newsletter([86], "取消订阅完测试", html="<a href='https://baidu.com'>Unsubscribe</a>")) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))
@@ -554,7 +552,7 @@ if __name__ == '__main__':
     # print(ems.get_summary_statistics(63))
     # print(ems.get_server_time())
     # print(ems.get_message_statistics(349))
-    # print(ems.create_and_send_newsletter([26], "two listID", html=html_b)) # ,"2019-07-09 21:09:00"
+    print(ems.create_and_send_newsletter([26], "Multilingual Mail Sending Test", html=html_b)) # ,"2019-07-09 21:09:00"
     # print(ems.get_messages(349))
     # print(ems.get_subscriber_lists())
     # print(ems.create_subscribers_list("Test001"))
