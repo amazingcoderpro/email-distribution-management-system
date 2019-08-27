@@ -2377,20 +2377,20 @@ class AnalyzeCondition:
             store = self.store_sender_and_email_by_id(store_id)
             if not store:
                 logger.error("store(id=%s) is not exists." % store_id)
-                return False
+                continue
             ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
             if not customer_list_id:
                 # 创建收件人列表
                 res = ems.create_subscribers_list(title)  # 以flow的title命名为收件人列表名称
                 if res["code"] != 1:
-                    logger.error("create subscribers list failed")
-                    return False
+                    logger.error("create subscribers list failed. the reason is %s" % res["msg"])
+                    continue
                 customer_list_id = res["data"]
                 # 将ListId反填回数据库
                 r = self.insert_customer_list_id_from_email_trigger(customer_list_id, t_id)
                 if not r:
                     logger.error("insert_customer_list_id_from_email_trigger failed")
-                    return False
+                    continue
             # 获取store的from_type, store_name
             from_type, store_site_name = self.get_store_source(store_id)
             # 将new_customer_list转换成邮箱地址列表
@@ -2408,7 +2408,7 @@ class AnalyzeCondition:
                 rest = ems.add_subscriber(customer_list_id, email_list[99*t:99*(t+1)])
                 if rest["code"]==-1 or rest["code"]==2:
                     logger.error("add subscribers failed")
-                    return False
+                    continue
             invalid_email = rest.get("invalid_email", [])
             valid_email = list(set(email_list) - set(invalid_email))  # 添加到收件人列表成功的邮箱
             logger.info("add subscriber success.customer_list_id is %s" % customer_list_id)
@@ -2433,10 +2433,10 @@ class AnalyzeCondition:
                         excute_time += datetime.timedelta(**{unit:num})
                     else:
                         logger.error("delay unit is error, please amend it to days or hours.")
-                        return False
+                        continue
                 else:
                     logger.error("type=%s is invalid." % item["type"])
-                    return False
+                    continue
 
             # 2、拆解的任务入库email_task
             self.insert_email_task_from_trigger(insert_list)
