@@ -13,7 +13,7 @@ threads = 1
 bind = '0.0.0.0:8002'
 # 设置守护进程,将进程交给supervisor管理
 daemon = False
-# 开启debug模式
+# 开启debug   模式
 debug = True
 # 工作模式协程
 worker_class = 'gevent'
