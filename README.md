@@ -53,12 +53,16 @@ mkdir /data/nginx/edm/dist/media/
 yum install epel-release
 yum install -y supervisor
 systemctl enable supervisord
-mv /data/django/edm/bin/supervisord.conf /etc/supervisord.conf
+mv /data/django/edm/bin/supervisord/supervisord.conf /etc/supervisord.conf
 vim /etc/supervisord.conf         # 将mysql环境变量写到配置文件中
     environment=
 
 systemctl start supervisord
-systemctl status supervisord
+
+supervisorctl status
+supervisorctl stop 进程
+supervisorctl stop all
+
 
 
 ## 4.安装nginx
