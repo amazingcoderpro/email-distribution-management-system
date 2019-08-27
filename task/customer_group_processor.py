@@ -29,7 +29,7 @@ class AnalyzeCondition:
                               "Customer last click email time": "adapt_last_click_email_time",  # 已完成
                               "Customer placed order": "adapt_placed_order",  # 已完成
                               "Customer paid order": "adapt_paid_order",  # 已完成
-                              "Customer order number is": "adapt_all_order",  # 已完成
+                              "Customer order number": "adapt_all_order",  # 已完成
                               "Customer opened email": "adapt_opened_email",  # 已完成
                               "Customer clicked email": "adapt_clicked_email",  # 已完成
                               "Customer last order status": "adapt_last_order_status",  # 已完成
@@ -2423,7 +2423,7 @@ class AnalyzeCondition:
                     template_id, unit = item["value"], item["unit"]
                     # 通过template_id去创建一个事务性邮件，并返回email_uuid
                     subject, html, product_condition, is_cart = self.get_template_info_by_id(template_id)
-                    email_uuid = self.create_trigger_email_by_template(store_id, template_id, subject, html, t_id)[0]
+                    email_uuid = self.create_trigger_email_by_template(store_id, template_id, subject, html, t_id)
                     # 将触发邮件任务参数增加到待入库数据列表中
                     valid_email_id_list = self.customer_email_to_uuid(valid_email, store_id) if from_type else self.customer_email_to_uuid_mongo(valid_email, store_site_name)
                     insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(valid_email_id_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now(), store_id))
@@ -2501,9 +2501,12 @@ class AnalyzeCondition:
 
     def create_trigger_email_by_template(self, store_id, template_id, subject, html, email_trigger_id):
         """
-        若无对应模板的事务性邮件，则创建
+        若无对应模板的事务性邮件，则创建； 若有，则需要更新一下
         :param store_id: 所属店铺
-        :param template_id:
+        :param template_id: 模板ID
+        :param subject: 邮件主题
+        :param html: 邮件内容
+        :param email_trigger_id: 所属trigger ID
         :return:
         """
         try:
@@ -2511,17 +2514,18 @@ class AnalyzeCondition:
                           password=self.db_password).get_instance()
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
-                return False
+                return None
+            # 获取当前店铺name,email
+            cursor.execute("select `name`, `sender`, `sender_address` from `store` where id=%s", (store_id,))
+            store = cursor.fetchone()
+            if not store:
+                raise Exception("store is not found, store id={}".format(store_id))
+            ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
             # 通过template_id查询记录
-            cursor.execute("select `id` from `email_record` where store_id=%s and email_template_id=%s and type=1", (store_id, template_id))
-            if not cursor.fetchall():
+            cursor.execute("select `id`,`uuid` from `email_record` where store_id=%s and email_template_id=%s and type=1", (store_id, template_id))
+            email_res = cursor.fetchall()
+            if not email_res:
                 # 暂无数据，需要创建，先获取email_uuid
-                # 获取当前店铺name,email
-                cursor.execute("select `name`, `sender`, `sender_address` from `store` where id=%s", (store_id,))
-                store = cursor.fetchone()
-                if not store:
-                    raise Exception("store is not found, store id={}".format(store_id))
-                ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
                 res = ems.create_transactional_message(subject=subject, html=html)
                 if res["code"] != 1:
                     raise Exception(res["msg"])
@@ -2533,17 +2537,23 @@ class AnalyzeCondition:
                 conn.commit()
                 logger.info("insert trigger email from email_record success.")
             else:
-                logger.info("email_record data was exists.")
-            # 查询此模板ID对应的email_uuid
-            cursor.execute("select `uuid`, `email_template_id` from `email_record` where email_template_id=%s and email_trigger_id=%s", (template_id,email_trigger_id))
-            result = cursor.fetchone()
+                logger.info("email_record data was exists. need to update email html templte")
+                # 更新邮件内容
+                email_uuid = email_res[0]["uuid"]
+                res = ems.update_transactional_message(email_id=email_uuid, subject=subject, html=html)
+                if res["code"] != 1:
+                    raise Exception(res["msg"])
+                logger.info("update transactional message success of email_uuid=%s" % email_uuid)
+            # # 查询此模板ID对应的email_uuid
+            # cursor.execute("select `uuid`, `email_template_id` from `email_record` where email_template_id=%s and email_trigger_id=%s", (template_id,email_trigger_id))
+            # result = cursor.fetchone()
+            return email_uuid
         except Exception as e:
             logger.exception("insert email task from trigger exception: {}".format(e))
-            return False
+            return None
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return result["uuid"], result["email_template_id"]
 
     def get_template_info_by_id(self, template_id):
         """
@@ -2814,11 +2824,10 @@ if __name__ == '__main__':
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
     # print(ac.filter_received_customer(1, 346))
     # print(ac.update_customer_group_list(store_id=29))
-    # print(ac.create_trigger_email_by_template(5, 186, "Update Html TEST", """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>jquery</title></head><body><div style="width:1200px;margin:0 auto;"><div class="showBox" style="overflow-wrap: break-word; text-align: center; font-size: 14px;"><div style="margin: 0px auto; width: 100%; border-bottom: 1px solid rgb(204, 204, 204); padding-bottom: 20px;"><div style="margin: 0px auto; width: 30%;"><h2>Subject Line</h2><div>UPDATE HTML CONTENT</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="margin: 0px auto; width: 70%; line-height: 20px; padding: 20px 0px;"><div style="padding: 10px 0px;">UPDATE HTML CONTENT</div><div style="padding: 10px 0px;">If you are having trouble viewing this email, please <a href="http://www.charrcter.com?utm_source=smartsend" target="_blank">click here</a> .</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="width: 30%; margin: 0px auto;"><img src="https://smartsend.seamarketings.com/media/5/0kvndz1fsiyeq9x.jpg" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 30px; border: 1px solid rgb(221, 221, 221); font-weight: 900; padding: 130px;">YOUR BANNER</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 28px; font-weight: 700;">UPDATE HTML CONTENT</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-family: &quot;Segoe UI Emoji&quot;; font-weight: 400; font-style: normal; font-size: 16px;">Dear {firstname}:
-    #      welcome to my shop {shop_name}</div></div><div style="width: calc(100% - 24px); padding: 20px 12px;"></div><div style="width: 100%; padding-bottom: 20px;"><a href="88888888" style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px; text-decoration: none;">Go to Shopping Cart</a></div><div style="width: 100%; padding-bottom: 20px;"><a href="http://www.charrcter.com?utm_source=smartsend" target="_blank"><div style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px;">Back to Shop &gt;&gt;&gt;</div></a></div><div style="width: 100%; padding-bottom: 20px;"><div>neal.zhang@orderplus.com</div></div><div style="width: 100%; padding-bottom: 20px;"><div>2019 charrcter. All rights reserved.</div></div><div style="width: 100%; padding-bottom: 20px;"><div>www.charrcter.com</div></div><div style="width: 100%; padding-bottom: 20px;"><a href="*[link_unsubscribe]*"><div style="display: inline-block; padding: 10px; color: rgb(204, 204, 204); font-size: 14px; border-radius: 10px; border: 1px solid rgb(204, 204, 204);">Unsubscribe</div></a></div></div></div></body></html>""", 146))
+    # print(ac.create_trigger_email_by_template(53, 216, "Update Html TEST", """Update Html TEST""", 124))
     # print(ac.parse_new_customer_group_list())
-    # print(ac.parse_trigger_tasks())
-    print(ac.execute_flow_task())
+    print(ac.parse_trigger_tasks())
+    # print(ac.execute_flow_task())
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
