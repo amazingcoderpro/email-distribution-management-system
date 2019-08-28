@@ -14,7 +14,7 @@ bind = '0.0.0.0:8002'
 # 设置守护进程,将进程交给supervisor管理
 daemon = False
 # 开启debug   模式
-debug = True
+debug = False
 # 工作模式协程
 worker_class = 'gevent'
 # 设置最大并发量
