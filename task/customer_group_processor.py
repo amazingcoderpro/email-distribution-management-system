@@ -16,6 +16,18 @@ from sdk.ems import ems_api
 from task.product_recommendation import ProductRecommend
 
 
+def count_time(func):
+    def wrapper(*args, **kwargs):
+        tn = datetime.datetime.now()
+        logger.info("----start call {} at {}".format(func.__name__, tn))
+        ret = func(*args, **kwargs)
+        logger.info("----call {}, spend time={}".format(
+            func.__name__, round((datetime.datetime.now()-tn).microseconds/1000, 6)
+        ))
+        return ret
+
+    return wrapper
+
 class AnalyzeCondition:
     def __init__(self, mysql_config, mongo_config):
         self.db_host = mysql_config.get("host", "")
@@ -29,7 +41,7 @@ class AnalyzeCondition:
                               "Customer last click email time": "adapt_last_click_email_time",  # 已完成
                               "Customer placed order": "adapt_placed_order",  # 已完成
                               "Customer paid order": "adapt_paid_order",  # 已完成
-                              "Customer order number is": "adapt_all_order",  # 已完成
+                              "Customer order number": "adapt_all_order",  # 已完成
                               "Customer opened email": "adapt_opened_email",  # 已完成
                               "Customer clicked email": "adapt_clicked_email",  # 已完成
                               "Customer last order status": "adapt_last_order_status",  # 已完成
@@ -1331,7 +1343,7 @@ class AnalyzeCondition:
             # 从customer表中查找对应的uuid
             # customer = db["shopify_customer"]
             if relations[0]["relation"] == "is paid":  # 最后一笔订单已支付
-                customers = [item["customer"]["id"] for item in db.shopify_order.find({"fulfillment_status": "fulfilled", "site_name": store_name},
+                customers = [item["customer"]["id"] for item in db.shopify_order.find({"financial_status": "paid", "site_name": store_name},
                                            {"_id": 0, "id": 1, "customer.id": 1})]
                 return list(set(customers))
             elif relations[0]["relation"] == "is unpaid":
@@ -1800,7 +1812,7 @@ class AnalyzeCondition:
         :param store_id:
         :return:
         """
-        logger.info("update_customer_group_list trigger, store_id={}".format(store_id))
+        logger.info("update_customer_group_list trigger, store_id={}, only_new={}".format(store_id, only_new))
         conditions = self.get_conditions(store_id=store_id, only_new=only_new)
         values = []
         for cond in conditions:
@@ -1955,7 +1967,7 @@ class AnalyzeCondition:
                                 new_customer_email_list = []
 
                             add_result = exp.add_subscriber(str(uuid), front_99)
-                            if add_result["code"] != 1:
+                            if add_result["code"] != 1 and add_result["code"] != 3:
                                 logger.error("update_customer_group_list add_subscriber failed, group id={}, uuid={}, result={}".format(group_id, uuid, add_result))
                         cursor.execute(
                             "update `customer_group` set uuid=%s, customer_list=%s, members=%s, update_time=%s, state=1 where id=%s",
@@ -2377,20 +2389,20 @@ class AnalyzeCondition:
             store = self.store_sender_and_email_by_id(store_id)
             if not store:
                 logger.error("store(id=%s) is not exists." % store_id)
-                return False
+                continue
             ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
             if not customer_list_id:
                 # 创建收件人列表
                 res = ems.create_subscribers_list(title)  # 以flow的title命名为收件人列表名称
                 if res["code"] != 1:
-                    logger.error("create subscribers list failed")
-                    return False
+                    logger.error("create subscribers list failed. the reason is %s" % res["msg"])
+                    continue
                 customer_list_id = res["data"]
                 # 将ListId反填回数据库
                 r = self.insert_customer_list_id_from_email_trigger(customer_list_id, t_id)
                 if not r:
                     logger.error("insert_customer_list_id_from_email_trigger failed")
-                    return False
+                    continue
             # 获取store的from_type, store_name
             from_type, store_site_name = self.get_store_source(store_id)
             # 将new_customer_list转换成邮箱地址列表
@@ -2407,8 +2419,8 @@ class AnalyzeCondition:
             for t in range(times):
                 rest = ems.add_subscriber(customer_list_id, email_list[99*t:99*(t+1)])
                 if rest["code"]==-1 or rest["code"]==2:
-                    logger.error("add subscribers failed")
-                    return False
+                    logger.error("add subscribers failed, the reason is %s" % rest["msg"])
+                    continue
             invalid_email = rest.get("invalid_email", [])
             valid_email = list(set(email_list) - set(invalid_email))  # 添加到收件人列表成功的邮箱
             logger.info("add subscriber success.customer_list_id is %s" % customer_list_id)
@@ -2423,7 +2435,7 @@ class AnalyzeCondition:
                     template_id, unit = item["value"], item["unit"]
                     # 通过template_id去创建一个事务性邮件，并返回email_uuid
                     subject, html, product_condition, is_cart = self.get_template_info_by_id(template_id)
-                    email_uuid = self.create_trigger_email_by_template(store_id, template_id, subject, html, t_id)[0]
+                    email_uuid = self.create_trigger_email_by_template(store_id, template_id, subject, html, t_id)
                     # 将触发邮件任务参数增加到待入库数据列表中
                     valid_email_id_list = self.customer_email_to_uuid(valid_email, store_id) if from_type else self.customer_email_to_uuid_mongo(valid_email, store_site_name)
                     insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(valid_email_id_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now(), store_id))
@@ -2433,10 +2445,10 @@ class AnalyzeCondition:
                         excute_time += datetime.timedelta(**{unit:num})
                     else:
                         logger.error("delay unit is error, please amend it to days or hours.")
-                        return False
+                        continue
                 else:
                     logger.error("type=%s is invalid." % item["type"])
-                    return False
+                    continue
 
             # 2、拆解的任务入库email_task
             self.insert_email_task_from_trigger(insert_list)
@@ -2501,9 +2513,12 @@ class AnalyzeCondition:
 
     def create_trigger_email_by_template(self, store_id, template_id, subject, html, email_trigger_id):
         """
-        若无对应模板的事务性邮件，则创建
+        若无对应模板的事务性邮件，则创建； 若有，则需要更新一下
         :param store_id: 所属店铺
-        :param template_id:
+        :param template_id: 模板ID
+        :param subject: 邮件主题
+        :param html: 邮件内容
+        :param email_trigger_id: 所属trigger ID
         :return:
         """
         try:
@@ -2511,17 +2526,18 @@ class AnalyzeCondition:
                           password=self.db_password).get_instance()
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
-                return False
+                return None
+            # 获取当前店铺name,email
+            cursor.execute("select `name`, `sender`, `sender_address` from `store` where id=%s", (store_id,))
+            store = cursor.fetchone()
+            if not store:
+                raise Exception("store is not found, store id={}".format(store_id))
+            ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
             # 通过template_id查询记录
-            cursor.execute("select `id` from `email_record` where store_id=%s and email_template_id=%s and type=1", (store_id, template_id))
-            if not cursor.fetchall():
+            cursor.execute("select `id`,`uuid` from `email_record` where store_id=%s and email_template_id=%s and type=1", (store_id, template_id))
+            email_res = cursor.fetchall()
+            if not email_res:
                 # 暂无数据，需要创建，先获取email_uuid
-                # 获取当前店铺name,email
-                cursor.execute("select `name`, `sender`, `sender_address` from `store` where id=%s", (store_id,))
-                store = cursor.fetchone()
-                if not store:
-                    raise Exception("store is not found, store id={}".format(store_id))
-                ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
                 res = ems.create_transactional_message(subject=subject, html=html)
                 if res["code"] != 1:
                     raise Exception(res["msg"])
@@ -2533,17 +2549,23 @@ class AnalyzeCondition:
                 conn.commit()
                 logger.info("insert trigger email from email_record success.")
             else:
-                logger.info("email_record data was exists.")
-            # 查询此模板ID对应的email_uuid
-            cursor.execute("select `uuid`, `email_template_id` from `email_record` where email_template_id=%s and email_trigger_id=%s", (template_id,email_trigger_id))
-            result = cursor.fetchone()
+                logger.info("email_record data was exists. need to update email html templte")
+                # 更新邮件内容
+                email_uuid = email_res[0]["uuid"]
+                res = ems.update_transactional_message(email_id=email_uuid, subject=subject, html=html)
+                if res["code"] != 1:
+                    raise Exception(res["msg"])
+                logger.info("update transactional message success of email_uuid=%s" % email_uuid)
+            # # 查询此模板ID对应的email_uuid
+            # cursor.execute("select `uuid`, `email_template_id` from `email_record` where email_template_id=%s and email_trigger_id=%s", (template_id,email_trigger_id))
+            # result = cursor.fetchone()
+            return email_uuid
         except Exception as e:
             logger.exception("insert email task from trigger exception: {}".format(e))
-            return False
+            return None
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return result["uuid"], result["email_template_id"]
 
     def get_template_info_by_id(self, template_id):
         """
@@ -2567,6 +2589,29 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
         return result["subject"], result["html"], result["product_condition"], result["is_cart"]
+
+    def remove_email_task_by_id(self, task_id):
+        """
+        通过task_id删除此条数据
+        :param task_id: 主键ID
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+            cursor.execute("delete from email_task where id=%s", (task_id))
+            conn.commit()
+            logger.info("remove email task success. id = %s" % task_id)
+            return True
+        except Exception as e:
+            logger.exception("remove email task by id({}) exception: {}".format(task_id, e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
 
     def execute_flow_task(self):
         """
@@ -2597,29 +2642,43 @@ class AnalyzeCondition:
                 # 先排除2分钟之内收到过此邮件的收件人
                 customers_2minutes = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(minutes=-2))
                 customer_list = list(set(customer_list) - set(customers_2minutes))
+                # 如果没有需要发送的邮件，应该把此条任务直接从emil_task表中删掉
+                if not customer_list:
+                    logger.info(
+                        "no customers need to send email, need to delete the email_task, email_task id is %s" % res[
+                            "id"])
+                    self.remove_email_task_by_id(res["id"])
+                    continue
                 # 获取store的from_type, store_name
                 from_type, store_site_name = self.get_store_source(res["store_id"])
                 # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
                 if "customer received an email from this campaign in the last" in res["note"]:
                     for note in eval(res["note"]):
                         if "customer received an email from this campaign in the last" in note:
-                            num, unit = note.split("last")[-1].strip()[0:-1].split(" ")
+                            num, unit = note.split("last")[-1].strip().split(".")[0].split(" ")
                             time_dict = {unit: -int(num)}
                             # customers_7day = self.filter_received_customer(res["store_id"], res["uuid"]) if from_type else self.filter_received_customer_mongo(res["store_id"], res["uuid"], store_name)
                             customers_7day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(**time_dict))
                             customer_list = list(set(customer_list)-set(customers_7day))
                             logger.info("filter %s" % note)
+                            if not customer_list:
+                                logger.info(
+                                    "no customers need to send email, need to delete the email_task, email_task id is %s" %
+                                    res[
+                                        "id"])
+                                self.remove_email_task_by_id(res["id"])
+                                continue
                 if "customer makes a purchase" in eval(res["note"]) and res["remark"] != "first":
                     # 对customer_list里的收件人进行note筛选(从task创建时间开始)
                     customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_site_name)
                     customer_list = list(set(customer_list) - set(customers_purchased))
                     logger.info("filter the customer makes a purchase.")
-                # 开始对筛选过的用户发送邮件
-                store = self.store_sender_and_email_by_id(res["store_id"])
-                if not store:
-                    logger.error("store(id=%s) is not exists." % res["store_id"])
-                    return False
-                ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
+                    if not customer_list:
+                        logger.info(
+                            "no customers need to send email, need to delete the email_task, email_task id is %s" % res[
+                                "id"])
+                        self.remove_email_task_by_id(res["id"])
+                        continue
                 # 需要将uuid 转换成email
                 email_list = self.customer_uuid_to_email(customer_list) if from_type else self.customer_uuid_to_email_mongo(customer_list, store_site_name)
                 # 对customer_list里的收件人进行取消订阅或休眠过滤
@@ -2630,26 +2689,38 @@ class AnalyzeCondition:
                 send_error_info = ""
                 status = 2
                 recipients = []
+                # 如果没有需要发送的邮件，应该把此条任务直接从emil_task表中删掉
+                if not email_list:
+                    logger.info("no customers need to send email, need to delete the email_task, email_task id is %s" % res["id"])
+                    self.remove_email_task_by_id(res["id"])
+                    continue
+
+                # 开始对筛选过的用户发送邮件
+                store = self.store_sender_and_email_by_id(res["store_id"])
+                if not store:
+                    logger.error("store(id=%s) is not exists." % res["store_id"])
+                    return False
+                ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
                 for customer in email_list:
                     # 发送邮件前，有可能需要先更新一下html,获取html模板
                     subject, html, product_condition, is_cart = self.get_template_info_by_id(res["template_id"])
-                    if int(is_cart) == 1 or "top" in product_condition:
-                        # 筛选产品，并更新邮件
-                        pr = ProductRecommend()
-                        if int(is_cart) == 1:
-                            # 获取购物车产品
-                            cart_products = pr.get_card_product_mongo(customer, store_site_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"])
-                        else:
-                            # 获取店铺信息
-                            cart_products = pr.get_card_product_mongo(customer, store_site_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"], length=0)
-                        top_products = []
-                        if "top" in product_condition:
-                            # 获取top_products
-                            top_products = pr.get_top_product_by_condition(product_condition, res["store_id"], res["flow_title"], res["template_id"])
-                        snippets_list = pr.generate_snippets(cart_products, top_products)
-                        rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"], snippets=snippets_list)
+                    # if int(is_cart) == 1 or "top" in product_condition:
+                    # 筛选产品，并更新邮件
+                    pr = ProductRecommend()
+                    if int(is_cart) == 1:
+                        # 获取购物车产品
+                        cart_products = pr.get_card_product_mongo(customer, store_site_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"])
                     else:
-                        rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
+                        # 获取店铺信息
+                        cart_products = pr.get_card_product_mongo(customer, store_site_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"], length=0)
+                    top_products = []
+                    if "top" in product_condition:
+                        # 获取top_products
+                        top_products = pr.get_top_product_by_condition(product_condition, res["store_id"], res["flow_title"], res["template_id"])
+                    snippets_list = pr.generate_snippets(cart_products, top_products)
+                    rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"], snippets=snippets_list)
+                    # else:
+                    #     rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
                     if rest["code"] != 1:
                         logger.error("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
                         msg = rest["msg"]["Message"] if isinstance(rest["msg"], dict) else str(rest["msg"])
@@ -2790,6 +2861,7 @@ class AnalyzeCondition:
         return True
 
 
+
 if __name__ == '__main__':
     # condition = {"relation": "&&,||", "group_condition":
     #     [{"group_name": "123", "relation": "&&", "children": [
@@ -2814,10 +2886,10 @@ if __name__ == '__main__':
     # print(ac.adapt_all_order(1, [{"relation":"more than","values":["0",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}]))
     # print(ac.filter_received_customer(1, 346))
     # print(ac.update_customer_group_list(store_id=29))
-    # print(ac.create_trigger_email_by_template(5, 186, "Update Html TEST", """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>jquery</title></head><body><div style="width:1200px;margin:0 auto;"><div class="showBox" style="overflow-wrap: break-word; text-align: center; font-size: 14px;"><div style="margin: 0px auto; width: 100%; border-bottom: 1px solid rgb(204, 204, 204); padding-bottom: 20px;"><div style="margin: 0px auto; width: 30%;"><h2>Subject Line</h2><div>UPDATE HTML CONTENT</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="margin: 0px auto; width: 70%; line-height: 20px; padding: 20px 0px;"><div style="padding: 10px 0px;">UPDATE HTML CONTENT</div><div style="padding: 10px 0px;">If you are having trouble viewing this email, please <a href="http://www.charrcter.com?utm_source=smartsend" target="_blank">click here</a> .</div></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="width: 30%; margin: 0px auto;"><img src="https://smartsend.seamarketings.com/media/5/0kvndz1fsiyeq9x.jpg" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 30px; border: 1px solid rgb(221, 221, 221); font-weight: 900; padding: 130px;">YOUR BANNER</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-size: 28px; font-weight: 700;">UPDATE HTML CONTENT</div></div><div style="width: 100%; padding-bottom: 20px;"><div style="font-family: &quot;Segoe UI Emoji&quot;; font-weight: 400; font-style: normal; font-size: 16px;">Dear {firstname}:
-    #      welcome to my shop {shop_name}</div></div><div style="width: calc(100% - 24px); padding: 20px 12px;"></div><div style="width: 100%; padding-bottom: 20px;"><a href="88888888" style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px; text-decoration: none;">Go to Shopping Cart</a></div><div style="width: 100%; padding-bottom: 20px;"><a href="http://www.charrcter.com?utm_source=smartsend" target="_blank"><div style="display: inline-block; padding: 20px; background: rgb(0, 0, 0); color: rgb(255, 255, 255); font-size: 16px; font-weight: 900; border-radius: 10px;">Back to Shop &gt;&gt;&gt;</div></a></div><div style="width: 100%; padding-bottom: 20px;"><div>neal.zhang@orderplus.com</div></div><div style="width: 100%; padding-bottom: 20px;"><div>2019 charrcter. All rights reserved.</div></div><div style="width: 100%; padding-bottom: 20px;"><div>www.charrcter.com</div></div><div style="width: 100%; padding-bottom: 20px;"><a href="*[link_unsubscribe]*"><div style="display: inline-block; padding: 10px; color: rgb(204, 204, 204); font-size: 14px; border-radius: 10px; border: 1px solid rgb(204, 204, 204);">Unsubscribe</div></a></div></div></div></body></html>""", 146))
-    print(ac.parse_new_customer_group_list())
-    print(ac.parse_trigger_tasks())
+    # print(ac.create_trigger_email_by_template(53, 216, "Update Html TEST", """Update Html TEST""", 124))
+    # print(ac.parse_new_customer_group_list())
+    # print(ac.parse_trigger_tasks())
+    print(ac.execute_flow_task())
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
@@ -2841,4 +2913,4 @@ if __name__ == '__main__':
     # print(ac.adapt_sign_up_time_mongo(1,[{"relation":"is between date","values":["2019-08-01 00:00:00","2019-08-09 00:00:00"],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], "Astrotrex"))
     # print(ac.adapt_last_order_created_time_mongo(1,[{"relation":"is between date","values":["2019-02-10 00:00:00","2019-02-11 00:00:00"],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], "Astrotrex"))
     # print(ac.adapt_last_opened_email_time_mongo(1,[{"relation":"is between date","values":["2019-02-10 00:00:00","2019-02-11 00:00:00"],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], "Astrotrex"))
-
+    # print(ac.remove_email_task_by_id(950))

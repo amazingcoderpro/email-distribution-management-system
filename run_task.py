@@ -164,6 +164,7 @@ def test_task_processor():
 
 
 def run():
+    logger.info("-----------EDM TASK START RUN------------------")
     db_info = MYSQL_CONFIG
     mongo_config = MONGO_CONFIG
     tp = TaskProcessor()
@@ -172,8 +173,9 @@ def run():
 
     # 定期更新customer group
     ac = AnalyzeCondition(mysql_config=db_info, mongo_config=mongo_config)
-    tp.create_periodic_task(ac.parse_new_customer_group_list, seconds=30, max_instances=50)
-    tp.create_periodic_task(ac.update_customer_group_list, seconds=7200, max_instances=50)
+    # 暂停更新客户组功能
+    # tp.create_periodic_task(ac.parse_new_customer_group_list, seconds=30, max_instances=50)
+    # tp.create_periodic_task(ac.update_customer_group_list, seconds=3600*24, max_instances=50)
     tp.create_periodic_task(ac.parse_trigger_tasks, seconds=120, max_instances=50)  # 间隔2分钟扫描一遍email_trigger表
     tp.create_periodic_task(ac.execute_flow_task, seconds=60, max_instances=50)  # 每隔2分钟扫描email_task表，为避免与定时任务重复，故取时间间隔118秒
 
@@ -203,6 +205,7 @@ def run():
     tp.create_periodic_task(ems.update_unsubscriber_and_snoozed_customers, seconds=60)  # 每一分钟更新一下取消订阅和休眠的收件人，因为flow是两分钟检测一次customer
     while 1:
         time.sleep(1)
+    logger.info("-----------EDM TASK STOPPED------------------")
 
 
 if __name__ == '__main__':

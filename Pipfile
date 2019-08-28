@@ -23,6 +23,8 @@ oauth2client = "*"
 pillow = "*"
 pymongo = "*"
 sshtunnel = "*"
+gevent = "*"
+gunicorn = "*"
 
 [requires]
 python_version = "3.6"

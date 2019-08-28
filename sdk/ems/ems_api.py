@@ -123,7 +123,7 @@ class ExpertSender:
                             "FromEmail": self.from_email,
                             "Subject": subject,
                             "Plain": plain,
-                            "Html": "{}",
+                            "Html": "*{html_content}*",
                         },
                         "DeliverySettings": {
                             "ThrottlingMethod": "Auto",
@@ -140,7 +140,8 @@ class ExpertSender:
             data["ApiRequest"]["Data"]["DeliverySettings"].update({"DeliveryDate": delivery_date.replace(" ", "T")})
         try:
             xml_data = self.jsontoxml(data)
-            xml_data = xml_data.format("<![CDATA[{}]]>".format(html))
+            # xml_data = xml_data.format("<![CDATA[{}]]>".format(html))
+            xml_data = xml_data.replace("*{html_content}*", "<![CDATA[{}]]>".format(html))
             result = requests.post(url, xml_data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("create and send newsletter", result)
         except Exception as e:
@@ -241,10 +242,10 @@ class ExpertSender:
         invalid_email = []
         for email in email_list:
             try:
-                email.encode('latin-1')
+                email.encode('latin-1')   # 排除邮箱地址中存在特殊字符的email, eg: ă
             except Exception as e:
                 invalid_email.append(email)
-                logger.warning("add this email exception: %s" % str(e))
+                logger.warning("add this email warning: %s" % str(e))
                 continue
             data["ApiRequest"]["MultiData"]["Subscriber"].append(
                 {
@@ -386,7 +387,7 @@ class ExpertSender:
                     "FromEmail": self.from_email,
                     "Subject": subject,
                     "Plain": plain,
-                    "Html": "%s",
+                    "Html": "*{html_content}*",
                 },
             }
         }}
@@ -394,7 +395,8 @@ class ExpertSender:
             data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": {"Url": content_from_url}})
         try:
             xml_data = self.jsontoxml(data)
-            xml_data = xml_data % ("<![CDATA[%s]]>" % html)
+            # xml_data = xml_data % ("<![CDATA[%s]]>" % html)
+            xml_data = xml_data.replace("*{html_content}*", "<![CDATA[{}]]>".format(html))
             result = requests.post(url, xml_data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("create transactional message", result)
         except Exception as e:
@@ -456,7 +458,7 @@ class ExpertSender:
                     "FromEmail": self.from_email,
                     "Subject": subject,
                     "Plain": plain,
-                    "Html": "%s",
+                    "Html": "*{html_content}*",
                 },
             }
         }}
@@ -464,7 +466,8 @@ class ExpertSender:
             data["ApiRequest"]["Data"]["Content"].update({"ContentFromUrl": {"Url": content_from_url}})
         try:
             xml_data = self.jsontoxml(data)
-            xml_data = xml_data % ("<![CDATA[%s]]>" % html)
+            # xml_data = xml_data % ("<![CDATA[%s]]>" % html)
+            xml_data = xml_data.replace("*{html_content}*", "<![CDATA[{}]]>".format(html))
             result = requests.put(url, xml_data.encode('utf-8'), headers=self.headers)
             return self.retrun_result("update transactional message", result)
         except Exception as e:
@@ -531,21 +534,19 @@ class ExpertSender:
 
 
 if __name__ == '__main__':
-    html_b = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>jquery</title><style>a:hover{text-decoration: underline!important; }.hide{display:none!important;}.bannerText{border:0px!important;}</style></head><body><div style="width:880px;margin:0 auto;"><div class="showBox" style="overflow-wrap: break-word; text-align: center; font-size: 14px; width: 100%; margin: 0px auto;"><div style="width: 100%; padding: 20px 0px;"><div style="font-size: 30px; border: 1px solid rgb(221, 221, 221); font-weight: 900; padding: 12px 0px; width: 30%; margin: 0px auto;">YOUR LOGO</div></div><div style="width: 100%; padding-bottom: 20px; position: relative; overflow: hidden;"><div class="bannerText" style="position: absolute; left: 180px; top: 147px; text-align: left; width: 400px; line-height: 30px; font-size: 17px; color: rgb(0, 0, 0); border: 2px dashed rgb(204, 204, 204);"><div></div><div>we really miss you, please enjoy this specially customized 20% coupon. Happy shopping day! </div><div></div><div></div></div><div style="width: 100%;"><img src="https://smartsend.seamarketings.com/media/29/io8w9r7gcnx34fd.jpg" style="width: 100%;"></div></div><!----><!----><div class="" style="width: 100%; padding-bottom: 20px; font-size: 20px; font-weight: 800;">
-                                Product Title
-                        </div><div style="width: 856px; padding: 20px 12px;">
-                            <div style="width:46%;margin:10px;display:inline-block;vertical-align: top;"><a href="https://www.charrcter.com/products/womens-v-neck-lace-fringe-dress?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=1280400293935_216"><img src="https://cdn.shopify.com/s/files/1/0062/9106/2831/products/3448384_672c5fe89e_0a032732-313b-4ba3-8a41-f5062375f28d.jpg?v=1562581258" style="width:100%;"/></a><h3 style="font-weight:700;white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">Women's V-Neck Lace Fringe Dress</h3></div><div style="width:46%;margin:10px;display:inline-block;vertical-align: top;"><a href="https://www.charrcter.com/products/5fb51d2696d7?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=2173743431734_216"><img src="https://cdn.shopify.com/s/files/1/0152/7218/1814/products/3239958_5522f421c0.jpg?v=1560926774" style="width:100%;"/></a><h3 style="font-weight:700;white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">Topshe Krawattehalsband Feder</h3></div><div style="width:46%;margin:10px;display:inline-block;vertical-align: top;"><a href="https://www.charrcter.com/products/6ebc7a65768c?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=2173760176182_216"><img src="https://cdn.shopify.com/s/files/1/0152/7218/1814/products/3273500_3ca3e8baca.jpg?v=1560928063" style="width:100%;"/></a><h3 style="font-weight:700;white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">Topshe V Lockere Passform Drucken</h3></div><div style="width:46%;margin:10px;display:inline-block;vertical-align: top;"><a href="https://www.charrcter.com/products/casual-printed-round-neck-short-sleeve-shirt?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=3631119302761_216"><img src="https://cdn.shopify.com/s/files/1/0250/5818/1225/products/3488953_c85ee5eb1b.jpg?v=1563764695" style="width:100%;"/></a><h3 style="font-weight:700;white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">Casual Printed Round Neck Short Sleeve Shirt</h3></div>
-                        </div><div style="width: calc(100% - 24px); padding: 20px 12px; text-align: center;">
-                        @2006-2019 <a href="https://www.charrcter.com?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=216" target="_blank">www.charrcter.com</a>  Copyright,All Rights Reserved
-                    </div><div style="width: calc(100% - 24px); padding: 20px 12px; text-align: center;"><a href="*[link_unsubscribe]*" target="_blank" style="text-decoration: none; cursor: pointer; color: rgb(254, 34, 46); padding: 0px 10px; border-right: 2px solid rgb(204, 204, 204); font-size: 24px;">UNSUBSCRIBE</a><a href="https://www.charrcter.com/pages/faq?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=216" target="_blank" style="text-decoration: none; cursor: pointer; color: rgb(254, 34, 46); padding: 0px 10px; border-right: 2px solid rgb(204, 204, 204); font-size: 24px;">HELP CENTER</a><a href="https://www.charrcter.com/pages/privacy-policy?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=216" target="_blank" style="text-decoration: none; cursor: pointer; color: rgb(254, 34, 46); padding: 0px 10px; border-right: 2px solid rgb(204, 204, 204); font-size: 24px;">PRIVACY POLICY</a><a href="https://www.charrcter.com/pages/about-us?utm_source=smartsend&utm_medium=Newsletter&utm_campaign=test001-six day no buy&utm_term=216" target="_blank" style="text-decoration: none; cursor: pointer; color: rgb(254, 34, 46); padding: 0px 10px; font-size: 24px;">ABOUT US</a></div><div style="width: calc(100% - 24px); padding: 20px 12px; text-align: center;">
-                        This email was sent a notification-only address that cannot accept incoming email PLEASE
-                        DO NOT REPLY to this message. if you have any questions or concerns.please email us:neal.zhang@orderplus.com
-                    </div></div></div></body></html>"""
+    html_b = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><body>
+    <p>多言語メール送信テスト</p>
+    <p>多语言邮件发送测试</p>
+    <p>Mehrsprachiger Versandtest</p>
+    <p>проверка отправки многоязыковой почты</p>
+    <p>Prueba de envío de correo multilingüe</p>
+    <p>다중 언어 메일 보내기 테스트</p>
+    </body></html>"""
     ems = ExpertSender("Leemon", "leemon.li@orderplus.com")
     # print(ems.get_message_statistics(372))
     # print(ems.get_messages(348))
     # print(ems.create_subscribers_list("Test001"))
-    # print(ems.add_subscriber(25, ["fatty091@gmail.com","yacineh1604@mail.ru", "aaaaesd"]))
+    # print(ems.add_subscriber(25, ['suzanne@gmail.com', 'g_bozzolo@libero.it', 'felicia@flochildrenswear.com.au']))
     # html = open("index.html")
     # print(ems.create_and_send_newsletter([86], "取消订阅完测试", html="<a href='https://baidu.com'>Unsubscribe</a>")) # ,"2019-07-09 21:09:00"
     # print(ems.get_subscriber_activity("Opens"))
@@ -554,7 +555,7 @@ if __name__ == '__main__':
     # print(ems.get_summary_statistics(63))
     # print(ems.get_server_time())
     # print(ems.get_message_statistics(349))
-    print(ems.create_and_send_newsletter([26], "two listID", html=html_b)) # ,"2019-07-09 21:09:00"
+    # print(ems.create_and_send_newsletter([26], "Multilingual Mail Sending Test", html=html_b)) # ,"2019-07-09 21:09:00"
     # print(ems.get_messages(349))
     # print(ems.get_subscriber_lists())
     # print(ems.create_subscribers_list("Test001"))
@@ -567,10 +568,21 @@ if __name__ == '__main__':
     # print(ems.get_export_progress(11))  # 11
     # print(ems.clear_subscriber(25, ""))  # 11
     # print(ems.add_subscriber(86, ["leemon.li@orderplus.com"]))
-    # print(ems.create_transactional_message("snippet transactiona message test1", html="<a href='www.baidu.com'>*[tr_snippetname]*</a>"))  # 462
+    print(ems.create_transactional_message('Special Treat: {$/%} discount for you', html="<a href='www.baidu.com'>*[tr_snippetname]*</a>"))  # 462
     # print(ems.send_transactional_messages(462, "leemon.li@orderplus.com", 25, [{"name": "href", "value": "https://www.baidu.com"}, {"name": "linkname", "value": "<p style='color:red'>百度百度</p>"}]))  # 350
     # print(ems.send_transactional_messages(461, "leemon.li@orderplus.com", 25, [{"name": "ShopName", "value": "aaaaa"},{"name": "Firstname", "value": "bbbbb"},{"name": "CartProducts", "value": "<tr></tr>"},{"name": "AbandonedCheckoutUrl", "value": "dddddd"}]))  # 350
-    # print(ems.update_transactional_message(461, "update template test 10", html="""Dear *[tr_firstname]* <a href="*[tr_abandoned_checkout_url]*">welcome to *[tr_shop_name]*</a>product--- *[tr_cart_products]*"""))  # 350
+    # print(ems.update_transactional_message(551, "Did you forget something?", html="""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>jquery</title><style>a:hover{text-decoration: underline!important; }.hide{display:none!important;}.bannerText{border:0px!important;}</style></head><body><div style="width:880px;margin:0 auto;"><div class="showBox" style="overflow-wrap: break-word; text-align: center; font-size: 14px; width: 100%; margin: 0px auto;"><div style="width: 100%; padding: 20px 0px;"><div style="width: 30%; margin: 0px auto;"><img src="https://smartsend.seamarketings.com/media/33/oj8xqis4fp02bra.jpg" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px; position: relative; overflow: hidden;"><div class="bannerText" style="position: absolute; left: 3px; top: -21px; text-align: left; width: 318px; line-height: 30px; font-size: 17px; color: rgb(0, 0, 0); border: 0px dashed rgb(204, 204, 204);"><div></div><div></div><div><p><span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);">Sehr geehrte</span> *[tr_firstname]*,</p><p><span style="color: rgb(153, 153, 153);">  W</span><span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);">ir haben gefunden</span> *[tr_shop_name]* <span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);">dass sich Sie ohne Abschluss der Bestellung</span>. <span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);">Keine Sorge!</span> <span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);">Wir haben Ihren Einkaufswagen gespeichert, sodass Sie jederzeit zurückklicken und beim Einkauf fortfahren können</span>.<span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);">Bei </span>*[tr_shop_name]*<span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);"> warten wir immer noch auf Sie.</span></p><p><span style="background-color: rgb(255, 255, 255); color: rgb(25, 31, 37);"><span class="ql-cursor">﻿</span>Mit freundlichen Grüßen</span></p></div></div><div style="width: 100%;"><img src="https://smartsend.seamarketings.com/media/33/hsg6krpwodu8mnc.jpg" style="width: 100%;"></div></div><div style="width: 100%; padding-bottom: 20px; position: relative;"><div style="position: absolute; width: 100%; height: 3px; background: rgb(0, 0, 0); top: 40px; left: 0px;"></div><table border="0" cellspacing="0" style="width: 840px; font-weight: 800; margin-left: 20px;"><thead style="padding: 20px 0px; line-height: 50px; border-bottom: 3px solid rgb(221, 221, 221);"><tr style="font-size: 18px; border-bottom: 10px solid rgb(0, 0, 0);"><td style="width: 50%;">ITEM(S)</td><td>UNIT PRICE</td><td>QUANTITY</td><td>AMOUNT</td></tr></thead><tbody>
+    #                                       *[tr_cart_products]*
+    #                                   </tbody></table></div><div style="width: 100%; padding-bottom: 20px; text-align: right;"><a href="*[tr_abandoned_checkout_url]*" style="cursor: pointer; color: rgb(255, 255, 255); background: rgb(0, 0, 0); padding: 10px; font-weight: 800; display: inline-block; margin-right: 20px;">Zur Kasse</a></div><div class="*[tr_products_title]*" style="width: 100%; padding-bottom: 20px; font-size: 20px; font-weight: 800;">
+    #                           Sie Können Auch Mögen
+    #                   </div><div style="width: 856px; padding: 20px 12px;">
+    #                           *[tr_top_products]*
+    #                       </div><div style="width: calc(100% - 24px); padding: 20px 12px; text-align: center;">
+    #                       @2006-2019 <a href="*[tr_store_url]*" target="_blank">*[tr_domain]*</a>  Copyright,All Rights Reserved
+    #                   </div><div style="width: calc(100% - 24px); padding: 20px 12px; text-align: center;"><a href="*[link_unsubscribe]*" target="_blank" style="text-decoration: none; cursor: pointer; color: rgb(254, 34, 46); padding: 0px 10px; border-right: 2px solid rgb(204, 204, 204); font-size: 24px;">UNSUBSCRIBE</a><a href="*[tr_help_center_url]*" target="_blank" style="text-decoration: none; cursor: pointer; color: rgb(254, 34, 46); padding: 0px 10px; border-right: 2px solid rgb(204, 204, 204); font-size: 24px;">Hilfe & Unterstützung</a><a href="*[tr_privacy_policy_url]*" target="_blank" style="text-decoration: none; cursor: pointer; color: rgb(254, 34, 46); padding: 0px 10px; border-right: 2px solid rgb(204, 204, 204); font-size: 24px;">Datenschutz-Bestimmungen</a><a href="*[tr_about_us_url]*" target="_blank" style="text-decoration: none; cursor: pointer; color: rgb(254, 34, 46); padding: 0px 10px; font-size: 24px;">ÜBER UNS</a></div><div style="width: calc(100% - 24px); padding: 20px 12px; text-align: center;">
+    #                       This email was sent a notification-only address that cannot accept incoming email PLEASE
+    #                       DO NOT REPLY to this message. if you have any questions or concerns.please email us:*[tr_service_email]*
+    #                   </div></div></div></body></html>"""))  # 350
     # print(ems.delete_message(349))
     # print(ems.get_opt_out_link_subscribers())
     # print(ems.get_snoozed_subscribers(86))

@@ -34,7 +34,7 @@ class EmailTriggerFilter(BaseFilterBackend):
     }
 
     def filter_queryset(self, request, queryset, view):
-        store = models.Store.objects.filter(name=request.query_params.get("store_name", '')).first()
+        store = models.Store.objects.filter(url=request.query_params.get("shopify_domain", '')).first()
         filte_kwargs = {"store":  store,"is_open":1,"draft":0}
         for filter_key in self.filter_keys.keys():
             val = request.query_params.get(filter_key, '')
@@ -42,5 +42,6 @@ class EmailTriggerFilter(BaseFilterBackend):
                 filte_kwargs[self.filter_keys[filter_key]] = val
         if "status" not in filte_kwargs.keys():
             filte_kwargs["status__in"] = [0,1]
+        print(filte_kwargs)
         return queryset.filter(**filte_kwargs)
 

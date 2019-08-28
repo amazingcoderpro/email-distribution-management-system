@@ -113,6 +113,7 @@ class EmailTemplate(models.Model):
     logo = models.CharField(blank=True, null=True, max_length=255,verbose_name="邮件logo")
     banner = models.CharField(blank=True, null=True, max_length=255,verbose_name="邮件banner")
     banner_text = models.TextField(blank=True, null=True, verbose_name="banner_text")
+    customer_text = models.TextField(blank=True, null=True, verbose_name="customer_text")
     headline = models.TextField(blank=True, null=True,verbose_name="邮件headline")
     body_text = models.TextField(blank=True, null=True, verbose_name="邮件body_text")
     # top_type = models.TextField(verbose_name="选择的哪类top product")
@@ -188,7 +189,7 @@ class EmailTrigger(models.Model):
     status_choice = ((0, 'disable'), (1, 'enable'), (2, 'delete'))
     status = models.SmallIntegerField(default=0, verbose_name="邮件类型")
     is_open_choices = ((0, 'internal'), (1, 'external'))
-    is_open = models.SmallIntegerField(db_index=True, choices=is_open_choices, default=0, verbose_name="是否对外")
+    is_open = models.SmallIntegerField(db_index=True, choices=is_open_choices, default=1, verbose_name="是否对外")
     draft_choices = ((0, '线上'), (1, '草稿'))
     draft = models.SmallIntegerField(db_index=True, choices=draft_choices, default=0, verbose_name="是否是草稿状态")
     if ENABLE_MIGRATE:
