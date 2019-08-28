@@ -2419,7 +2419,7 @@ class AnalyzeCondition:
             for t in range(times):
                 rest = ems.add_subscriber(customer_list_id, email_list[99*t:99*(t+1)])
                 if rest["code"]==-1 or rest["code"]==2:
-                    logger.error("add subscribers failed")
+                    logger.error("add subscribers failed, the reason is %s" % rest["msg"])
                     continue
             invalid_email = rest.get("invalid_email", [])
             valid_email = list(set(email_list) - set(invalid_email))  # 添加到收件人列表成功的邮箱
