@@ -677,12 +677,14 @@ class ShopifyDataProcessor:
             if not cursor:
                 return False
             # 获取所有店铺
-            cursor.execute("""select id from store""")
-            for store in cursor.fetchall():
+            cursor.execute("""select id, store_view_id from store where id != 1 AND store_view_id !=''""")
+            stores = cursor.fetchall()
+            for store in stores:
                 store_id = store[0]
+                store_view_id = store[1]
                 # 配置时间
                 results_list = []
-                now_date = datetime.datetime.now()
+                now_date = datetime.datetime.now()+datetime.timedelta(days=-1)
                 zero_time = now_date - datetime.timedelta(hours=now_date.hour, minutes=now_date.minute,
                                                           seconds=now_date.second, microseconds=now_date.microsecond)
                 last_time = zero_time + datetime.timedelta(hours=23, minutes=59, seconds=59)
@@ -694,11 +696,11 @@ class ShopifyDataProcessor:
                 if orders_info:
                     total_orders, total_revenue, total_sessions = orders_info
                     if total_orders is None:
-                        total_orders= 0
+                        total_orders = 0
                     if total_revenue is None:
-                        total_revenue= 0.0
+                        total_revenue = 0.0
                     if total_sessions is None:
-                        total_sessions= 0
+                        total_sessions = 0
                 else:
                     total_orders = total_revenue = total_sessions = 0
 
@@ -713,33 +715,36 @@ class ShopifyDataProcessor:
                 total_cumtomers = cursor.fetchone()[0]
 
                 # 获取GA数据
-                cursor.execute(
-                    """select store.store_view_id from store where store.id = %s""", (store_id,))
-                store_view_id = cursor.fetchone()[0]
-                if store_view_id:
-                    papi = GoogleApi(view_id=store_view_id,
-                                     json_path=os.path.join(self.root_path, r"sdk//googleanalytics//client_secrets.json"))
-                    shopify_google_data = papi.get_report(key_word="", start_time="1daysAgo", end_time="today")
-                    data_list = {}
-                    if shopify_google_data["code"] == 1:
-                        data_list = shopify_google_data.get("data", {}).get("results", {})
-                        for values in data_list.items():
-                            res = (values[1].get("sessions", ""), values[1].get("transactions", ""), values[1].get("revenue", ""), datetime.datetime.now(), values[0])
-                            results_list.append(res)
-                        shopify_total_results = shopify_google_data.get("data", {}).get("total_results", {})
-                        sessions = shopify_total_results.get("sessions", 0)
-                        orders = shopify_total_results.get("transactions", 0)
-                        revenue = shopify_total_results.get("revenue", 0.0)
-                        total_orders += orders
-                        total_sessions += sessions
-                        total_revenue += revenue
+                # cursor.execute(
+                #     """select store.store_view_id from store where store.id = %s""", (store_id,))
+                # store_view_id = cursor.fetchone()[0]
+                # if store_view_id:
+                papi = GoogleApi(view_id=store_view_id,
+                                 json_path=os.path.join(self.root_path, r"sdk//googleanalytics//client_secrets.json"))
+                shopify_google_data = papi.get_report(key_word="", start_time="1daysAgo", end_time="today")
+                data_list = {}
+                if shopify_google_data["code"] == 2:
+                    logger.error("updata_shopify_ga msg is error. msg={},store_id={}, view_id={}".format(shopify_google_data["msg"], store_id, store_view_id))
+                elif shopify_google_data["code"] == 1:
+                    data_list = shopify_google_data.get("data", {}).get("results", {})
+                    logger.info("updata_shopify_ga msg is success. store_id={}, view_id={}".format(store_id, store_view_id))
+                    for values in data_list.items():
+                        res = (values[1].get("sessions", ""), values[1].get("transactions", ""), values[1].get("revenue", ""), datetime.datetime.now(), values[0])
+                        results_list.append(res)
+                    shopify_total_results = shopify_google_data.get("data", {}).get("total_results", {})
+                    sessions = shopify_total_results.get("sessions", 0)
+                    orders = shopify_total_results.get("transactions", 0)
+                    revenue = shopify_total_results.get("revenue", 0.0)
+                    total_orders += orders
+                    total_sessions += sessions
+                    total_revenue += revenue
 
-                        # 平均转换率  总支付订单数÷总流量
-                        avg_conversion_rate = (total_orders / total_sessions) if total_sessions else 0
-                        # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
-                        avg_repeat_purchase_rate = (orders_gte2 / total_cumtomers) if total_cumtomers else 0
-                    else:
-                        sessions = orders = revenue = total_orders = total_sessions = total_revenue = avg_conversion_rate = avg_repeat_purchase_rate = 0
+                    # 平均转换率  总支付订单数÷总流量
+                    avg_conversion_rate = (total_orders / total_sessions) if total_sessions else 0
+                    # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
+                    avg_repeat_purchase_rate = (orders_gte2 / total_cumtomers) if total_cumtomers else 0
+                    # else:
+                    #     sessions = orders = revenue = total_orders = total_sessions = total_revenue = avg_conversion_rate = avg_repeat_purchase_rate = 0
 
                 # 更新email_template的数据
                 cursor.executemany(
@@ -747,15 +752,15 @@ class ShopifyDataProcessor:
                     results_list)
 
                 # 更新email_trigger的数据
-                cursor.execute("""select id, email_delay from email_trigger where store_id=%s""",(store_id, ))
+                cursor.execute("""select id, email_delay from email_trigger where store_id=%s""", (store_id, ))
                 trigger_info = cursor.fetchall()
                 trigger_tuple = []
                 for triggers in trigger_info:
                     template_list = [trigger["value"] for trigger in json.loads(triggers[1]) if trigger["type"]=="Email"]
-                    template_revenue =0.0
+                    template_revenue = 0.0
                     for templante_info in template_list:
                         template_revenue += data_list.get(templante_info, {}).get("revenue", 0.0)
-                    trigger_tuple.append((template_revenue,datetime.datetime.now(),triggers[0]))
+                    trigger_tuple.append((template_revenue, datetime.datetime.now(), triggers[0]))
 
                 # 更新email_tiggers数据
                 cursor.executemany("""update email_trigger set revenue=%s, update_time=%s where id=%s""", trigger_tuple)
@@ -766,14 +771,14 @@ class ShopifyDataProcessor:
                 dashboard_id = cursor.fetchone()
                 if dashboard_id:
                     # update
-                    cursor.execute("""update dashboard set  update_time=%s, session=%s, orders=%s, revenue=%s, total_orders=%s, 
+                    cursor.execute("""update dashboard set  update_time=%s, session=%s, orders=%s, revenue=%s, total_orders=%s,
                                         total_sessions=%s, total_revenue=%s, avg_conversion_rate=%s, avg_repeat_purchase_rate=%s where id=%s""",
-                                        (now_date,sessions, orders, revenue, total_orders, total_sessions, total_revenue,
+                                        (now_date, sessions, orders, revenue, total_orders, total_sessions, total_revenue,
                                          avg_conversion_rate, avg_repeat_purchase_rate, dashboard_id[0]))
                 else:
                     # insert
-                    cursor.execute("""insert into dashboard ( create_time, update_time, store_id,session, orders, revenue, 
-                                      total_orders, total_sessions, total_revenue, avg_conversion_rate, avg_repeat_purchase_rate) 
+                    cursor.execute("""insert into dashboard ( create_time, update_time, store_id,session, orders, revenue,
+                                      total_orders, total_sessions, total_revenue, avg_conversion_rate, avg_repeat_purchase_rate)
                             values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                                    (now_date, now_date, store_id, sessions, orders, revenue, total_orders, total_sessions, total_revenue,
                                     avg_conversion_rate, avg_repeat_purchase_rate))
@@ -1164,9 +1169,9 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).create_template()
 
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
-    ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
+    # ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
-    #ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
+    ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_customers()

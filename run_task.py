@@ -191,8 +191,7 @@ def run():
     # tp.create_cron_task(sdp.update_shopify_product, "*", 12, 00)
     tp.create_cron_task(sdp.update_top_product, "*", 23, 40)
     tp.create_cron_task(sdp.update_top_products_mongo, "*", 23, 50)
-
-    tp.create_cron_task(sdp.updata_shopify_ga, "*", 23, 40)
+    tp.create_cron_task(sdp.updata_shopify_ga, "*", hour=0, minute=10)
     # tp.create_cron_task(sdp.update_shopify_order_customer, "*", 3, 00)
 
     # ems 定时更新任务请放在这下面
