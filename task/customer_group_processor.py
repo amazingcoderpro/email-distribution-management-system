@@ -1343,7 +1343,7 @@ class AnalyzeCondition:
             # 从customer表中查找对应的uuid
             # customer = db["shopify_customer"]
             if relations[0]["relation"] == "is paid":  # 最后一笔订单已支付
-                customers = [item["customer"]["id"] for item in db.shopify_order.find({"fulfillment_status": "fulfilled", "site_name": store_name},
+                customers = [item["customer"]["id"] for item in db.shopify_order.find({"financial_status": "paid", "site_name": store_name},
                                            {"_id": 0, "id": 1, "customer.id": 1})]
                 return list(set(customers))
             elif relations[0]["relation"] == "is unpaid":
@@ -2619,9 +2619,9 @@ class AnalyzeCondition:
                 # 先排除2分钟之内收到过此邮件的收件人
                 customers_2minutes = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(minutes=-2))
                 customer_list = list(set(customer_list) - set(customers_2minutes))
-                if not customer_list:
-                    logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
-                    continue
+                # if not customer_list:
+                #     logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
+                #     # continue
                 # 获取store的from_type, store_name
                 from_type, store_site_name = self.get_store_source(res["store_id"])
                 # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
@@ -2633,17 +2633,17 @@ class AnalyzeCondition:
                             # customers_7day = self.filter_received_customer(res["store_id"], res["uuid"]) if from_type else self.filter_received_customer_mongo(res["store_id"], res["uuid"], store_name)
                             customers_7day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(**time_dict))
                             customer_list = list(set(customer_list)-set(customers_7day))
-                            if not customer_list:
-                                logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
-                                continue
+                            # if not customer_list:
+                            #     logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
+                            #     # continue
                             logger.info("filter %s" % note)
                 if "customer makes a purchase" in eval(res["note"]) and res["remark"] != "first":
                     # 对customer_list里的收件人进行note筛选(从task创建时间开始)
                     customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_site_name)
                     customer_list = list(set(customer_list) - set(customers_purchased))
-                    if not customer_list:
-                        logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
-                        continue
+                    # if not customer_list:
+                    #     logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
+                    #     # continue
                     logger.info("filter the customer makes a purchase.")
                 # 开始对筛选过的用户发送邮件
                 store = self.store_sender_and_email_by_id(res["store_id"])
@@ -2658,9 +2658,9 @@ class AnalyzeCondition:
                 email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
                 logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (
                 res["store_id"], set(unsubscribed_and_snoozed)))
-                if not email_list:
-                    logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
-                    continue
+                # if not email_list:
+                #     logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
+                #     # continue
                 send_error_info = ""
                 status = 2
                 recipients = []
