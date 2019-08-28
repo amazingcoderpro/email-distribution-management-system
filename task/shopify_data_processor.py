@@ -719,12 +719,19 @@ class ShopifyDataProcessor:
                 #     """select store.store_view_id from store where store.id = %s""", (store_id,))
                 # store_view_id = cursor.fetchone()[0]
                 # if store_view_id:
+                # sessions = 0
+                #     orders = 0
+                #     revenue = 0.0
+                #     avg_conversion_rate = 0
+                #     avg_repeat_purchase_rate = 0
+
                 papi = GoogleApi(view_id=store_view_id,
                                  json_path=os.path.join(self.root_path, r"sdk//googleanalytics//client_secrets.json"))
                 shopify_google_data = papi.get_report(key_word="", start_time="1daysAgo", end_time="today")
                 data_list = {}
                 if shopify_google_data["code"] == 2:
                     logger.error("updata_shopify_ga msg is error. msg={},store_id={}, view_id={}".format(shopify_google_data["msg"], store_id, store_view_id))
+                    continue
                 elif shopify_google_data["code"] == 1:
                     data_list = shopify_google_data.get("data", {}).get("results", {})
                     logger.info("updata_shopify_ga msg is success. store_id={}, view_id={}".format(store_id, store_view_id))
@@ -777,7 +784,7 @@ class ShopifyDataProcessor:
                                          avg_conversion_rate, avg_repeat_purchase_rate, dashboard_id[0]))
                 else:
                     # insert
-                    cursor.execute("""insert into dashboard ( create_time, update_time, store_id,session, orders, revenue,
+                    cursor.execute("""insert into dashboard (create_time, update_time, store_id, session, orders, revenue,
                                       total_orders, total_sessions, total_revenue, avg_conversion_rate, avg_repeat_purchase_rate)
                             values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                                    (now_date, now_date, store_id, sessions, orders, revenue, total_orders, total_sessions, total_revenue,
@@ -1179,6 +1186,6 @@ if __name__ == '__main__':
     #ShopifyDataProcessor(db_info=db_info).update_store_webhook((4,"tiptopfree.myshopify.com","84ae42dd2bda781f84d8fd1d199dba88", "iii"))
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
 
-    ShopifyDataProcessor(db_info=db_info).update_new_shopify()
+    # ShopifyDataProcessor(db_info=db_info).update_new_shopify()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
 
