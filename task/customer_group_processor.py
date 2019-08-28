@@ -2590,6 +2590,29 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return result["subject"], result["html"], result["product_condition"], result["is_cart"]
 
+    def remove_email_task_by_id(self, task_id):
+        """
+        通过task_id删除此条数据
+        :param task_id: 主键ID
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+            cursor.execute("delete from email_task where id=%s", (task_id))
+            conn.commit()
+            logger.info("remove email task success. id = %s" % task_id)
+            return True
+        except Exception as e:
+            logger.exception("remove email task by id({}) exception: {}".format(task_id, e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
     def execute_flow_task(self):
         """
         定时获取未执行的flow任务
@@ -2619,9 +2642,13 @@ class AnalyzeCondition:
                 # 先排除2分钟之内收到过此邮件的收件人
                 customers_2minutes = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(minutes=-2))
                 customer_list = list(set(customer_list) - set(customers_2minutes))
-                # if not customer_list:
-                #     logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
-                #     # continue
+                # 如果没有需要发送的邮件，应该把此条任务直接从emil_task表中删掉
+                if not customer_list:
+                    logger.info(
+                        "no customers need to send email, need to delete the email_task, email_task id is %s" % res[
+                            "id"])
+                    self.remove_email_task_by_id(res["id"])
+                    continue
                 # 获取store的from_type, store_name
                 from_type, store_site_name = self.get_store_source(res["store_id"])
                 # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
@@ -2633,24 +2660,25 @@ class AnalyzeCondition:
                             # customers_7day = self.filter_received_customer(res["store_id"], res["uuid"]) if from_type else self.filter_received_customer_mongo(res["store_id"], res["uuid"], store_name)
                             customers_7day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(**time_dict))
                             customer_list = list(set(customer_list)-set(customers_7day))
-                            # if not customer_list:
-                            #     logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
-                            #     # continue
                             logger.info("filter %s" % note)
+                            if not customer_list:
+                                logger.info(
+                                    "no customers need to send email, need to delete the email_task, email_task id is %s" %
+                                    res[
+                                        "id"])
+                                self.remove_email_task_by_id(res["id"])
+                                continue
                 if "customer makes a purchase" in eval(res["note"]) and res["remark"] != "first":
                     # 对customer_list里的收件人进行note筛选(从task创建时间开始)
                     customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_site_name)
                     customer_list = list(set(customer_list) - set(customers_purchased))
-                    # if not customer_list:
-                    #     logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
-                    #     # continue
                     logger.info("filter the customer makes a purchase.")
-                # 开始对筛选过的用户发送邮件
-                store = self.store_sender_and_email_by_id(res["store_id"])
-                if not store:
-                    logger.error("store(id=%s) is not exists." % res["store_id"])
-                    return False
-                ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
+                    if not customer_list:
+                        logger.info(
+                            "no customers need to send email, need to delete the email_task, email_task id is %s" % res[
+                                "id"])
+                        self.remove_email_task_by_id(res["id"])
+                        continue
                 # 需要将uuid 转换成email
                 email_list = self.customer_uuid_to_email(customer_list) if from_type else self.customer_uuid_to_email_mongo(customer_list, store_site_name)
                 # 对customer_list里的收件人进行取消订阅或休眠过滤
@@ -2658,12 +2686,21 @@ class AnalyzeCondition:
                 email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
                 logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (
                 res["store_id"], set(unsubscribed_and_snoozed)))
-                # if not email_list:
-                #     logger.warning("no customers need to send email in store_id=%s" % res["store_id"])
-                #     # continue
                 send_error_info = ""
                 status = 2
                 recipients = []
+                # 如果没有需要发送的邮件，应该把此条任务直接从emil_task表中删掉
+                if not email_list:
+                    logger.info("no customers need to send email, need to delete the email_task, email_task id is %s" % res["id"])
+                    self.remove_email_task_by_id(res["id"])
+                    continue
+
+                # 开始对筛选过的用户发送邮件
+                store = self.store_sender_and_email_by_id(res["store_id"])
+                if not store:
+                    logger.error("store(id=%s) is not exists." % res["store_id"])
+                    return False
+                ems = ems_api.ExpertSender(from_name=store["sender"], from_email=store["sender_address"])
                 for customer in email_list:
                     # 发送邮件前，有可能需要先更新一下html,获取html模板
                     subject, html, product_condition, is_cart = self.get_template_info_by_id(res["template_id"])
@@ -2876,4 +2913,4 @@ if __name__ == '__main__':
     # print(ac.adapt_sign_up_time_mongo(1,[{"relation":"is between date","values":["2019-08-01 00:00:00","2019-08-09 00:00:00"],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], "Astrotrex"))
     # print(ac.adapt_last_order_created_time_mongo(1,[{"relation":"is between date","values":["2019-02-10 00:00:00","2019-02-11 00:00:00"],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], "Astrotrex"))
     # print(ac.adapt_last_opened_email_time_mongo(1,[{"relation":"is between date","values":["2019-02-10 00:00:00","2019-02-11 00:00:00"],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}], "Astrotrex"))
-
+    # print(ac.remove_email_task_by_id(950))
