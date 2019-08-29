@@ -178,6 +178,7 @@ class EmailTrigger(models.Model):
     customer_list_id = models.CharField(db_index=True, max_length=255, blank=True, null=True, verbose_name="flows筛选出来的ListId")
     title = models.CharField(db_index=True, max_length=255, verbose_name="标题")
     description = models.TextField(blank=True, null=True, verbose_name="描述")
+    total_sents = models.IntegerField(blank=True, null=True, default=0, verbose_name="flow总发送量")
     open_rate = models.DecimalField(default=0,  max_digits=10, decimal_places=4, verbose_name="邮件打开率")
     click_rate = models.DecimalField(default=0,  max_digits=10, decimal_places=4, verbose_name="邮件单击率")
     revenue = models.DecimalField(default=0,  max_digits=10, decimal_places=4, verbose_name="对应的销售额")

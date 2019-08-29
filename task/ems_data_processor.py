@@ -119,10 +119,10 @@ class EMSDataProcessor:
                     statistic = datas["data"]["SummaryStatistics"]["SummaryStatistic"]
                     sents, opens, clicks = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"])
                     open_rate, click_rate = round(opens / sents,5) if sents else 0.0, round(clicks / sents,5) if sents else 0.0
-                    flow_update_list.append((open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
+                    flow_update_list.append((sents, open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
             # 更新数据库
             cursor.executemany(
-                """update email_trigger set open_rate=%s, click_rate=%s, update_time=%s where customer_list_id=%s and store_id=%s""",
+                """update email_trigger set total_sents=%s, open_rate=%s, click_rate=%s, update_time=%s where customer_list_id=%s and store_id=%s""",
                 flow_update_list)
             logger.info("update all email trigger ems datas success.")
             conn.commit()
@@ -254,10 +254,11 @@ class EMSDataProcessor:
                      (sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date, dashboard_id[0]))
                 else:
                     # insert
-                    cursor.execute("""insert into dashboard (total_sent, total_open, total_click, total_unsubscribe, avg_open_rate,
+                    cursor.execute("""insert into dashboard (revenue,orders,total_revenue,total_orders,total_sessions,session,avg_repeat_purchase_rate,avg_conversion_rate,
+                    total_sent, total_open, total_click, total_unsubscribe, avg_open_rate,
                      avg_click_rate, avg_unsubscribe_rate, create_time, update_time, store_id) 
-                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                    (sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date,now_date,store_id))
+                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                    (0,0,0,0,0,0,0.0,0.0,sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date,now_date,store_id))
                 logger.info("update store(%s) dashboard success at %s." % (store_id, now_date))
                 conn.commit()
         except Exception as e:

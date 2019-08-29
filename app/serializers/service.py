@@ -214,6 +214,7 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
                   "relation_info",
                   "email_delay",
                   "note",
+                  "total_sents",
                   "create_time",
                   "update_time"
         )
