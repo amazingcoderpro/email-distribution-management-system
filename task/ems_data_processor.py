@@ -119,10 +119,10 @@ class EMSDataProcessor:
                     statistic = datas["data"]["SummaryStatistics"]["SummaryStatistic"]
                     sents, opens, clicks = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"])
                     open_rate, click_rate = round(opens / sents,5) if sents else 0.0, round(clicks / sents,5) if sents else 0.0
-                    flow_update_list.append((open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
+                    flow_update_list.append((sents, open_rate, click_rate, datetime.datetime.now(), uuid, store_id))
             # 更新数据库
             cursor.executemany(
-                """update email_trigger set open_rate=%s, click_rate=%s, update_time=%s where customer_list_id=%s and store_id=%s""",
+                """update email_trigger set total_sents=%s, open_rate=%s, click_rate=%s, update_time=%s where customer_list_id=%s and store_id=%s""",
                 flow_update_list)
             logger.info("update all email trigger ems datas success.")
             conn.commit()
