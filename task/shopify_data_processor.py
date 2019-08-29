@@ -12,13 +12,14 @@ from task.db_util import DBUtil, MongoDBUtil
 
 
 class ShopifyDataProcessor:
-    def __init__(self, db_info):
+    def __init__(self, db_info, mongo_config):
         self.db_host = db_info.get("host", "")
         self.db_port = db_info.get("port", 3306)
         self.db_name = db_info.get("db", "")
         self.db_user = db_info.get("user", "")
         self.db_password = db_info.get("password", "")
         self.root_path = ROOT_PATH
+        self.mongo_config = mongo_config
 
     def save_customer_db(self, customer_insert_list, customer_update_list, cursor=None, conn=None):
         if not cursor:
@@ -677,11 +678,17 @@ class ShopifyDataProcessor:
             if not cursor:
                 return False
             # 获取所有店铺
-            cursor.execute("""select id, store_view_id from store where id != 1 AND store_view_id !=''""")
+            cursor.execute("""select id, store_view_id, source, site_name from store where id != 1 AND store_view_id !=''""")
             stores = cursor.fetchall()
+
+            mdb = MongoDBUtil(mongo_config=self.mongo_config)
+            mongo_db = mdb.get_instance()
+
             for store in stores:
                 store_id = store[0]
                 store_view_id = store[1]
+                source = store[2]
+                site_name = store[3]
                 # 配置时间
                 results_list = []
                 now_date = datetime.datetime.now()+datetime.timedelta(days=-1)
@@ -704,26 +711,43 @@ class ShopifyDataProcessor:
                 else:
                     total_orders = total_revenue = total_sessions = 0
 
-                # 获取当前店铺支付订单大于等于2的用户数
-                cursor.execute(
-                    """select count(customer_uuid) from (SELECT customer_uuid, count(id) as num FROM order_event where store_id= %s and status_tag='paid' group by customer_uuid) as res where num >= 2;""",
-                    (store_id,))
-                orders_gte2 = cursor.fetchone()[0]
+                orders_gte2 = 0
+                total_paid_customers = 0
+                if source == 1:
+                    # 获取当前店铺支付订单大于等于2的用户数
+                    cursor.execute(
+                        """select count(customer_uuid) from (SELECT customer_uuid, count(id) as num FROM order_event where store_id= %s and status_tag='paid' group by customer_uuid) as res where num >= 2;""",
+                        (store_id,))
+                    orders_gte2 = cursor.fetchone()[0]
 
-                # 获取当前店铺的用户总量
-                cursor.execute("""SELECT count(id)  FROM  order_event where store_id= %s;""", (store_id,))
-                total_cumtomers = cursor.fetchone()[0]
+                    # 获取当前店铺的用户总量
+                    cursor.execute("""SELECT count(id)  FROM  order_event where store_id= %s;""", (store_id,))
+                    total_paid_customers = cursor.fetchone()[0]
+                else:
+                    try:
+                        all_paid_customers = []
+                        all_orders_gte2 = []
+                        # 支付订单数大于等于2的用户总量
+                        paid_results = mongo_db["shopify_order"]
+                        group = {
+                            '_id': "$customer.id",
+                            'count': {'$sum': 1}
+                        }
+                        paid_customers = paid_results.aggregate(
+                            [{"$match": {"site_name": site_name}}, {"$group": group}], allowDiskUse=True)
 
-                # 获取GA数据
-                # cursor.execute(
-                #     """select store.store_view_id from store where store.id = %s""", (store_id,))
-                # store_view_id = cursor.fetchone()[0]
-                # if store_view_id:
-                # sessions = 0
-                #     orders = 0
-                #     revenue = 0.0
-                #     avg_conversion_rate = 0
-                #     avg_repeat_purchase_rate = 0
+                        for res in paid_customers:
+                            uuid = res.get("_id", "")
+                            count = res.get("count", 0)
+                            if uuid:
+                                all_paid_customers.append(uuid)
+                                if count >= 2:
+                                    all_orders_gte2.append(uuid)
+                        orders_gte2 = len(all_orders_gte2)
+                        total_paid_customers = len(all_paid_customers)
+
+                    except Exception as e:
+                        logger.exception("adapt_sign_up_time_mongo catch exception={}".format(e))
 
                 papi = GoogleApi(view_id=store_view_id,
                                  json_path=os.path.join(self.root_path, r"sdk//googleanalytics//client_secrets.json"))
@@ -749,7 +773,7 @@ class ShopifyDataProcessor:
                     # 平均转换率  总支付订单数÷总流量
                     avg_conversion_rate = (total_orders / total_sessions) if total_sessions else 0
                     # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
-                    avg_repeat_purchase_rate = (orders_gte2 / total_cumtomers) if total_cumtomers else 0
+                    avg_repeat_purchase_rate = (orders_gte2 / total_paid_customers) if total_paid_customers else 0
                     # else:
                     #     sessions = orders = revenue = total_orders = total_sessions = total_revenue = avg_conversion_rate = avg_repeat_purchase_rate = 0
 
@@ -790,8 +814,11 @@ class ShopifyDataProcessor:
                                    (now_date, now_date, store_id, sessions, orders, revenue, total_orders, total_sessions, total_revenue,
                                     avg_conversion_rate, avg_repeat_purchase_rate))
 
-                logger.info("update store(%s) dashboard success at %s." % (store_id, now_date))
+                logger.info("update store {} dashboard success at {}., revenue={},total_orders={},total_sessions={}, avg_conversion_rate={}, avg_repeat_purchase_rate={} "
+                            .format(store_id, now_date, revenue, total_orders, total_sessions, avg_conversion_rate, avg_repeat_purchase_rate))
                 conn.commit()
+
+            mdb.close()
         except Exception as e:
             logger.exception("update dashboard data exception e={}".format(e))
             return False
@@ -1171,14 +1198,14 @@ class ShopifyDataProcessor:
 
 
 if __name__ == '__main__':
-    db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
+    # db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     # ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     # ShopifyDataProcessor(db_info=db_info).create_template()
 
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
-    ShopifyDataProcessor(db_info=db_info).updata_shopify_ga()
+    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
     # 订单表 和  用户表 之间的数据同步
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
