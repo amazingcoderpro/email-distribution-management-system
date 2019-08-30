@@ -189,8 +189,8 @@ class EmailTrigger(models.Model):
     note = models.TextField(default="[]", verbose_name="对应Note列表")
     status_choice = ((0, 'disable'), (1, 'enable'), (2, 'delete'))
     status = models.SmallIntegerField(default=0, verbose_name="邮件类型")
-    is_open_choices = ((0, 'internal'), (1, 'external'))
-    is_open = models.SmallIntegerField(db_index=True, choices=is_open_choices, default=1, verbose_name="是否对外")
+    # is_open_choices = ((0, 'internal'), (1, 'external'))
+    # is_open = models.SmallIntegerField(db_index=True, choices=is_open_choices, default=1, verbose_name="是否对外")
     draft_choices = ((0, '线上'), (1, '草稿'))
     draft = models.SmallIntegerField(db_index=True, choices=draft_choices, default=0, verbose_name="是否是草稿状态")
     if ENABLE_MIGRATE:
