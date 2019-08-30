@@ -15,7 +15,8 @@ class StoreSerializer(serializers.ModelSerializer):
         model = models.Store
         fields = (
                   "shopify_domain",
-                  "auth_list"
+                  "auth_list",
+                  "op_user"
         )
 
     # def validate_shopify_domain(self, data):
@@ -30,6 +31,9 @@ class StoreSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         store_instance = models.Store.objects.filter(url=validated_data["shopify_domain"]).first()
+        if validated_data.get("op_user"):
+            store_instance.op_user = validated_data["op_user"]
+            store_instance.save()
         auth_list = eval(validated_data["auth_list"])
         email_trigger = models.EmailTrigger.objects.filter(store_id=1, id__in=auth_list).values("id", "title",
                                                                                                 "description",
@@ -52,7 +56,8 @@ class StoreSerializer(serializers.ModelSerializer):
                 store_dict = {
                     "user": user_instance,
                     "url": validated_data["shopify_domain"],
-                    "init": 0
+                    "init": 0,
+                    "op_user":validated_data["op_user"] if validated_data.get("op_user") else ""
                 }
                 store_instance = super(StoreSerializer, self).create(store_dict)
                 self.copy_trigger(email_trigger, store_instance.id)

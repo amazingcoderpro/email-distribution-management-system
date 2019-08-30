@@ -50,6 +50,7 @@ class Store(models.Model):
     init = models.SmallIntegerField(db_index=True, choices=init_choices, default=0, verbose_name="店铺初始化")
     source_choices = ((0, 'opstores'), (1, 'foreign_store'))
     source = models.SmallIntegerField(db_index=True, choices=source_choices, default=0, verbose_name="店铺来自")
+    op_user = models.CharField(blank=True, null=True, max_length=255, verbose_name="opstore用户")
     if ENABLE_MIGRATE:
         user_id = models.IntegerField(db_index=True, verbose_name="用户id")
     else:
