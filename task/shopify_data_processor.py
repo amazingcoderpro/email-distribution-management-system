@@ -887,9 +887,6 @@ class ShopifyDataProcessor:
                 conn.commit()
                 email_template_record[item["id"]] = cursor_dict.lastrowid
 
-
-
-
             cursor_dict.execute(
                 """select title, description, relation_info, email_delay, note, is_open, status from email_trigger where store_id = 1 and draft = 0 and status != 2""")
             email_trigger = cursor_dict.fetchall()
