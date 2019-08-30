@@ -27,7 +27,7 @@ class StoreSerializer(serializers.ModelSerializer):
     def validate_auth_list(self, data):
         if not (data.startswith("[") and data.endswith("]")):
             raise serializers.ValidationError("format error")
-        trigger_queryset = models.EmailTrigger.objects.filter(store_id=1,status=1).values("id")
+        trigger_queryset = models.EmailTrigger.objects.filter(store_id=1, status=1).values("id")
         trigger_list = [item["id"] for item in trigger_queryset]
         auth_list = [item for item in eval(data) if item not in trigger_list]
         if auth_list:
@@ -67,7 +67,7 @@ class StoreSerializer(serializers.ModelSerializer):
                 store_instance = super(StoreSerializer, self).create(store_dict)
                 self.copy_trigger(email_trigger, store_instance.id)
                 return store_instance
-            copy_trigger_dict = models.EmailTrigger.objects.filter(store=store_instance, status__in=[0,1]).values("id","email_trigger_id","email_delay")
+            copy_trigger_dict = models.EmailTrigger.objects.filter(store=store_instance, status=1, email_trigger__isnull=False).values("id","email_trigger_id","email_delay")
             copy_trigger_list = [item["email_trigger_id"] for item in copy_trigger_dict]
             del_trigger_list = [item for item in copy_trigger_list if item not in set(auth_list)]
             if del_trigger_list:
