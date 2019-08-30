@@ -27,6 +27,11 @@ class StoreSerializer(serializers.ModelSerializer):
     def validate_auth_list(self, data):
         if not (data.startswith("[") and data.endswith("]")):
             raise serializers.ValidationError("format error")
+        trigger_queryset = models.EmailTrigger.objects.filter(store_id=1,status=1).values("id")
+        trigger_list = [item["id"] for item in trigger_queryset]
+        auth_list = [item for item in eval(data) if item not in trigger_list]
+        if auth_list:
+            raise serializers.ValidationError("{} does not exist".format(auth_list))
         return data
 
     def create(self, validated_data):
