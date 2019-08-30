@@ -32,11 +32,11 @@ class EmailTriggerView(generics.ListAPIView):
                         ]
                     }, status=400)
         store = models.Store.objects.filter(url=url).first()
-        query_trigger = models.EmailTrigger.objects.filter(store=store).values("email_trigger_id")
+        query_trigger = models.EmailTrigger.objects.filter(store=store,status__in=[0,1]).values("email_trigger_id")
         if query_trigger:
             query_trigger = [item["email_trigger_id"] for item in query_trigger]
 
-        print("###", query_trigger)
+        #print("###", query_trigger)
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         response = serializer.data

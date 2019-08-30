@@ -57,18 +57,17 @@ class StoreSerializer(serializers.ModelSerializer):
                 store_instance = super(StoreSerializer, self).create(store_dict)
                 self.copy_trigger(email_trigger, store_instance.id)
                 return store_instance
-            copy_trigger_dict = models.EmailTrigger.objects.filter(store=store_instance).values_list("email_trigger_id")
-            copy_trigger_list = [item[0] for item in copy_trigger_dict]
+            copy_trigger_dict = models.EmailTrigger.objects.filter(store=store_instance, status__in=[0,1]).values("id","email_trigger_id","email_delay")
+            copy_trigger_list = [item["email_trigger_id"] for item in copy_trigger_dict]
             del_trigger_list = [item for item in copy_trigger_list if item not in set(auth_list)]
             if del_trigger_list:
-                self.del_trigger(del_trigger_list, store_instance.id)
+                email_trigger_list = [item for item in copy_trigger_dict if item["email_trigger_id"] in del_trigger_list]
+                self.del_trigger(email_trigger_list, store_instance.id)
 
             add_trigger_list = [item for item in auth_list if item not in set(copy_trigger_list)]
             if add_trigger_list:
                 email_trigger_list = [item for item in email_trigger if item["id"] in add_trigger_list]
                 self.copy_trigger(email_trigger_list, store_instance.id)
-
-            # self.copy_trigger(email_trigger_list, store_instance.id)
             return store_instance
 
     def copy_trigger(self,email_trigger_list, store_id):
