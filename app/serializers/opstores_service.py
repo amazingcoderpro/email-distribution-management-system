@@ -19,10 +19,10 @@ class StoreSerializer(serializers.ModelSerializer):
                   "op_user"
         )
 
-    # def validate_shopify_domain(self, data):
-    #     if not data.endswith("myshopify.com"):
-    #         raise serializers.ValidationError("format error")
-    #     return data
+    def validate_shopify_domain(self, data):
+        if not data.endswith("myshopify.com"):
+            raise serializers.ValidationError("format error")
+        return data
 
     def validate_auth_list(self, data):
         if not (data.startswith("[") and data.endswith("]")):
