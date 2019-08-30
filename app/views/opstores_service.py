@@ -20,8 +20,32 @@ class EmailTriggerView(generics.ListAPIView):
     """邮件 Trigger展示"""
     queryset = models.EmailTrigger.objects.all()
     serializer_class = opstores_service.EmailTriggerSerializer
-    pagination_class = PNPagination
+    # pagination_class = PNPagination
     filter_backends = (opstores_service_filter.EmailTriggerFilter,)
+
+    def list(self, request, *args, **kwargs):
+        url = request.query_params.get("shopify_domain", "")
+        if not url:
+            return Response({
+                        "shopify_domain": [
+                            "This field is required."
+                        ]
+                    }, status=400)
+        store = models.Store.objects.filter(url=url).first()
+        query_trigger = models.EmailTrigger.objects.filter(store=store).values("email_trigger_id")
+        if query_trigger:
+            query_trigger = [item["email_trigger_id"] for item in query_trigger]
+
+        print("###", query_trigger)
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        response = serializer.data
+        for item in response:
+            if item["id"] not in query_trigger:
+                item["is_auth"] = 0
+            else:
+                item["is_auth"] = 1
+        return Response(response)
 
 
 class EmailTriggerOptView(generics.UpdateAPIView):
