@@ -198,7 +198,7 @@ class EmailTrigger(models.Model):
         email_trigger_id = models.IntegerField(db_index=True, null=True, blank=True, default=None, verbose_name="email_trigger_id")
     else:
         store = models.ForeignKey(Store, on_delete=models.DO_NOTHING)
-        email_trigger = models.ForeignKey(EmailTrigger, blank=True, null=True, on_delete=models.DO_NOTHING)
+        email_trigger = models.ForeignKey("EmailTrigger", blank=True, null=True, on_delete=models.DO_NOTHING)
     create_time = models.DateTimeField(db_index=True,auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(db_index=True,auto_now=True, verbose_name="更新时间")
 
