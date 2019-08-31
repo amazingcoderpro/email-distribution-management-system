@@ -214,14 +214,22 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
                   "relation_info",
                   "email_delay",
                   "note",
+                  "draft",
                   "total_sents",
                   "create_time",
                   "update_time"
         )
 
-    def create(self, validated_data):
-        validated_data["store"] = models.Store.objects.filter(user=self.context["request"].user).first()
-        instance = super(EmailTriggerSerializer, self).create(validated_data)
+    def update(self, instance, validated_data):
+        store = models.Store.objects.filter(user=self.context["request"].user).first()
+        store_id = store.id
+        validated_data["store"] = store
+        validated_data["draft"] = 0
+        instance = super(EmailTriggerSerializer, self).update(instance, validated_data)
+        email_delay = json.loads(instance.email_delay)
+        for key, val in enumerate(email_delay):
+            if val["type"] == "Email":
+                models.EmailTemplate.objects.filter(id=val["value"], store_id=store_id).update(email_trigger_id=instance.id)
         return instance
 
     def to_representation(self, instance):
@@ -230,6 +238,19 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
         data["click_rate"] = float(instance.click_rate)
         data["revenue"] = float(instance.revenue)
         return data
+
+    def create(self, validated_data):
+        store = models.Store.objects.filter(user=self.context["request"].user).first()
+        store_id = store.id
+        validated_data["store"] = store
+        validated_data["draft"] = 0
+        instance = super(EmailTriggerSerializer, self).create(validated_data)
+        email_delay = json.loads(instance.email_delay)
+        for key, val in enumerate(email_delay):
+            if val["type"] == "Email":
+                models.EmailTemplate.objects.filter(id=val["value"], store_id=store_id).update(email_trigger_id=instance.id)
+        return instance
+
 
 
 class EmailTriggerOptSerializer(serializers.ModelSerializer):
@@ -255,6 +276,13 @@ class EmailTriggerOptSerializer(serializers.ModelSerializer):
 
         validated_data["draft"] = 0
         instance = super(EmailTriggerOptSerializer, self).update(instance, validated_data)
+
+        if validated_data["status"] == 2:
+            # email_delay = json.loads(instance.email_delay)
+            # for key, val in enumerate(email_delay):
+            #     if val["type"] == "Email":
+            models.EmailTemplate.objects.filter(email_trigger_id=instance.id).update(status=2)
+
         models.EmailTask.objects.filter(email_trigger_id=instance.id, status__in=[0, 3]).update(status=task_status)
         return instance
 
@@ -269,66 +297,51 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         store = models.Store.objects.filter(user=self.context["request"].user).first()
-        email_delay = json.loads(instance.email_delay)
-        for key, val in enumerate(email_delay):
-            if val["type"] == "Email":
-                email_template = models.EmailTemplate.objects.filter(id=val["value"]).values("id",
-                                                                                               "title",
-                                                                                               "description",
-                                                                                               "subject",
-                                                                                               "heading_text",
-                                                                                               "headline",
-                                                                                               "body_text",
-                                                                                               "customer_group_list",
-                                                                                               "html",
-                                                                                               "send_rule",
-                                                                                               "send_type",
-                                                                                               "product_condition",
-                                                                                                "enable",
-                                                                                             "customer_text",
-                                                                                             "logo",
-                                                                                             "banner",
-                                                                                             "is_cart",
-                                                                                             "product_title",
-                                                                                             "banner_text"
-                                                                                             ).first()
-                template_dict = {
-                    "store": store,
-                    "title": email_template["title"],
-                    "description": email_template["description"],
-                    "subject": email_template["subject"],
-                    "heading_text": email_template["heading_text"],
-                    "body_text": email_template["body_text"],
-                    "customer_text": email_template["customer_text"],
-                    "headline": email_template["headline"],
-                    "html": email_template["html"],
-                    "customer_group_list": email_template["customer_group_list"],
-                    "send_rule": email_template["send_rule"],
-                    "send_type": email_template["send_type"],
-                    "product_condition": email_template["product_condition"],
-                    "enable": email_template["enable"],
-                    "logo": email_template["logo"],
-                    "banner": email_template["banner"],
-                    "is_cart": email_template["is_cart"],
-                    "product_title": email_template["product_title"],
-                    "banner_text": email_template["banner_text"]
-                }
-                emailtemplate_instance = models.EmailTemplate.objects.create(**template_dict)
-                val["value"] = emailtemplate_instance.id
 
         dic = {
             "store": store,
             "title": instance.title,
             "description": instance.description,
             "relation_info": instance.relation_info,
-            "email_delay": json.dumps(email_delay),
+            "email_delay": instance.email_delay,
             "note": instance.note,
             "status": instance.status,
+            "email_trigger_id": instance.email_trigger_id,
             # "status": 0,    #新克隆出来的模板，状态应该是0,默认是禁用状态
             "draft": 1
         }
-
         clone_instance = models.EmailTrigger.objects.create(**dic)
+
+        email_delay = json.loads(instance.email_delay)
+        for key, val in enumerate(email_delay):
+            if val["type"] == "Email":
+                email_template = models.EmailTemplate.objects.filter(id=val["value"]).first()
+                template_dict = {
+                    "store": store,
+                    "title": email_template.title,
+                    "description": email_template.description,
+                    "subject": email_template.subject,
+                    "heading_text": email_template.heading_text,
+                    "body_text": email_template.body_text,
+                    "customer_text": email_template.customer_text,
+                    "headline": email_template.headline,
+                    "html": email_template.html,
+                    "customer_group_list": email_template.customer_group_list,
+                    "send_rule": email_template.send_rule,
+                    "send_type": email_template.send_type,
+                    "product_condition": email_template.product_condition,
+                    "enable": email_template.enable,
+                    "logo": email_template.logo,
+                    "banner": email_template.banner,
+                    "is_cart": email_template.is_cart,
+                    "product_title": email_template.product_title,
+                    "banner_text": email_template.banner_text,
+                    "email_trigger_id": clone_instance.id
+                }
+                emailtemplate_instance = models.EmailTemplate.objects.create(**template_dict)
+                val["value"] = emailtemplate_instance.id
+        clone_instance.email_delay = json.dumps(email_delay)
+        clone_instance.save()
         return clone_instance
 
     def to_representation(self, instance):

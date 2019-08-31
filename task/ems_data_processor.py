@@ -173,6 +173,37 @@ class EMSDataProcessor:
             conn.close() if conn else 0
         return True
 
+    def delete_draft_data_in_trigger_and_template(self):
+        """
+        每24小时删除更新时间距离现在超过48小时的草稿数据（涉及trigger, template两张表）
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return False
+            # 获取目前处于草稿状态下的trigger_id,
+            ago_48_hours = datetime.datetime.now()+datetime.timedelta(hours=-48)
+            cursor.execute("""select id from email_trigger where draft=1 and update_time <= %s""", (ago_48_hours,))
+            trigger_id_list = cursor.fetchall()
+            if not trigger_id_list:
+                logger.info("no select any draft data.")
+                return True
+            # 删除相关的triiger数据
+            cursor.execute("""delete from email_trigger where id in %s""", (trigger_id_list,))
+            # 删除相关的template数据
+            cursor.execute("""delete from email_template where email_trigger_id in %s""", (trigger_id_list,))
+            conn.commit()
+            logger.info("delete_draft_data_in_trigger_and_template success.")
+        except Exception as e:
+            logger.exception("delete_draft_data_in_trigger_and_template exception e={}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
+
     def insert_dashboard_data(self):
         """
         每天定时拉取数据入库，最新数据为截止到昨天23:59:59
@@ -362,4 +393,5 @@ if __name__ == '__main__':
     # obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
     # obj.insert_dashboard_data()
-    obj.update_unsubscriber_and_snoozed_customers()
+    # obj.update_unsubscriber_and_snoozed_customers()
+    print(obj.delete_draft_data_in_trigger_and_template())
