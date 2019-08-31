@@ -775,27 +775,31 @@ class ShopifyDataProcessor:
                     avg_conversion_rate = (total_orders / total_sessions) if total_sessions else 0
                     # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
                     avg_repeat_purchase_rate = (orders_gte2 / total_paid_customers) if total_paid_customers else 0
-                    # else:
-                    #     sessions = orders = revenue = total_orders = total_sessions = total_revenue = avg_conversion_rate = avg_repeat_purchase_rate = 0
+
+                email_trigger_list = []
+                for results_email_template in results_list:
+                    results_email_template_id = results_email_template[4]
+                    # trigger_id 存在直接按照trigger id更新数据, 如果不存在email_delay反查[维护至上线前取消该逻辑]
+                    cursor.execute("""select email_trigger_id from email_template where id=%s""",
+                                   (results_email_template_id,))
+                    results_email_template_info = cursor.fetchone()[0]
+                    if results_email_template_info is not None:
+                        cursor.execute("""select revenue from email_template where email_trigger_id=%s""",
+                                       (results_email_template_info,))
+                        email_trigger = cursor.fetchall()
+                        trigger_total_revenues = 0.0
+                        for trigger_revenue in email_trigger:
+                            trigger_total_revenues += float(trigger_revenue[0])
+                            res = (trigger_total_revenues, datetime.datetime.now(), results_email_template_info)
+                            email_trigger_list.append(res)
 
                 # 更新email_template的数据
                 cursor.executemany(
                     """update email_template set sessions=%s, transcations=%s, revenue=%s ,update_time=%s where id =%s""",
                     results_list)
 
-                # 更新email_trigger的数据
-                cursor.execute("""select id, email_delay from email_trigger where store_id=%s""", (store_id, ))
-                trigger_info = cursor.fetchall()
-                trigger_tuple = []
-                for triggers in trigger_info:
-                    template_list = [trigger["value"] for trigger in json.loads(triggers[1]) if trigger["type"]=="Email"]
-                    template_revenue = 0.0
-                    for templante_info in template_list:
-                        template_revenue += data_list.get(templante_info, {}).get("revenue", 0.0)
-                    trigger_tuple.append((template_revenue, datetime.datetime.now(), triggers[0]))
-
                 # 更新email_tiggers数据
-                cursor.executemany("""update email_trigger set revenue=%s, update_time=%s where id=%s""", trigger_tuple)
+                cursor.executemany("""update email_trigger set revenue=%s, update_time=%s where id=%s""", email_trigger_list)
 
                 # 更新dashboard数据
                 cursor.execute("""select id from dashboard where store_id=%s and update_time between %s and %s""",
@@ -827,6 +831,50 @@ class ShopifyDataProcessor:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
         return True
+
+    def update_template_trigger(self):
+        """
+        更新trigger和templant表中emali_trigger_id 同步 临时代码
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                return False
+            # 获取所有店铺
+            cursor.execute(
+                """select id, store_view_id, source, site_name from store where id > 0""")
+            stores = cursor.fetchall()
+            triggers_list = []
+            for store in stores:
+                store_id = store[0]
+                cursor.execute("""select id, email_delay from email_trigger where store_id=%s""", (store_id,))
+                trigger_info = cursor.fetchall()
+                for triggers in trigger_info:
+                    try:
+                        template_list = [trigger["value"] for trigger in json.loads(triggers[1]) if
+                                         trigger["type"] == "Email"]
+
+                    except:
+                        print(triggers[0], triggers[1])
+
+                    for id in template_list:
+                        res = (id, triggers[0])
+                        triggers_list.append(res)
+                print(template_list)
+            cursor.executemany(
+                """update email_template set email_trigger_id=%s where id =%s""",
+                triggers_list)
+            conn.commit()
+        except Exception as e:
+            logger.exception("update dashboard data exception e={}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+            return True
 
     def update_store_webhook(self, store=None):
         store_id, store_url, store_token, store_create_time, *_ = store[0]
@@ -1213,4 +1261,5 @@ if __name__ == '__main__':
 
     # ShopifyDataProcessor(db_info=db_info).update_new_shopify()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
+    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_template_trigger()
 
