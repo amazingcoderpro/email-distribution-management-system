@@ -325,7 +325,6 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
             "note": instance.note,
             "status": instance.status,
             # "status": 0,    #新克隆出来的模板，状态应该是0,默认是禁用状态
-            "is_open": instance.is_open,
             "draft": 1
         }
 

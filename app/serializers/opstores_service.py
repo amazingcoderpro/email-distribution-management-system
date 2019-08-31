@@ -7,117 +7,129 @@ import json
 
 
 class StoreSerializer(serializers.ModelSerializer):
-    # name = serializers.CharField(required=True, )
-    # domain = serializers.CharField(required=True, )
-    # url = serializers.CharField(required=True,)
+
     shopify_domain = serializers.CharField(required=True,write_only=True)
-    password = serializers.CharField(required=False,write_only=True)
-    # timezone = serializers.CharField(required=True)
+    auth_list = serializers.CharField(required=True,write_only=True)
 
     class Meta:
         model = models.Store
         fields = (
                   "shopify_domain",
-                  "name",
-                  "domain",
-                  "url",
-                  "email",
-                  "service_email",
-                  "logo",
-                  "sender",
-                  "sender_address",
-                  "store_view_id",
-                  "timezone",
-                  "password"
+                  "auth_list",
+                  "op_user"
         )
-        # extra_kwargs = {
-        #     'name': {'read_only': True},
-        #     'domain': {'read_only': True},
-        #     'url': {'read_only': True},
-        # }
+
+    def validate_shopify_domain(self, data):
+        if not data.endswith("myshopify.com"):
+            raise serializers.ValidationError("format error")
+        return data
+
+    def validate_auth_list(self, data):
+        if not (data.startswith("[") and data.endswith("]")):
+            raise serializers.ValidationError("format error")
+        trigger_queryset = models.EmailTrigger.objects.filter(store_id=1, status=1).values("id")
+        trigger_list = [item["id"] for item in trigger_queryset]
+        auth_list = [item for item in eval(data) if item not in trigger_list]
+        if auth_list:
+            raise serializers.ValidationError("{} does not exist".format(auth_list))
+        return data
 
     def create(self, validated_data):
-        shopify_domain = models.Store.objects.filter(url=validated_data["shopify_domain"]).first()
-        if shopify_domain:
-            return shopify_domain
+        store_instance = models.Store.objects.filter(url=validated_data["shopify_domain"]).first()
+        if validated_data.get("op_user"):
+            store_instance.op_user = validated_data["op_user"]
+            store_instance.save()
+        auth_list = eval(validated_data["auth_list"])
+        email_trigger = models.EmailTrigger.objects.filter(store_id=1, id__in=auth_list).values("id", "title",
+                                                                                                "description",
+                                                                                                "relation_info",
+                                                                                                "email_delay", "note",
+                                                                                                "status")
         with transaction.atomic():
-            # 增加用户
-            if not self.context["request"].data.get("password"):
-                password = validated_data["shopify_domain"].lower()[:2] + "123456"
-            else:
-                password = validated_data["password"]
-            user_dict = {}
-            user_dict["username"] = validated_data["shopify_domain"]
-            user_dict["password"] = password
-            user_instance = models.User.objects.create(**user_dict)
-            user_instance.set_password(user_dict["password"])
-            user_instance.save()
-            # # 增加店铺
-            store_dict = {}
-            store_dict["user"] = user_instance
-            store_dict["url"] = validated_data["shopify_domain"]
-            store_dict["logo"] = validated_data.get("logo") if validated_data.get("logo") else ""
-            store_dict["store_view_id"] = validated_data["store_view_id"] if validated_data.get("store_view_id") else ""
-            store_dict["init"] = 0
-            instance = super(StoreSerializer, self).create(store_dict)
-            #
-            # template_record = {}
-            # customer_group = models.CustomerGroup.objects.filter(store_id=1, state__in=[0, 1]).values("id", "title", "description", "relation_info")
-            # for item in customer_group:
-            #     trigger_dict = {
-            #         "store": instance,
-            #         "title": item["title"],
-            #         "description": item["description"],
-            #         "relation_info": item["relation_info"],
-            #         "state": 0
-            #     }
-            #     customer_instance = models.CustomerGroup.objects.create(**trigger_dict)
-            #     template_record[item["id"]] = customer_instance.id
-            #
-            # email_template = models.EmailTemplate.objects.filter(store_id=1, status__in=[0, 1]).values("id", "title", "description", "subject", "logo", "banner",
-            #                                                                         "heading_text", "headline",
-            #                                                                         "body_text", "customer_group_list",
-            #                                                                         "html", "send_rule", "send_type","product_condition", "is_cart", "product_title", "banner_text", "customer_text")
-            #
-            # email_template_record = {}
-            # for item in email_template:
-            #     customer_group_list = eval(item["customer_group_list"])
-            #     for key, val in enumerate(customer_group_list):
-            #         customer_group_list[key] = template_record[val]
-            #     template_dict = {
-            #         "store": instance,
-            #         "title": item["title"],
-            #         "description": item["description"],
-            #         "subject": item["subject"],
-            #         "logo": item["logo"],
-            #         "banner": item["banner"],
-            #         "heading_text": item["heading_text"],
-            #         "body_text": item["body_text"],
-            #         "headline": item["headline"],
-            #         "html": item["html"],
-            #         "customer_group_list": customer_group_list,
-            #         "send_rule": item["send_rule"],
-            #         "send_type": item["send_type"],
-            #         "product_condition": item["product_condition"],
-            #         "is_cart": item["is_cart"],
-            #         "product_title": item["product_title"],
-            #         "banner_text": item["banner_text"],
-            #         "customer_text": item["customer_text"]
-            #     }
-            #     emailtemplate_instance = models.EmailTemplate.objects.create(**template_dict)
-            #     email_template_record[item["id"]] = emailtemplate_instance.id
-            #
-            # email_trigger = models.EmailTrigger.objects.filter(store_id=1, draft=0, status__in=[0, 1]).values("title", "description","relation_info","email_delay","is_open", "note", "status")
-            # for item in email_trigger:
-            #     email_delay = json.loads(item["email_delay"])
-            #     for key, val in enumerate(email_delay):
-            #         if val["type"] == "Email":
-            #             val["value"] = email_template_record[val["value"]]
-            #
-            #     trigger_dict = {"store": instance, "title": item["title"], "description": item["description"], "relation_info": item["relation_info"], "email_delay": json.dumps(email_delay), "is_open": item["is_open"], "note": item["note"], "status": item["status"]}
-            #     models.EmailTrigger.objects.create(**trigger_dict)
 
-        return instance
+            if not store_instance:
+                # 增加用户
+                user_dict = {
+                    "username": validated_data["shopify_domain"],
+                    "password": validated_data["shopify_domain"].lower()[:2] + "123456"
+                }
+                user_instance = models.User.objects.create(**user_dict)
+                user_instance.set_password(user_dict["password"])
+                user_instance.save()
+
+                # 增加店铺
+                store_dict = {
+                    "user": user_instance,
+                    "url": validated_data["shopify_domain"],
+                    "init": 0,
+                    "op_user":validated_data["op_user"] if validated_data.get("op_user") else ""
+                }
+                store_instance = super(StoreSerializer, self).create(store_dict)
+                self.copy_trigger(email_trigger, store_instance.id)
+                return store_instance
+            copy_trigger_dict = models.EmailTrigger.objects.filter(store=store_instance, status=1, email_trigger__isnull=False).values("id","email_trigger_id","email_delay")
+            copy_trigger_list = [item["email_trigger_id"] for item in copy_trigger_dict]
+            del_trigger_list = [item for item in copy_trigger_list if item not in set(auth_list)]
+            if del_trigger_list:
+                email_trigger_list = [item for item in copy_trigger_dict if item["email_trigger_id"] in del_trigger_list]
+                self.del_trigger(email_trigger_list, store_instance.id)
+
+            add_trigger_list = [item for item in auth_list if item not in set(copy_trigger_list)]
+            if add_trigger_list:
+                email_trigger_list = [item for item in email_trigger if item["id"] in add_trigger_list]
+                self.copy_trigger(email_trigger_list, store_instance.id)
+            return store_instance
+
+    def copy_trigger(self,email_trigger_list, store_id):
+
+        for item in email_trigger_list:
+            email_delay = json.loads(item["email_delay"])
+            for key, val in enumerate(email_delay):
+                if val["type"] == "Email":
+                    admin_template_instance = models.EmailTemplate.objects.filter(id=val["value"]).first()
+                    template_dict = {
+                        "store_id": store_id,
+                        "title": admin_template_instance.title,
+                        "description": admin_template_instance.description,
+                        "subject": admin_template_instance.subject,
+                        "logo": admin_template_instance.logo,
+                        "banner": admin_template_instance.banner,
+                        "heading_text": admin_template_instance.heading_text,
+                        "body_text": admin_template_instance.body_text,
+                        "headline": admin_template_instance.headline,
+                        "html": admin_template_instance.html,
+                        "customer_group_list": admin_template_instance.customer_group_list,
+                        "send_rule": admin_template_instance.send_rule,
+                        "send_type": admin_template_instance.send_type,
+                        "product_condition": admin_template_instance.product_condition,
+                        "is_cart": admin_template_instance.is_cart,
+                        "product_title": admin_template_instance.product_title,
+                        "banner_text": admin_template_instance.banner_text,
+                        "customer_text": admin_template_instance.customer_text
+                    }
+                    template_instance = models.EmailTemplate.objects.create(**template_dict)
+                    val["value"] = template_instance.id
+
+            trigger_dict = {
+                "store_id": store_id,
+                "title": item["title"],
+                "description": item["description"],
+                "relation_info": item["relation_info"],
+                "email_delay": json.dumps(email_delay),
+                "note": item["note"],
+                "status": 1,
+                "email_trigger_id": item["id"],
+                "draft": 0,
+            }
+            models.EmailTrigger.objects.create(**trigger_dict)
+
+    def del_trigger(self,email_trigger_list, store_id):
+        for item in email_trigger_list:
+            email_delay = json.loads(item["email_delay"])
+            for key, val in enumerate(email_delay):
+                if val["type"] == "Email":
+                    models.EmailTemplate.objects.filter(id=val["value"], store_id=store_id).update(status=2)
+            models.EmailTrigger.objects.filter(id=item["id"], store_id=store_id).update(status=2)
 
 
 class EmailTriggerSerializer(serializers.ModelSerializer):
@@ -137,12 +149,12 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
                   "update_time"
         )
 
-    def to_representation(self, instance):
-        data = super(EmailTriggerSerializer, self).to_representation(instance)
-        data["open_rate"] = float(instance.open_rate)
-        data["click_rate"] = float(instance.click_rate)
-        data["revenue"] = float(instance.revenue)
-        return data
+    # def to_representation(self, instance):
+    #     data = super(EmailTriggerSerializer, self).to_representation(instance)
+    #     data["open_rate"] = float(instance.open_rate)
+    #     data["click_rate"] = float(instance.click_rate)
+    #     data["revenue"] = float(instance.revenue)
+    #     return data
 
 
 class EmailTriggerOptSerializer(serializers.ModelSerializer):

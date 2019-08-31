@@ -77,8 +77,7 @@ webhook_urlpatterns = [
 
 v2_urlpatterns = [
     url(r'email_trigger/$', opstores_service.EmailTriggerView.as_view()),               # flow列表
-
-    #url(r'opstores/store/$', opstores_service.StoreInitViews.as_view()),                # 店铺授权
+    url(r'opstores/auth/$', opstores_service.StoreInitViews.as_view()),                 # 店铺授权
     #url(r'email_trigger/$', opstores_service.EmailTriggerView.as_view()),               # flow列表
     #url(r'email_trigger/(?P<pk>[0-9]+)/$', opstores_service.EmailTriggerOptView.as_view()),     # flow状态修改
 

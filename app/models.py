@@ -50,6 +50,7 @@ class Store(models.Model):
     init = models.SmallIntegerField(db_index=True, choices=init_choices, default=0, verbose_name="店铺初始化")
     source_choices = ((0, 'opstores'), (1, 'foreign_store'))
     source = models.SmallIntegerField(db_index=True, choices=source_choices, default=0, verbose_name="店铺来自")
+    op_user = models.CharField(blank=True, null=True, max_length=255, verbose_name="opstore用户")
     if ENABLE_MIGRATE:
         user_id = models.IntegerField(db_index=True, verbose_name="用户id")
     else:
@@ -189,8 +190,8 @@ class EmailTrigger(models.Model):
     note = models.TextField(default="[]", verbose_name="对应Note列表")
     status_choice = ((0, 'disable'), (1, 'enable'), (2, 'delete'))
     status = models.SmallIntegerField(default=0, verbose_name="邮件类型")
-    is_open_choices = ((0, 'internal'), (1, 'external'))
-    is_open = models.SmallIntegerField(db_index=True, choices=is_open_choices, default=1, verbose_name="是否对外")
+    # is_open_choices = ((0, 'internal'), (1, 'external'))
+    # is_open = models.SmallIntegerField(db_index=True, choices=is_open_choices, default=1, verbose_name="是否对外")
     draft_choices = ((0, '线上'), (1, '草稿'))
     draft = models.SmallIntegerField(db_index=True, choices=draft_choices, default=0, verbose_name="是否是草稿状态")
     if ENABLE_MIGRATE:

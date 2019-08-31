@@ -111,43 +111,43 @@ class AnalyzeCondition:
         finally:
             mdb.close()
 
-    def unpaid_order_customers_mongo(self, store_name, min_time=None, max_time=None):
-        """
-        获取未支付的customers
-        :param store_id: 店铺ID
-        :param store_name: 店铺名称
-        :param min_time:
-        :param max_time:
-        :return: 符合条件的id{customer_id:[checkout_id1,checkout_id2], }
-        """
-        logger.info("unpaid_order_customers_mongo start")
-        result_dict = {}
-        try:
-            mdb = MongoDBUtil(mongo_config=self.mongo_config)
-            db = mdb.get_instance()
-            if min_time and max_time:
-                filter_dict = {"$lte": max_time, "$gte": min_time}
-            elif min_time:
-                filter_dict = {"$gte": min_time}
-            elif max_time:
-                filter_dict = {"$lte": max_time}
-            else:
-                filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
-            unpaid_order = db.shopify_unpaid_order.find({"site_name": store_name, "gateway": {"$ne": None}, "updated_at": filter_dict, "customer": {"$exists": 1}}, {"_id": 0, "id": 1, "token": 1, "customer.id": 1})
-            paid_order = [item["checkout_token"] for item in db.shopify_order.find({"site_name": store_name}, {"_id": 0, "checkout_token": 1})]
-            for unpaid in unpaid_order:
-                if unpaid["token"] in paid_order:
-                    continue
-                if unpaid["customer"]["id"] not in result_dict:
-                    result_dict[unpaid["customer"]["id"]] = [unpaid["id"],]
-                else:
-                    result_dict[unpaid["customer"]["id"]].append(unpaid["id"])
-            return result_dict
-        except Exception as e:
-            logger.exception("unpaid_order_customers_mongo catch exception={}".format(e))
-            return result_dict
-        finally:
-            mdb.close()
+    # def unpaid_order_customers_mongo(self, store_name, min_time=None, max_time=None):
+    #     """
+    #     获取未支付的customers
+    #     :param store_id: 店铺ID
+    #     :param store_name: 店铺名称
+    #     :param min_time:
+    #     :param max_time:
+    #     :return: 符合条件的id{customer_id:[checkout_id1,checkout_id2], }
+    #     """
+    #     logger.info("unpaid_order_customers_mongo start")
+    #     result_dict = {}
+    #     try:
+    #         mdb = MongoDBUtil(mongo_config=self.mongo_config)
+    #         db = mdb.get_instance()
+    #         if min_time and max_time:
+    #             filter_dict = {"$lte": max_time, "$gte": min_time}
+    #         elif min_time:
+    #             filter_dict = {"$gte": min_time}
+    #         elif max_time:
+    #             filter_dict = {"$lte": max_time}
+    #         else:
+    #             filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
+    #         unpaid_order = db.shopify_unpaid_order.find({"site_name": store_name, "updated_at": filter_dict, "customer.email": {"$exists": 1}}, {"_id": 0, "id": 1, "token": 1, "customer.id": 1})
+    #         paid_order = [item["checkout_token"] for item in db.shopify_order.find({"site_name": store_name}, {"_id": 0, "checkout_token": 1})]
+    #         for unpaid in unpaid_order:
+    #             if unpaid["token"] in paid_order:
+    #                 continue
+    #             if unpaid["customer"]["id"] not in result_dict:
+    #                 result_dict[unpaid["customer"]["id"]] = [unpaid["id"],]
+    #             else:
+    #                 result_dict[unpaid["customer"]["id"]].append(unpaid["id"])
+    #         return result_dict
+    #     except Exception as e:
+    #         logger.exception("unpaid_order_customers_mongo catch exception={}".format(e))
+    #         return result_dict
+    #     finally:
+    #         mdb.close()
 
     def get_store_source(self, store_id):
         """
@@ -1287,8 +1287,6 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
-
-
     def unpaid_order_customers_mongo(self, store_name, min_time=None, max_time=None):
         """
         获取未支付的customers
@@ -1311,7 +1309,7 @@ class AnalyzeCondition:
                 filter_dict = {"$lte": max_time}
             else:
                 filter_dict = {"$lte": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
-            unpaid_order = db.shopify_unpaid_order.find({"site_name": store_name, "gateway": {"$ne": None}, "updated_at": filter_dict, "customer": {"$exists": 1}}, {"_id": 0, "id": 1, "token": 1, "customer.id": 1})
+            unpaid_order = db.shopify_unpaid_order.find({"site_name": store_name, "updated_at": filter_dict, "customer.email": {"$ne": None}}, {"_id": 0, "id": 1, "token": 1, "customer.id": 1})
             paid_order = [item["checkout_token"] for item in db.shopify_order.find({"site_name": store_name, "updated_at": {"$gte": min_time}}, {"_id": 0, "checkout_token": 1})]
             for unpaid in unpaid_order:
                 if unpaid["token"] in paid_order:
@@ -2651,7 +2649,7 @@ class AnalyzeCondition:
                     continue
                 # 获取store的from_type, store_name
                 from_type, store_site_name = self.get_store_source(res["store_id"])
-                # 对customer_list里的收件人进行note筛选(7天之内收到过此邮件的人)
+                # 对customer_list里的收件人进行note筛选(收到过此邮件的人)
                 if "customer received an email from this campaign in the last" in res["note"]:
                     for note in eval(res["note"]):
                         if "customer received an email from this campaign in the last" in note:
@@ -2668,6 +2666,15 @@ class AnalyzeCondition:
                                         "id"])
                                 self.remove_email_task_by_id(res["id"])
                                 continue
+                else:
+                    # 默认排除一天之内收到过此邮件的收件人
+                    customers_1day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(days=-1))
+                    customer_list = list(set(customer_list) - set(customers_1day))
+                    logger.info("users did not choose to receive mail time filtering, default filter customers who received this email within a day.")
+                    if not customer_list:
+                        logger.info("no customers need to send email, need to delete the email_task, email_task id is %s" % res["id"])
+                        self.remove_email_task_by_id(res["id"])
+                        continue
                 if "customer makes a purchase" in eval(res["note"]) and res["remark"] != "first":
                     # 对customer_list里的收件人进行note筛选(从task创建时间开始)
                     customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_site_name)
@@ -2889,7 +2896,7 @@ if __name__ == '__main__':
     # print(ac.create_trigger_email_by_template(53, 216, "Update Html TEST", """Update Html TEST""", 124))
     # print(ac.parse_new_customer_group_list())
     # print(ac.parse_trigger_tasks())
-    print(ac.execute_flow_task())
+    # print(ac.execute_flow_task())
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
@@ -2902,7 +2909,7 @@ if __name__ == '__main__':
     # ac.order_filter(5, 1, [{"relation": "is null", "values": ["ru", 1], "unit": "days", "errorMsg": ""},{"relation": "is over all time", "values": [0, 1], "unit": "days", "errorMsg": ""}], 1,
     #                       "2019-05-31T16:27:33+08:00", "2020-05-31T16:27:33+08:00")
     # print(ac.adapt_last_order_status_mongo(1, [{"relation":"is paid","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
-    # print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
+    print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
     # print(ac.get_shop_timezone_mongo("charrcter"))
     # print(ac.get_recipients_list_from_email_record(3,3))
     # print(ac.update_email_record_recipients_list([("[1,2,3]", 501)]))
