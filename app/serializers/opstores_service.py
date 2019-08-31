@@ -83,6 +83,19 @@ class StoreSerializer(serializers.ModelSerializer):
     def copy_trigger(self,email_trigger_list, store_id):
 
         for item in email_trigger_list:
+            trigger_dict = {
+                "store_id": store_id,
+                "title": item["title"],
+                "description": item["description"],
+                "relation_info": item["relation_info"],
+                "email_delay": item["email_delay"],
+                "note": item["note"],
+                "status": 1,
+                "email_trigger_id": item["id"],
+                "draft": 0,
+            }
+            trigger_instance = models.EmailTrigger.objects.create(**trigger_dict)
+
             email_delay = json.loads(item["email_delay"])
             for key, val in enumerate(email_delay):
                 if val["type"] == "Email":
@@ -109,19 +122,10 @@ class StoreSerializer(serializers.ModelSerializer):
                     }
                     template_instance = models.EmailTemplate.objects.create(**template_dict)
                     val["value"] = template_instance.id
+        trigger_instance.email_delay = json.dumps(email_delay)
+        trigger_instance.save()
 
-            trigger_dict = {
-                "store_id": store_id,
-                "title": item["title"],
-                "description": item["description"],
-                "relation_info": item["relation_info"],
-                "email_delay": json.dumps(email_delay),
-                "note": item["note"],
-                "status": 1,
-                "email_trigger_id": item["id"],
-                "draft": 0,
-            }
-            models.EmailTrigger.objects.create(**trigger_dict)
+
 
     def del_trigger(self,email_trigger_list, store_id):
         for item in email_trigger_list:
