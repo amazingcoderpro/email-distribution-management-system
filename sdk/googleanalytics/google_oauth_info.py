@@ -84,6 +84,7 @@ class GoogleApi():
                             pass
                         values = dateRangeValues[0].get('values', [])
                         if values:
+                            temp_key_word = int(temp_key_word)
                             if temp_key_word not in results:
                                 results[temp_key_word] = {"sessions": int(values[0]), "transactions": int(values[1]),
                                                           "revenue": float(values[2])}

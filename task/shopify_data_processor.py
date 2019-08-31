@@ -671,6 +671,7 @@ class ShopifyDataProcessor:
         每天凌晨一点拉取GA数据
         :return:
         """
+
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
                           password=self.db_password).get_instance()
@@ -686,7 +687,7 @@ class ShopifyDataProcessor:
 
             for store in stores:
                 store_id = store[0]
-                store_view_id = store[1]
+                store_view_id = store[0]
                 source = store[2]
                 site_name = store[3]
                 # 配置时间
