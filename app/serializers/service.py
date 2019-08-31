@@ -264,10 +264,10 @@ class EmailTriggerOptSerializer(serializers.ModelSerializer):
         instance = super(EmailTriggerOptSerializer, self).update(instance, validated_data)
 
         if validated_data["status"] == 2:
-            email_delay = json.loads(instance.email_delay)
-            for key, val in enumerate(email_delay):
-                if val["type"] == "Email":
-                    models.EmailTemplate.objects.filter(id=val["value"]).update(status=2)
+            # email_delay = json.loads(instance.email_delay)
+            # for key, val in enumerate(email_delay):
+            #     if val["type"] == "Email":
+            models.EmailTemplate.objects.filter(email_trigger_id=instance.id).update(status=2)
 
         models.EmailTask.objects.filter(email_trigger_id=instance.id, status__in=[0, 3]).update(status=task_status)
         return instance
