@@ -223,7 +223,7 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         store = models.Store.objects.filter(user=self.context["request"].user).first()
         store_id = store.id
-        validated_data["store_id"] = store_id
+        validated_data["store"] = store
         validated_data["draft"] = 0
         instance = super(EmailTriggerSerializer, self).update(instance, validated_data)
         email_delay = json.loads(instance.email_delay)
@@ -238,6 +238,19 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
         data["click_rate"] = float(instance.click_rate)
         data["revenue"] = float(instance.revenue)
         return data
+
+    def create(self, validated_data):
+        store = models.Store.objects.filter(user=self.context["request"].user).first()
+        store_id = store.id
+        validated_data["store"] = store
+        validated_data["draft"] = 0
+        instance = super(EmailTriggerSerializer, self).create(validated_data)
+        email_delay = json.loads(instance.email_delay)
+        for key, val in enumerate(email_delay):
+            if val["type"] == "Email":
+                models.EmailTemplate.objects.filter(id=val["value"], store_id=store_id).update(email_trigger_id=instance.id)
+        return instance
+
 
 
 class EmailTriggerOptSerializer(serializers.ModelSerializer):
