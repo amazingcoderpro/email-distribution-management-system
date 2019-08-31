@@ -220,11 +220,11 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
                   "update_time"
         )
 
-    def create(self, validated_data):
+    def update(self, instance, validated_data):
         store_id = models.Store.objects.filter(user=self.context["request"].user).first()
         validated_data["store"] = models.Store.objects.filter(user=self.context["request"].user).first()
         validated_data["draft"] = 0
-        instance = super(EmailTriggerSerializer, self).create(validated_data)
+        instance = super(EmailTriggerSerializer, self).update(instance, validated_data)
         email_delay = json.loads(instance.email_delay)
         for key, val in enumerate(email_delay):
             if val["type"] == "Email":
