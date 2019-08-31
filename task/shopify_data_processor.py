@@ -687,7 +687,7 @@ class ShopifyDataProcessor:
 
             for store in stores:
                 store_id = store[0]
-                store_view_id = store[0]
+                store_view_id = store[1]
                 source = store[2]
                 site_name = store[3]
                 # 配置时间
