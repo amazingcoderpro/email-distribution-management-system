@@ -36,7 +36,7 @@ class StoreSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         store_instance = models.Store.objects.filter(url=validated_data["shopify_domain"]).first()
-        if validated_data.get("op_user"):
+        if validated_data.get("op_user") and store_instance:
             store_instance.op_user = validated_data["op_user"]
             store_instance.save()
         auth_list = eval(validated_data["auth_list"])
