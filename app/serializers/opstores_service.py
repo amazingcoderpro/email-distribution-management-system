@@ -43,7 +43,8 @@ class StoreSerializer(serializers.ModelSerializer):
         email_trigger = models.EmailTrigger.objects.filter(store_id=1, id__in=auth_list).values("id", "title",
                                                                                                 "description",
                                                                                                 "relation_info",
-                                                                                                "email_delay", "note",
+                                                                                                "email_delay",
+                                                                                                "note",
                                                                                                 "status")
         with transaction.atomic():
 
@@ -118,7 +119,8 @@ class StoreSerializer(serializers.ModelSerializer):
                         "is_cart": admin_template_instance.is_cart,
                         "product_title": admin_template_instance.product_title,
                         "banner_text": admin_template_instance.banner_text,
-                        "customer_text": admin_template_instance.customer_text
+                        "customer_text": admin_template_instance.customer_text,
+                        "email_trigger_id":trigger_instance.id
                     }
                     template_instance = models.EmailTemplate.objects.create(**template_dict)
                     val["value"] = template_instance.id
