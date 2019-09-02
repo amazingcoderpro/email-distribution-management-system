@@ -405,6 +405,9 @@ class DashboardSerializer(serializers.ModelSerializer):
         fields = (
             "revenue",
             "orders",
+            "opens",
+            "clicks",
+            "sents",
             "total_open",
             "total_click",
             "total_sent",

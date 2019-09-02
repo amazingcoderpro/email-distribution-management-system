@@ -278,24 +278,26 @@ class EMSDataProcessor:
                 # else:
                 #     sessions=orders=revenue=total_orders=total_sessions=total_revenue=avg_conversion_rate=avg_repeat_purchase_rate = 0
 
+                # 计算当天的的增量数据
                 delta_sent, delta_open, delta_click = 0, 0, 0
-                cursor.execute("""select total_sent,total_open,total_click from dashboard where store_id=%s and update_time between %s and %s""",
+                cursor.execute("""select total_sent,total_open,total_click from dashboard where store_id=%s and create_time between %s and %s""",
                                (store_id, zero_time-datetime.timedelta(days=1), last_time-datetime.timedelta(days=1)))
                 yesterday_data = cursor.fetchall()
                 if yesterday_data:
-                    delta_sent, delta_open, delta_click = yesterday_data[0]
+                    yesterday_sent,yesterday_open,yesterday_click = yesterday_data[0]
+                    delta_sent, delta_open, delta_click = sents-yesterday_sent, opens-yesterday_open, clicks-yesterday_click
                 # 更新数据入库
-                cursor.execute("""select id from dashboard where store_id=%s and update_time between %s and %s""", (store_id, zero_time, last_time))
+                cursor.execute("""select id from dashboard where store_id=%s and create_time between %s and %s""", (store_id, zero_time, last_time))
                 dashboard_id = cursor.fetchone()
                 if dashboard_id:
                     # update
-                    cursor.execute("""update dashboard set delta_sent=%s, delta_open=%s, delta_click=%s, total_sent=%s, total_open=%s, total_click=%s, total_unsubscribe=%s, avg_open_rate=%s,
+                    cursor.execute("""update dashboard set sents=%s, opens=%s, clicks=%s, total_sent=%s, total_open=%s, total_click=%s, total_unsubscribe=%s, avg_open_rate=%s,
                      avg_click_rate=%s, avg_unsubscribe_rate=%s, update_time=%s where id=%s""",
                      (delta_sent,delta_open,delta_click,sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date, dashboard_id[0]))
                 else:
                     # insert
                     cursor.execute("""insert into dashboard (revenue,orders,total_revenue,total_orders,total_sessions,session,avg_repeat_purchase_rate,avg_conversion_rate,
-                    delta_sent,delta_open,delta_click, total_sent, total_open, total_click, total_unsubscribe, avg_open_rate,
+                    sents, opens, clicks, total_sent, total_open, total_click, total_unsubscribe, avg_open_rate,
                      avg_click_rate, avg_unsubscribe_rate, create_time, update_time, store_id) 
                     values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (0,0,0,0,0,0,0.0,0.0,delta_sent,delta_open,delta_click,sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date,now_date,store_id))
@@ -401,6 +403,6 @@ if __name__ == '__main__':
     # obj.insert_subscriber_activity()
     # obj.update_customer_group_data()
     # obj.update_email_reocrd_data()
-    # obj.insert_dashboard_data()
+    obj.insert_dashboard_data()
     # obj.update_unsubscriber_and_snoozed_customers()
-    print(obj.delete_draft_data_in_trigger_and_template())
+    # print(obj.delete_draft_data_in_trigger_and_template())
