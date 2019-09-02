@@ -279,20 +279,21 @@ class EMSDataProcessor:
                 #     sessions=orders=revenue=total_orders=total_sessions=total_revenue=avg_conversion_rate=avg_repeat_purchase_rate = 0
 
                 # 更新数据入库
+                delta_sent, delta_open, delta_click = 0, 0, 0
                 cursor.execute("""select id from dashboard where store_id=%s and update_time between %s and %s""", (store_id, zero_time, last_time))
                 dashboard_id = cursor.fetchone()
                 if dashboard_id:
                     # update
-                    cursor.execute("""update dashboard set total_sent=%s, total_open=%s, total_click=%s, total_unsubscribe=%s, avg_open_rate=%s,
+                    cursor.execute("""update dashboard set delta_sent=%s, delta_open=%s, delta_click=%s, total_sent=%s, total_open=%s, total_click=%s, total_unsubscribe=%s, avg_open_rate=%s,
                      avg_click_rate=%s, avg_unsubscribe_rate=%s, update_time=%s where id=%s""",
-                     (sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date, dashboard_id[0]))
+                     (delta_sent,delta_open,delta_click,sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date, dashboard_id[0]))
                 else:
                     # insert
                     cursor.execute("""insert into dashboard (revenue,orders,total_revenue,total_orders,total_sessions,session,avg_repeat_purchase_rate,avg_conversion_rate,
-                    total_sent, total_open, total_click, total_unsubscribe, avg_open_rate,
+                    delta_sent,delta_open,delta_click, total_sent, total_open, total_click, total_unsubscribe, avg_open_rate,
                      avg_click_rate, avg_unsubscribe_rate, create_time, update_time, store_id) 
                     values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                    (0,0,0,0,0,0,0.0,0.0,sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date,now_date,store_id))
+                    (0,0,0,0,0,0,0.0,0.0,delta_sent,delta_open,delta_click,sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date,now_date,store_id))
                 logger.info("update store(%s) dashboard success at %s." % (store_id, now_date))
                 conn.commit()
         except Exception as e:
