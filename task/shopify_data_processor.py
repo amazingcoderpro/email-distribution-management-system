@@ -779,19 +779,22 @@ class ShopifyDataProcessor:
                 email_trigger_list = []
                 for results_email_template in results_list:
                     results_email_template_id = results_email_template[4]
-                    # trigger_id 存在直接按照trigger id更新数据, 如果不存在email_delay反查[维护至上线前取消该逻辑]
-                    cursor.execute("""select email_trigger_id from email_template where id=%s""",
-                                   (results_email_template_id,))
-                    results_email_template_info = cursor.fetchone()[0]
-                    if results_email_template_info is not None:
-                        cursor.execute("""select revenue from email_template where email_trigger_id=%s""",
-                                       (results_email_template_info,))
-                        email_trigger = cursor.fetchall()
-                        trigger_total_revenues = 0.0
-                        for trigger_revenue in email_trigger:
-                            trigger_total_revenues += float(trigger_revenue[0])
-                            res = (trigger_total_revenues, datetime.datetime.now(), results_email_template_info)
-                            email_trigger_list.append(res)
+                    try:
+                        cursor.execute("""select email_trigger_id from email_template where id=%s""",
+                                       (results_email_template_id,))
+                        results_email_template_info = cursor.fetchone()[0]
+                        if results_email_template_info is not None:
+                            cursor.execute("""select revenue from email_template where email_trigger_id=%s""",
+                                           (results_email_template_info,))
+                            email_trigger = cursor.fetchall()
+                            trigger_total_revenues = 0.0
+                            for trigger_revenue in email_trigger:
+                                trigger_total_revenues += float(trigger_revenue[0])
+                                res = (trigger_total_revenues, datetime.datetime.now(), results_email_template_info)
+                                email_trigger_list.append(res)
+                    except Exception as e:
+                        logger.error("email_trigger_id does not exist, {}".format(e))
+                        # continue
 
                 # 更新email_template的数据
                 cursor.executemany(
@@ -819,8 +822,8 @@ class ShopifyDataProcessor:
                                    (now_date, now_date, store_id, sessions, orders, revenue, total_orders, total_sessions, total_revenue,
                                     avg_conversion_rate, avg_repeat_purchase_rate))
 
-                logger.info("update store {} dashboard success at {}., revenue={},total_orders={},total_sessions={}, avg_conversion_rate={}, avg_repeat_purchase_rate={} "
-                            .format(store_id, now_date, revenue, total_orders, total_sessions, avg_conversion_rate, avg_repeat_purchase_rate))
+                logger.info("update store {} dashboard success at {}. revenue={}, total_revenue={},total_orders={},total_sessions={}, avg_conversion_rate={}, avg_repeat_purchase_rate={} "
+                            .format(store_id, now_date, revenue, total_revenue, total_orders, total_sessions, avg_conversion_rate, avg_repeat_purchase_rate))
                 conn.commit()
 
             mdb.close()
