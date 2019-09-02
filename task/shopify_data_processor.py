@@ -668,7 +668,7 @@ class ShopifyDataProcessor:
     def updata_shopify_ga(self):
         logger.info("update_shopify GA is cheking...")
         """
-        每天凌晨一点拉取GA数据
+        每天凌晨十分拉取GA数据
         :return:
         """
 
@@ -1245,6 +1245,56 @@ class ShopifyDataProcessor:
         logger.info("update_shopify_order_customer is ending... store_id={}".format(store_id))
         return True
 
+    def update_admin_dashboard(self):
+        logger.info("update_admin_dashboard GA is cheking...")
+        """
+        统计dashboard所有的统计数据 
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+            now_date = datetime.datetime.now() + datetime.timedelta(days=-1)
+            zero_time = now_date - datetime.timedelta(hours=now_date.hour, minutes=now_date.minute,
+                                                      seconds=now_date.second, microseconds=now_date.microsecond)
+            last_time = zero_time + datetime.timedelta(hours=23, minutes=59, seconds=59)
+
+            # 更新dashboard数据
+            cursor.execute("""select revenue, total_revenue,orders,total_orders, session, total_sessions,total_sent, total_open, total_click from dashboard where create_time between %s and %s""",
+                           (zero_time, last_time))
+            total_dashboard = cursor.fetchall()
+            dashboard_revenue = 0.0
+            dashboard_total_revenue = 0.0
+            dashboard_order = 0
+            dashboard_total_orders = 0
+            for dashboard in total_dashboard:
+                revenue = dashboard.get("revenue", 0.0)
+                total_revenue = dashboard.get("total_revenue", 0.0)
+                order = dashboard.get("order", 0)
+                total_orders = dashboard.get("total_orders", 0)
+                total_sent = dashboard.get("total_sent", 0)
+                total_open = dashboard.get("total_open", 0)
+                total_click = dashboard.get("total_click", 0)
+                
+                dashboard_revenue += revenue
+                dashboard_total_revenue += total_revenue
+                dashboard_order += order
+                dashboard_total_orders += total_orders
+            pass
+
+
+            # conn.commit()
+        except Exception as e:
+            logger.exception("update dashboard data exception e={}".format(e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+        return True
+
 
 if __name__ == '__main__':
     # db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
@@ -1254,7 +1304,9 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
-    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
+    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
+    # 统计admin的数据
+    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
     # 订单表 和  用户表 之间的数据同步
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     #ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
