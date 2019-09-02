@@ -215,7 +215,7 @@ class EMSDataProcessor:
             if not cursor:
                 return False
             # 获取所有店铺
-            cursor.execute("""select id from store""")
+            cursor.execute("""select id from store where id!=1""")
             for store in cursor.fetchall():
                 store_id = store[0]
                 # 从emailReocrd表中获取当前店铺所有非测试邮件的数据
@@ -297,9 +297,8 @@ class EMSDataProcessor:
                 else:
                     # insert
                     cursor.execute("""insert into dashboard (total_customers,repeat_customers,revenue,orders,total_revenue,total_orders,total_sessions,session,avg_repeat_purchase_rate,avg_conversion_rate,
-                    sents, opens, clicks, total_sent, total_open, total_click, total_unsubscribe, avg_open_rate,
-                     avg_click_rate, avg_unsubscribe_rate, create_time, update_time, store_id) 
-                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                    sents, opens, clicks, total_sent, total_open, total_click, total_unsubscribe, avg_open_rate, avg_click_rate, avg_unsubscribe_rate, create_time, update_time, store_id)
+                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (0,0,0,0,0,0,0,0,0.0,0.0,delta_sent,delta_open,delta_click,sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date,now_date,store_id))
                 logger.info("update store(%s) dashboard success at %s." % (store_id, now_date))
                 conn.commit()
