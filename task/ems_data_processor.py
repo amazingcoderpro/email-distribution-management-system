@@ -278,8 +278,13 @@ class EMSDataProcessor:
                 # else:
                 #     sessions=orders=revenue=total_orders=total_sessions=total_revenue=avg_conversion_rate=avg_repeat_purchase_rate = 0
 
-                # 更新数据入库
                 delta_sent, delta_open, delta_click = 0, 0, 0
+                cursor.execute("""select total_sent,total_open,total_click from dashboard where store_id=%s and update_time between %s and %s""",
+                               (store_id, zero_time-datetime.timedelta(days=1), last_time-datetime.timedelta(days=1)))
+                yesterday_data = cursor.fetchall()
+                if yesterday_data:
+                    delta_sent, delta_open, delta_click = yesterday_data[0]
+                # 更新数据入库
                 cursor.execute("""select id from dashboard where store_id=%s and update_time between %s and %s""", (store_id, zero_time, last_time))
                 dashboard_id = cursor.fetchone()
                 if dashboard_id:
