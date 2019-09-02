@@ -190,10 +190,10 @@ class EMSDataProcessor:
             if not trigger_id_list:
                 logger.info("no select any draft data.")
                 return True
-            # 删除相关的triiger数据
-            cursor.execute("""delete from email_trigger where id in %s""", (trigger_id_list,))
             # 删除相关的template数据
             cursor.execute("""delete from email_template where email_trigger_id in %s""", (trigger_id_list,))
+            # 删除相关的triiger数据
+            cursor.execute("""delete from email_trigger where id in %s""", (trigger_id_list,))
             conn.commit()
             logger.info("delete_draft_data_in_trigger_and_template success.")
         except Exception as e:
