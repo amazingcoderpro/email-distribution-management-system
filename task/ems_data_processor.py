@@ -229,9 +229,12 @@ class EMSDataProcessor:
                         new_res.append(r)
                 sents,opens,clicks,unsubscribes,open_rate,click_rate,unsubscribe_rate,email_count = tuple(new_res)
 
-                avg_open_rate = (open_rate/email_count) if open_rate and email_count else 0
-                avg_click_rate = (click_rate/email_count) if click_rate and email_count else 0
-                avg_unsubscribe_rate = (unsubscribe_rate/email_count) if unsubscribe_rate and email_count else 0
+                # avg_open_rate = (open_rate/email_count) if open_rate and email_count else 0
+                # avg_click_rate = (click_rate/email_count) if click_rate and email_count else 0
+                # avg_unsubscribe_rate = (unsubscribe_rate/email_count) if unsubscribe_rate and email_count else 0
+                avg_open_rate = round(opens / sents, 4) if opens and sents else 0
+                avg_click_rate = round(clicks / sents, 4) if clicks and sents else 0
+                avg_unsubscribe_rate = round(unsubscribes / sents, 4) if unsubscribes and sents else 0
                 # 配置时间
                 now_date = datetime.datetime.now()
                 zero_time = now_date - datetime.timedelta(hours=now_date.hour, minutes=now_date.minute,
