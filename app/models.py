@@ -74,6 +74,8 @@ class Dashboard(models.Model):
     sents = models.IntegerField(blank=True, null=True, default=0, verbose_name="Sent 增量")
     opens = models.IntegerField(blank=True, null=True,  default=0, verbose_name="Open 增量")
     clicks = models.IntegerField(blank=True, null=True,  default=0, verbose_name="Click 增量")
+    total_customers = models.IntegerField(blank=True, null=True,  default=0, verbose_name="总的客户数")
+    repeat_customers = models.IntegerField(blank=True, null=True,  default=0, verbose_name="订单超过2个的用户数")
     # open_rate = models.FloatField(blank=True, null=True,  verbose_name="Open Rate")
     # click_rate = models.FloatField(blank=True, null=True,  verbose_name="Click Rate")
     # unsubscribe_rate = models.FloatField(blank=True, null=True,  verbose_name="Unsubscribe Rate")
