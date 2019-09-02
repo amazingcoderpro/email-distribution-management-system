@@ -1263,7 +1263,7 @@ class ShopifyDataProcessor:
             last_time = zero_time + datetime.timedelta(hours=23, minutes=59, seconds=59)
 
             # 更新dashboard数据
-            cursor.execute("""select revenue, total_revenue,orders,total_orders, session, total_sessions,total_sent, total_open, total_click, total_unsubscribe from dashboard where create_time between %s and %s""",
+            cursor.execute("""select revenue, total_revenue,orders,total_orders, session, total_sessions,total_sent, total_open, total_click, total_unsubscribe from dashboard where create_time between %s and %s and store_id !=1""",
                            (zero_time, last_time))
             total_dashboard = cursor.fetchall()
             dashboard_revenue = 0.0

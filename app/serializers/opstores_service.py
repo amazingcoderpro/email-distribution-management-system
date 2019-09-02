@@ -125,9 +125,8 @@ class StoreSerializer(serializers.ModelSerializer):
                     }
                     template_instance = models.EmailTemplate.objects.create(**template_dict)
                     val["value"] = template_instance.id
-        trigger_instance.email_delay = json.dumps(email_delay)
-        trigger_instance.save()
-
+            trigger_instance.email_delay = json.dumps(email_delay)
+            trigger_instance.save()
 
 
     def del_trigger(self,email_trigger_list, store_id):
