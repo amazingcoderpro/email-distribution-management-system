@@ -296,11 +296,11 @@ class EMSDataProcessor:
                      (delta_sent,delta_open,delta_click,sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date, dashboard_id[0]))
                 else:
                     # insert
-                    cursor.execute("""insert into dashboard (revenue,orders,total_revenue,total_orders,total_sessions,session,avg_repeat_purchase_rate,avg_conversion_rate,
+                    cursor.execute("""insert into dashboard (total_customers,repeat_customers,revenue,orders,total_revenue,total_orders,total_sessions,session,avg_repeat_purchase_rate,avg_conversion_rate,
                     sents, opens, clicks, total_sent, total_open, total_click, total_unsubscribe, avg_open_rate,
                      avg_click_rate, avg_unsubscribe_rate, create_time, update_time, store_id) 
-                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                    (0,0,0,0,0,0,0.0,0.0,delta_sent,delta_open,delta_click,sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date,now_date,store_id))
+                    values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                    (0,0,0,0,0,0,0,0,0.0,0.0,delta_sent,delta_open,delta_click,sents,opens,clicks,unsubscribes,avg_open_rate,avg_click_rate,avg_unsubscribe_rate,now_date,now_date,store_id))
                 logger.info("update store(%s) dashboard success at %s." % (store_id, now_date))
                 conn.commit()
         except Exception as e:
