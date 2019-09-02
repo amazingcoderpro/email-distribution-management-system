@@ -1263,30 +1263,61 @@ class ShopifyDataProcessor:
             last_time = zero_time + datetime.timedelta(hours=23, minutes=59, seconds=59)
 
             # 更新dashboard数据
-            cursor.execute("""select revenue, total_revenue,orders,total_orders, session, total_sessions,total_sent, total_open, total_click from dashboard where create_time between %s and %s""",
+            cursor.execute("""select revenue, total_revenue,orders,total_orders, session, total_sessions,total_sent, total_open, total_click, total_unsubscribe from dashboard where create_time between %s and %s""",
                            (zero_time, last_time))
             total_dashboard = cursor.fetchall()
             dashboard_revenue = 0.0
             dashboard_total_revenue = 0.0
             dashboard_order = 0
+            dashboard_session = 0
+            dashboard_total_sessions = 0
             dashboard_total_orders = 0
+            dashboard_total_sent = 0
+            dashboard_total_open = 0
+            dashboard_total_click = 0
+            dashboard_total_unsubscribe = 0
+
             for dashboard in total_dashboard:
                 revenue = dashboard.get("revenue", 0.0)
                 total_revenue = dashboard.get("total_revenue", 0.0)
-                order = dashboard.get("order", 0)
+                orders = dashboard.get("orders", 0)
                 total_orders = dashboard.get("total_orders", 0)
+                session = dashboard.get("session", 0)
+                total_sessions = dashboard.get("total_sessions", 0)
                 total_sent = dashboard.get("total_sent", 0)
                 total_open = dashboard.get("total_open", 0)
                 total_click = dashboard.get("total_click", 0)
-                
+                total_unsubscribe = dashboard.get("total_unsubscribe", 0)
                 dashboard_revenue += revenue
                 dashboard_total_revenue += total_revenue
-                dashboard_order += order
+                dashboard_order += orders
+                dashboard_session += session
+                dashboard_total_sessions += total_sessions
                 dashboard_total_orders += total_orders
-            pass
+                dashboard_total_sent += total_sent
+                dashboard_total_open += total_open
+                dashboard_total_click += total_click
+                dashboard_total_unsubscribe += total_unsubscribe
 
+            # 平均转换率  总支付订单数÷总流量
+            avg_conversion_rate = (dashboard_total_orders / dashboard_total_sessions) if dashboard_total_sessions else 0
+            # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
+            # avg_repeat_purchase_rate = (orders_gte2 / total_paid_customers) if total_paid_customers else 0
 
-            # conn.commit()
+            avg_open_rate = round(dashboard_total_open / dashboard_total_sent, 4) if dashboard_total_open and dashboard_total_sent else 0
+            avg_click_rate = round(dashboard_total_click / dashboard_total_sent, 4) if dashboard_total_click and dashboard_total_sent else 0
+            avg_unsubscribe_rate = round(dashboard_total_unsubscribe / dashboard_total_sent, 4) if dashboard_total_unsubscribe and dashboard_total_sent else 0
+
+            cursor.execute("""update dashboard set update_time=%s, revenue=%s, total_revenue=%s, orders=%s, total_orders=%s, session=%s, 
+                                                    total_sessions=%s, total_sent=%s, total_open=%s, total_click=%s, 
+                                                    total_unsubscribe=%s,avg_conversion_rate=%s, avg_open_rate=%s,
+                                                    avg_click_rate=%s, avg_unsubscribe_rate=%s
+                                                    where create_time between %s and %s and store_id =1""",
+                           (datetime.datetime.now(), dashboard_revenue, dashboard_total_revenue, dashboard_order, dashboard_total_orders,
+                            dashboard_session, dashboard_total_sessions, dashboard_total_sent, dashboard_total_open,
+                            dashboard_total_click, dashboard_total_unsubscribe, avg_conversion_rate, avg_open_rate, avg_click_rate,
+                            avg_unsubscribe_rate, zero_time, last_time))
+            conn.commit()
         except Exception as e:
             logger.exception("update dashboard data exception e={}".format(e))
             return False
