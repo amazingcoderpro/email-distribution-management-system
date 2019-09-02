@@ -805,25 +805,25 @@ class ShopifyDataProcessor:
                 cursor.executemany("""update email_trigger set revenue=%s, update_time=%s where id=%s""", email_trigger_list)
 
                 # 更新dashboard数据
-                cursor.execute("""select id from dashboard where store_id=%s and update_time between %s and %s""",
+                cursor.execute("""select id from dashboard where store_id=%s and create_time between %s and %s""",
                                (store_id, zero_time, last_time))
                 dashboard_id = cursor.fetchone()
                 if dashboard_id:
                     # update
                     cursor.execute("""update dashboard set  update_time=%s, session=%s, orders=%s, revenue=%s, total_orders=%s,
                                         total_sessions=%s, total_revenue=%s, avg_conversion_rate=%s, avg_repeat_purchase_rate=%s where id=%s""",
-                                        (now_date, sessions, orders, revenue, total_orders, total_sessions, total_revenue,
+                                        (datetime.datetime.now(), sessions, orders, revenue, total_orders, total_sessions, total_revenue,
                                          avg_conversion_rate, avg_repeat_purchase_rate, dashboard_id[0]))
                 else:
                     # insert
                     cursor.execute("""insert into dashboard (create_time, update_time, store_id, session, orders, revenue,
                                       total_orders, total_sessions, total_revenue, avg_conversion_rate, avg_repeat_purchase_rate)
                             values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                                   (now_date, now_date, store_id, sessions, orders, revenue, total_orders, total_sessions, total_revenue,
+                                   (now_date, datetime.datetime.now(), store_id, sessions, orders, revenue, total_orders, total_sessions, total_revenue,
                                     avg_conversion_rate, avg_repeat_purchase_rate))
 
-                logger.info("update store {} dashboard success at {}. revenue={}, total_revenue={},total_orders={},total_sessions={}, avg_conversion_rate={}, avg_repeat_purchase_rate={} "
-                            .format(store_id, now_date, revenue, total_revenue, total_orders, total_sessions, avg_conversion_rate, avg_repeat_purchase_rate))
+                logger.info("update store {} dashboard data in [{}] successful. revenue={}, total_revenue={},total_orders={},total_sessions={}, avg_conversion_rate={}, avg_repeat_purchase_rate={} "
+                            .format(store_id, now_date.strftime("%Y-%m-%d"), revenue, total_revenue, total_orders, total_sessions, avg_conversion_rate, avg_repeat_purchase_rate))
                 conn.commit()
 
             mdb.close()
