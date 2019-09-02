@@ -36,14 +36,15 @@ class StoreSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         store_instance = models.Store.objects.filter(url=validated_data["shopify_domain"]).first()
-        if validated_data.get("op_user"):
+        if validated_data.get("op_user") and store_instance:
             store_instance.op_user = validated_data["op_user"]
             store_instance.save()
         auth_list = eval(validated_data["auth_list"])
         email_trigger = models.EmailTrigger.objects.filter(store_id=1, id__in=auth_list).values("id", "title",
                                                                                                 "description",
                                                                                                 "relation_info",
-                                                                                                "email_delay", "note",
+                                                                                                "email_delay",
+                                                                                                "note",
                                                                                                 "status")
         with transaction.atomic():
 
@@ -65,7 +66,8 @@ class StoreSerializer(serializers.ModelSerializer):
                     "op_user":validated_data["op_user"] if validated_data.get("op_user") else ""
                 }
                 store_instance = super(StoreSerializer, self).create(store_dict)
-                self.copy_trigger(email_trigger, store_instance.id)
+                if email_trigger:
+                    self.copy_trigger(email_trigger, store_instance.id)
                 return store_instance
             copy_trigger_dict = models.EmailTrigger.objects.filter(store=store_instance, status=1, email_trigger__isnull=False).values("id","email_trigger_id","email_delay")
             copy_trigger_list = [item["email_trigger_id"] for item in copy_trigger_dict]
@@ -75,7 +77,7 @@ class StoreSerializer(serializers.ModelSerializer):
                 self.del_trigger(email_trigger_list, store_instance.id)
 
             add_trigger_list = [item for item in auth_list if item not in set(copy_trigger_list)]
-            if add_trigger_list:
+            if add_trigger_list and email_trigger:
                 email_trigger_list = [item for item in email_trigger if item["id"] in add_trigger_list]
                 self.copy_trigger(email_trigger_list, store_instance.id)
             return store_instance
@@ -118,7 +120,8 @@ class StoreSerializer(serializers.ModelSerializer):
                         "is_cart": admin_template_instance.is_cart,
                         "product_title": admin_template_instance.product_title,
                         "banner_text": admin_template_instance.banner_text,
-                        "customer_text": admin_template_instance.customer_text
+                        "customer_text": admin_template_instance.customer_text,
+                        "email_trigger_id":trigger_instance.id
                     }
                     template_instance = models.EmailTemplate.objects.create(**template_dict)
                     val["value"] = template_instance.id

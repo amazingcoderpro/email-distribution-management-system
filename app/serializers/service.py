@@ -214,16 +214,18 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
                   "relation_info",
                   "email_delay",
                   "note",
+                  "draft",
                   "total_sents",
                   "create_time",
                   "update_time"
         )
 
-    def create(self, validated_data):
-        store_id = models.Store.objects.filter(user=self.context["request"].user).first()
-        validated_data["store"] = models.Store.objects.filter(user=self.context["request"].user).first()
+    def update(self, instance, validated_data):
+        store = models.Store.objects.filter(user=self.context["request"].user).first()
+        store_id = store.id
+        validated_data["store"] = store
         validated_data["draft"] = 0
-        instance = super(EmailTriggerSerializer, self).create(validated_data)
+        instance = super(EmailTriggerSerializer, self).update(instance, validated_data)
         email_delay = json.loads(instance.email_delay)
         for key, val in enumerate(email_delay):
             if val["type"] == "Email":
@@ -236,6 +238,19 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
         data["click_rate"] = float(instance.click_rate)
         data["revenue"] = float(instance.revenue)
         return data
+
+    def create(self, validated_data):
+        store = models.Store.objects.filter(user=self.context["request"].user).first()
+        store_id = store.id
+        validated_data["store"] = store
+        validated_data["draft"] = 0
+        instance = super(EmailTriggerSerializer, self).create(validated_data)
+        email_delay = json.loads(instance.email_delay)
+        for key, val in enumerate(email_delay):
+            if val["type"] == "Email":
+                models.EmailTemplate.objects.filter(id=val["value"], store_id=store_id).update(email_trigger_id=instance.id)
+        return instance
+
 
 
 class EmailTriggerOptSerializer(serializers.ModelSerializer):
@@ -263,10 +278,10 @@ class EmailTriggerOptSerializer(serializers.ModelSerializer):
         instance = super(EmailTriggerOptSerializer, self).update(instance, validated_data)
 
         if validated_data["status"] == 2:
-            email_delay = json.loads(instance.email_delay)
-            for key, val in enumerate(email_delay):
-                if val["type"] == "Email":
-                    models.EmailTemplate.objects.filter(id=val["value"]).update(status=2)
+            # email_delay = json.loads(instance.email_delay)
+            # for key, val in enumerate(email_delay):
+            #     if val["type"] == "Email":
+            models.EmailTemplate.objects.filter(email_trigger_id=instance.id).update(status=2)
 
         models.EmailTask.objects.filter(email_trigger_id=instance.id, status__in=[0, 3]).update(status=task_status)
         return instance
@@ -291,6 +306,7 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
             "email_delay": instance.email_delay,
             "note": instance.note,
             "status": instance.status,
+            "email_trigger_id": instance.email_trigger_id,
             # "status": 0,    #新克隆出来的模板，状态应该是0,默认是禁用状态
             "draft": 1
         }
