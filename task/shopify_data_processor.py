@@ -1318,8 +1318,9 @@ class ShopifyDataProcessor:
                             dashboard_total_click, dashboard_total_unsubscribe, avg_conversion_rate, avg_open_rate, avg_click_rate,
                             avg_unsubscribe_rate, zero_time, last_time))
             conn.commit()
+            logger.info("update_admin_dashboard update is successful")
         except Exception as e:
-            logger.exception("update dashboard data exception e={}".format(e))
+            logger.exception("update update_admin_dashboard data exception e={}".format(e))
             return False
         finally:
             cursor.close() if cursor else 0
