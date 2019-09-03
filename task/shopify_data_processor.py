@@ -698,8 +698,8 @@ class ShopifyDataProcessor:
                 last_time = zero_time + datetime.timedelta(hours=23, minutes=59, seconds=59)
                 # 获取当前店铺所有的orders
                 cursor.execute(
-                    """select total_orders, total_revenue, total_sessions from dashboard where store_id= %s and update_time between %s and %s""",
-                    (store_id, zero_time - datetime.timedelta(days=1), last_time - datetime.timedelta(days=1)))
+                    """select total_orders, total_revenue, total_sessions from dashboard where store_id= %s and create_time between %s and %s""",
+                    (store_id, zero_time+datetime.timedelta(days=-1), last_time+datetime.timedelta(days=-1)))
                 orders_info = cursor.fetchone()
                 if orders_info:
                     total_orders, total_revenue, total_sessions = orders_info
@@ -1156,7 +1156,7 @@ class ShopifyDataProcessor:
                             last_order_id = customer.get("last_order_id", None)
                             payment_amount = customer.get("total_spent", "")
 
-                            #将需要同步信息的Order id保存下来，　并不是每个顾客都有last order 的
+                            # 将需要同步信息的Order id保存下来，　并不是每个顾客都有last order 的
                             if last_order_id:
                                 need_update_orders.append((store_id, last_order_id))
 
@@ -1312,9 +1312,9 @@ class ShopifyDataProcessor:
                 dashboard_repeat_customers += repeat_customers
 
             # 平均转换率  总支付订单数÷总流量
-            avg_conversion_rate = (dashboard_total_orders / dashboard_total_sessions) if dashboard_total_sessions else 0
+            avg_conversion_rate = round(dashboard_total_orders / dashboard_total_sessions, 6) if dashboard_total_sessions else 0
             # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
-            avg_repeat_purchase_rate = (dashboard_repeat_customers / dashboard_total_customers) if dashboard_total_customers else 0
+            avg_repeat_purchase_rate = round(dashboard_repeat_customers / dashboard_total_customers, 6) if dashboard_total_customers else 0
 
             avg_open_rate = round(dashboard_total_open / dashboard_total_sent, 4) if dashboard_total_open and dashboard_total_sent else 0
             avg_click_rate = round(dashboard_total_click / dashboard_total_sent, 4) if dashboard_total_click and dashboard_total_sent else 0
