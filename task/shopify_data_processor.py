@@ -777,9 +777,9 @@ class ShopifyDataProcessor:
                         total_revenue += revenue
 
                         # 平均转换率  总支付订单数÷总流量
-                        avg_conversion_rate = (total_orders / total_sessions) if total_sessions else 0
+                        avg_conversion_rate = round(total_orders / total_sessions, 6) if total_sessions else 0
                         # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
-                        avg_repeat_purchase_rate = (orders_gte2 / total_paid_customers) if total_paid_customers else 0
+                        avg_repeat_purchase_rate = round(orders_gte2 / total_paid_customers, 6) if total_paid_customers else 0
 
                     email_trigger_list = []
                     for results_email_template in results_list:
@@ -1250,7 +1250,7 @@ class ShopifyDataProcessor:
         return True
 
     def update_admin_dashboard(self):
-        logger.info("update_admin_dashboard GA is cheking...")
+        logger.info("update_admin_dashboard is cheking...")
         """
         统计dashboard所有的统计数据 
         :return:
@@ -1267,9 +1267,9 @@ class ShopifyDataProcessor:
             last_time = zero_time + datetime.timedelta(hours=23, minutes=59, seconds=59)
 
             # 更新dashboard数据
-            cursor.execute("""select revenue, total_revenue,orders,total_orders, session, total_sessions,total_sent, 
-                                total_open, total_click, total_unsubscribe, repeat_customers, total_customers
-                                from dashboard where create_time between %s and %s and store_id !=1""",
+            cursor.execute("""select `revenue`, `total_revenue`,`orders`,`total_orders`, `session`, `total_sessions`,`total_sent`, 
+                                `total_open`, `total_click`, `total_unsubscribe`, `repeat_customers`, `total_customers`, `clicks`,
+                                 `opens`, `sents` from dashboard where create_time between %s and %s and store_id !=1""",
                            (zero_time, last_time))
             total_dashboard = cursor.fetchall()
             dashboard_revenue = 0.0
@@ -1284,7 +1284,9 @@ class ShopifyDataProcessor:
             dashboard_total_unsubscribe = 0
             dashboard_total_customers = 0
             dashboard_repeat_customers = 0
-
+            dashboard_clicks = 0
+            dashboard_opens = 0
+            dashboard_sents = 0
             for dashboard in total_dashboard:
                 revenue = dashboard.get("revenue", 0.0)
                 total_revenue = dashboard.get("total_revenue", 0.0)
@@ -1298,6 +1300,9 @@ class ShopifyDataProcessor:
                 total_unsubscribe = dashboard.get("total_unsubscribe", 0)
                 repeat_customers = dashboard.get("repeat_customers", 0)
                 total_customers = dashboard.get("total_customers", 0)
+                clicks = dashboard.get("clicks", 0)
+                opens = dashboard.get("opens", 0)
+                sents = dashboard.get("sents", 0)
                 dashboard_revenue += revenue
                 dashboard_total_revenue += total_revenue
                 dashboard_order += orders
@@ -1310,36 +1315,44 @@ class ShopifyDataProcessor:
                 dashboard_total_unsubscribe += total_unsubscribe
                 dashboard_total_customers += total_customers
                 dashboard_repeat_customers += repeat_customers
+                dashboard_clicks += clicks
+                dashboard_sents += sents
+                dashboard_opens += opens
 
             # 平均转换率  总支付订单数÷总流量
             avg_conversion_rate = round(dashboard_total_orders / dashboard_total_sessions, 6) if dashboard_total_sessions else 0
             # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
             avg_repeat_purchase_rate = round(dashboard_repeat_customers / dashboard_total_customers, 6) if dashboard_total_customers else 0
-
             avg_open_rate = round(dashboard_total_open / dashboard_total_sent, 4) if dashboard_total_open and dashboard_total_sent else 0
             avg_click_rate = round(dashboard_total_click / dashboard_total_sent, 4) if dashboard_total_click and dashboard_total_sent else 0
             avg_unsubscribe_rate = round(dashboard_total_unsubscribe / dashboard_total_sent, 4) if dashboard_total_unsubscribe and dashboard_total_sent else 0
 
-            # cursor.execute("""update dashboard set update_time=%s, revenue=%s, total_revenue=%s, orders=%s, total_orders=%s, session=%s,
-            #                                         total_sessions=%s, total_sent=%s, total_open=%s, total_click=%s,
-            #                                         total_unsubscribe=%s,avg_conversion_rate=%s, avg_open_rate=%s,
-            #                                         avg_click_rate=%s, avg_unsubscribe_rate=%s, avg_repeat_purchase_rate=%s, repeat_customers=%s,
-            #                                         total_customers=%s
-            #                                         where create_time between %s and %s and store_id =1""",
-            #                (datetime.datetime.now(), dashboard_revenue, dashboard_total_revenue, dashboard_order, dashboard_total_orders,
-            #                 dashboard_session, dashboard_total_sessions, dashboard_total_sent, dashboard_total_open,
-            #                 dashboard_total_click, dashboard_total_unsubscribe, avg_conversion_rate, avg_open_rate, avg_click_rate,
-            #                 avg_unsubscribe_rate, avg_repeat_purchase_rate, dashboard_repeat_customers, dashboard_total_customers, zero_time, last_time))
-
-            cursor.execute(
-                """insert into `dashboard` (`update_time`, `revenue`, `total_revenue`, `orders`, `total_orders`, `session`, `total_sessions`, `total_sent`, `total_open`,
-                 `total_click`, `total_unsubscribe`, `avg_conversion_rate`, `avg_open_rate`, `avg_click_rate`, `avg_unsubscribe_rate`, `avg_repeat_purchase_rate`, `repeat_customers`,
-                 `total_customers`, `create_time`, `store_id`)
-                 values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                 (datetime.datetime.now(), dashboard_revenue, dashboard_total_revenue, dashboard_order, dashboard_total_orders,
-                  dashboard_session, dashboard_total_sessions, dashboard_total_sent, dashboard_total_open,
-                  dashboard_total_click, dashboard_total_unsubscribe, avg_conversion_rate, avg_open_rate, avg_click_rate,
-                  avg_unsubscribe_rate, avg_repeat_purchase_rate, dashboard_repeat_customers, dashboard_total_customers,now_date, 1))
+            cursor.execute("""select `store_id` from dashboard where create_time between %s and %s and store_id =1""",
+                           (zero_time, last_time))
+            store_id = cursor.fetchone()
+            if store_id:
+                cursor.execute("""update dashboard set update_time=%s, revenue=%s, total_revenue=%s, orders=%s, total_orders=%s, session=%s,
+                                                       total_sessions=%s, total_sent=%s, total_open=%s, total_click=%s,
+                                                       total_unsubscribe=%s, avg_conversion_rate=%s, avg_open_rate=%s,
+                                                       avg_click_rate=%s, avg_unsubscribe_rate=%s, avg_repeat_purchase_rate=%s, repeat_customers=%s,
+                                                       total_customers=%s, clicks=%s, sents=%s, opens=%s
+                                                       where create_time between %s and %s and store_id =1""",
+                               (datetime.datetime.now(), dashboard_revenue, dashboard_total_revenue, dashboard_order, dashboard_total_orders,
+                                dashboard_session, dashboard_total_sessions,dashboard_total_sent, dashboard_total_open, dashboard_total_click,
+                                dashboard_total_unsubscribe, avg_conversion_rate, avg_open_rate, avg_click_rate,
+                                avg_unsubscribe_rate, avg_repeat_purchase_rate, dashboard_repeat_customers, dashboard_total_customers,
+                                dashboard_clicks, dashboard_sents, dashboard_opens, zero_time, last_time))
+            else:
+                cursor.execute(
+                    """insert into `dashboard` (`update_time`, `revenue`, `total_revenue`, `orders`, `total_orders`, `session`, `total_sessions`, `total_sent`, `total_open`,
+                     `total_click`, `total_unsubscribe`, `avg_conversion_rate`, `avg_open_rate`, `avg_click_rate`, `avg_unsubscribe_rate`, `avg_repeat_purchase_rate`, `repeat_customers`,
+                     `total_customers`, `create_time`, `clicks`, `sents`, `opens`, `store_id`)
+                      values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                      (datetime.datetime.now(), dashboard_revenue, dashboard_total_revenue, dashboard_order, dashboard_total_orders,
+                       dashboard_session, dashboard_total_sessions, dashboard_total_sent, dashboard_total_open,
+                       dashboard_total_click, dashboard_total_unsubscribe, avg_conversion_rate, avg_open_rate, avg_click_rate,
+                       avg_unsubscribe_rate, avg_repeat_purchase_rate, dashboard_repeat_customers, dashboard_total_customers,now_date,
+                       dashboard_clicks, dashboard_sents, dashboard_opens, 1))
             conn.commit()
             logger.info("update_admin_dashboard update is successful")
         except Exception as e:
@@ -1359,7 +1372,7 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
-    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
+    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
     # 统计admin的数据
     ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
     # 订单表 和  用户表 之间的数据同步
