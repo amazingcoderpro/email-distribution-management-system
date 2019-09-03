@@ -1320,16 +1320,26 @@ class ShopifyDataProcessor:
             avg_click_rate = round(dashboard_total_click / dashboard_total_sent, 4) if dashboard_total_click and dashboard_total_sent else 0
             avg_unsubscribe_rate = round(dashboard_total_unsubscribe / dashboard_total_sent, 4) if dashboard_total_unsubscribe and dashboard_total_sent else 0
 
-            cursor.execute("""update dashboard set update_time=%s, revenue=%s, total_revenue=%s, orders=%s, total_orders=%s, session=%s, 
-                                                    total_sessions=%s, total_sent=%s, total_open=%s, total_click=%s, 
-                                                    total_unsubscribe=%s,avg_conversion_rate=%s, avg_open_rate=%s,
-                                                    avg_click_rate=%s, avg_unsubscribe_rate=%s, avg_repeat_purchase_rate=%s, repeat_customers=%s,
-                                                    total_customers=%s
-                                                    where create_time between %s and %s and store_id =1""",
-                           (datetime.datetime.now(), dashboard_revenue, dashboard_total_revenue, dashboard_order, dashboard_total_orders,
-                            dashboard_session, dashboard_total_sessions, dashboard_total_sent, dashboard_total_open,
-                            dashboard_total_click, dashboard_total_unsubscribe, avg_conversion_rate, avg_open_rate, avg_click_rate,
-                            avg_unsubscribe_rate, avg_repeat_purchase_rate, dashboard_repeat_customers, dashboard_total_customers, zero_time, last_time))
+            # cursor.execute("""update dashboard set update_time=%s, revenue=%s, total_revenue=%s, orders=%s, total_orders=%s, session=%s,
+            #                                         total_sessions=%s, total_sent=%s, total_open=%s, total_click=%s,
+            #                                         total_unsubscribe=%s,avg_conversion_rate=%s, avg_open_rate=%s,
+            #                                         avg_click_rate=%s, avg_unsubscribe_rate=%s, avg_repeat_purchase_rate=%s, repeat_customers=%s,
+            #                                         total_customers=%s
+            #                                         where create_time between %s and %s and store_id =1""",
+            #                (datetime.datetime.now(), dashboard_revenue, dashboard_total_revenue, dashboard_order, dashboard_total_orders,
+            #                 dashboard_session, dashboard_total_sessions, dashboard_total_sent, dashboard_total_open,
+            #                 dashboard_total_click, dashboard_total_unsubscribe, avg_conversion_rate, avg_open_rate, avg_click_rate,
+            #                 avg_unsubscribe_rate, avg_repeat_purchase_rate, dashboard_repeat_customers, dashboard_total_customers, zero_time, last_time))
+
+            cursor.execute(
+                """insert into `dashboard` (`update_time`, `revenue`, `total_revenue`, `orders`, `total_orders`, `session`, `total_sessions`, `total_sent`, `total_open`,
+                 `total_click`, `total_unsubscribe`, `avg_conversion_rate`, `avg_open_rate`, `avg_click_rate`, `avg_unsubscribe_rate`, `avg_repeat_purchase_rate`, `repeat_customers`,
+                 `total_customers`, `create_time`, `store_id`)
+                 values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                 (datetime.datetime.now(), dashboard_revenue, dashboard_total_revenue, dashboard_order, dashboard_total_orders,
+                  dashboard_session, dashboard_total_sessions, dashboard_total_sent, dashboard_total_open,
+                  dashboard_total_click, dashboard_total_unsubscribe, avg_conversion_rate, avg_open_rate, avg_click_rate,
+                  avg_unsubscribe_rate, avg_repeat_purchase_rate, dashboard_repeat_customers, dashboard_total_customers,now_date, 1))
             conn.commit()
             logger.info("update_admin_dashboard update is successful")
         except Exception as e:
@@ -1349,9 +1359,9 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
-    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
+    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
     # 统计admin的数据
-    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
+    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
     # 订单表 和  用户表 之间的数据同步
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
