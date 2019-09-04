@@ -44,6 +44,7 @@ class ProductRecommend:
         cart_product_str = ""
         abandoned_checkout_url = "javascript:;"
         for product in cart_product_list:
+            logger.info("cart product info is %s" % str(product))
             abandoned_checkout_url = product["abandoned_checkout_url"]
             cart_product_str += self.cart_str.format(**product)
         # 拼接top产品html
@@ -90,11 +91,11 @@ class ProductRecommend:
                 logger.exception("get store's(store_name: %s) money_in_emails_format exception, use default '$'." % store_name)
                 money_in_emails_format = "$"
             # 通过ID获取firstname和shop_name
-
+            firstname = ""
             if customer_email:
                 res = db.shopify_customer.find_one({"email": customer_email, "site_name": store_name},
                                                    {"_id": 0, "first_name": 1})
-            firstname = res["first_name"] if customer_email else ""
+                firstname = res.get("first_name", "")
             products.append({"shop_name": money_format["name"],
                              "firstname": firstname,
                              "domain": domain,

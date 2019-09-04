@@ -2630,7 +2630,7 @@ class AnalyzeCondition:
             where t.type=1 and t.status=0 and t.uuid is not null and f.customer_list_id is not null and execute_time between %s and %s""",
                            (now_time-datetime.timedelta(seconds=35), now_time+datetime.timedelta(seconds=35)))
             result = cursor.fetchall()
-            logger.info("get need to execute flow email tasks success.")
+            logger.info("get need to execute flow email tasks success. reslut is %s" % str(result))
             update_tuple_list = []
             recipients_list = []
             for res in result:
@@ -2720,6 +2720,7 @@ class AnalyzeCondition:
                     else:
                         # 获取店铺信息
                         cart_products = pr.get_card_product_mongo(customer, store_site_name, res["flow_title"], res["template_id"], store["domain"], store["service_email"], length=0)
+                    logger.info("cart_products: %s" % str(cart_products))
                     top_products = []
                     if "top" in product_condition:
                         # 获取top_products
@@ -2746,16 +2747,18 @@ class AnalyzeCondition:
                 # 邮件发送完毕，回填数据
                 update_tuple_list.append((str(customer_uuid_list), send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
                 recipients_list.append((str(old_recipients_dict), datetime.datetime.now(), res["uuid"]))
-            self.update_email_record_recipients_list(recipients_list)
-            update_res = self.update_flow_email_task(update_tuple_list)
+            if recipients_list:
+                self.update_email_record_recipients_list(recipients_list)
+            if update_tuple_list:
+                self.update_flow_email_task(update_tuple_list)
             logger.info("execute flow task finished.")
+            return True
         except Exception as e:
-            logger.exception("get template info by id exception: {}".format(e))
+            logger.exception("execute flow task exception: {}".format(e))
             return False
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return update_res
 
     def get_recipients_from_email_record_by_timedelta(self, store_id, email_uuid, time_delta=datetime.timedelta(seconds=1)):
         """
@@ -2896,7 +2899,7 @@ if __name__ == '__main__':
     # print(ac.create_trigger_email_by_template(53, 216, "Update Html TEST", """Update Html TEST""", 124))
     # print(ac.parse_new_customer_group_list())
     # print(ac.parse_trigger_tasks())
-    # print(ac.execute_flow_task())
+    print(ac.execute_flow_task())
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
@@ -2909,7 +2912,7 @@ if __name__ == '__main__':
     # ac.order_filter(5, 1, [{"relation": "is null", "values": ["ru", 1], "unit": "days", "errorMsg": ""},{"relation": "is over all time", "values": [0, 1], "unit": "days", "errorMsg": ""}], 1,
     #                       "2019-05-31T16:27:33+08:00", "2020-05-31T16:27:33+08:00")
     # print(ac.adapt_last_order_status_mongo(1, [{"relation":"is paid","values":["ru",1],"unit":"days","errorMsg":""},{"relation":"is over all time","values":[0,1],"unit":"days","errorMsg":""}],"Astrotrex"))
-    print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
+    # print(ac.unpaid_order_customers_mongo("charrcter", min_time="2019-08-07T17"))
     # print(ac.get_shop_timezone_mongo("charrcter"))
     # print(ac.get_recipients_list_from_email_record(3,3))
     # print(ac.update_email_record_recipients_list([("[1,2,3]", 501)]))
