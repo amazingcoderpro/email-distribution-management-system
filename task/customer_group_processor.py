@@ -2631,7 +2631,7 @@ class AnalyzeCondition:
             t.create_time as create_time,f.customer_list_id as customer_list_id, t.template_id as template_id
             from email_task as t join email_trigger as f on t.email_trigger_id=f.id 
             where t.type=1 and t.status=0 and t.uuid is not null and f.customer_list_id is not null and execute_time between %s and %s""",
-                           (now_time-datetime.timedelta(seconds=120), now_time+datetime.timedelta(seconds=35)))
+                           (now_time-datetime.timedelta(minutes=10), now_time+datetime.timedelta(seconds=35)))
             result = cursor.fetchall()
             logger.info("get need to execute flow email tasks success. reslut is %s" % str(result))
             update_tuple_list = []
