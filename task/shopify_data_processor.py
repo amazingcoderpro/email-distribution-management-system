@@ -9,6 +9,7 @@ from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, ROOT_PATH, MONGO_CONFIG, MYSQL_CONFIG
 from sdk.shopify import shopify_webhook
 from task.db_util import DBUtil, MongoDBUtil
+from dingtalkchatbot.chatbot import DingtalkChatbot
 
 
 class ShopifyDataProcessor:
@@ -1361,6 +1362,17 @@ class ShopifyDataProcessor:
                        avg_unsubscribe_rate, avg_repeat_purchase_rate, dashboard_repeat_customers, dashboard_total_customers,now_date,
                        dashboard_clicks, dashboard_sents, dashboard_opens, 1))
             conn.commit()
+            webhook = 'https://oapi.dingtalk.com/robot/send?access_token=632942b6178eefc929ac9156f3378292945b95490d5fc9e55aeedbd6dd0fa48f'
+            xiaoding = DingtalkChatbot(webhook)
+            xiaoding.send_text(msg=f'各位大佬, 新一天的收益为您呈现\n'
+                                   f'累计收益={dashboard_total_revenue} \n'
+                                   f'总订单数量={dashboard_total_orders}\n'
+                                   f'平均转化率={round(avg_conversion_rate, 4)*100}%\n'
+                                   f'平均复购率={round(avg_repeat_purchase_rate, 4)*100}%\n'
+                                   f'总发送量={dashboard_total_sent}\n'
+                                   f'平均点击率={round(avg_click_rate*100, 2)}%\n'
+                                   f'总打开率={round(avg_open_rate, 4)*100}%\n'
+                                   f'总退订率={round(avg_unsubscribe_rate, 4)*100}%\n', is_at_all=True)
             logger.info("update_admin_dashboard update is successful")
         except Exception as e:
             logger.exception("update update_admin_dashboard data exception e={}".format(e))
@@ -1378,9 +1390,9 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
-    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
+    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
     # 统计admin的数据
-    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
+    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
     # 订单表 和  用户表 之间的数据同步
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
