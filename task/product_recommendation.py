@@ -2,6 +2,8 @@
 # Created by: Leemon7
 # Created on: 2019/8/12
 # Function:
+import copy
+
 import pymongo
 import pymysql
 import json
@@ -145,7 +147,7 @@ class ProductRecommend:
 
             # 过滤掉product_info没有product_url 和 image_src的item,
             # 即过滤掉产品表中查找不到购物车产品id的产品
-            product_dict_copy = product_dict
+            product_dict_copy = copy.deepcopy(product_dict)
             for p_id, val in product_dict_copy.items():
                 if val.get("product_url", None) is None or val.get("image_src", None) is None:
                     del product_dict[p_id]
