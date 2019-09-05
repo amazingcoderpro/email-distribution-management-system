@@ -1054,7 +1054,7 @@ class ShopifyDataProcessor:
                                            {"_id": 0, "site_name": 1, "email": 1, "domain": 1, "name": 1,
                                             "money_in_emails_format": 1, "timezone": 1, "customer_email": 1, "created_at": 1})
             if not shop:
-                logger.error("Not find shop information in mongo db. shopify_domain={}".format(shopify_domain))
+                logger.warning("Not find shop information in mongo db. shopify_domain={}".format(shopify_domain))
                 return None
 
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
