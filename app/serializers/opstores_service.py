@@ -20,7 +20,7 @@ class StoreSerializer(serializers.ModelSerializer):
         )
 
     def validate_shopify_domain(self, data):
-        if not data.endswith("myshopify.com"):
+        if not data.endswith(".myshopify.com"):
             raise serializers.ValidationError("format error")
         return data
 
@@ -63,7 +63,7 @@ class StoreSerializer(serializers.ModelSerializer):
                     "user": user_instance,
                     "url": validated_data["shopify_domain"],
                     "init": 0,
-                    "op_user":validated_data["op_user"] if validated_data.get("op_user") else ""
+                    "op_user": validated_data["op_user"] if validated_data.get("op_user") else "",
                 }
                 store_instance = super(StoreSerializer, self).create(store_dict)
                 if email_trigger:
