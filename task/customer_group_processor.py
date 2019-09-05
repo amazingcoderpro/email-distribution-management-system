@@ -66,7 +66,7 @@ class AnalyzeCondition:
             # 来自opstores
             function_name += "_mongo"
 
-        adapter = getattr(self, function_name)
+        adapter = getattr(self, function_name, None)
         if not adapter:
             logger.warning("Adapter have not implement, condition name={}, adapter name={}".format(condition, function_name))
             return None
@@ -1845,7 +1845,6 @@ class AnalyzeCondition:
                 if unsub_email:
                     unsub_email_list = [ue["email"] for ue in unsub_email]
 
-                logger.info("update group id={}, new customer list length={}".format(group_id, len(new_customer_list)))
                 if new_customer_list:
                     if source == 0:
                         new_customer_email_list = self.customer_uuid_to_email_mongo(new_customer_list, store_site_name)
@@ -1857,6 +1856,7 @@ class AnalyzeCondition:
                         new_customer_email_list = list(set(new_customer_email_list).difference(set(unsub_email_list)))
                 else:
                     new_customer_email_list = []
+                logger.info("update group id={}, new customer list length={}".format(group_id, len(new_customer_list)))
 
                 # 获取这个group, 看看他有没有已经创建过email group id
                 cursor.execute("select `uuid`, `customer_list` from `customer_group` where id=%s", (value["group_id"], ))
@@ -2899,7 +2899,7 @@ if __name__ == '__main__':
     # print(ac.create_trigger_email_by_template(53, 216, "Update Html TEST", """Update Html TEST""", 124))
     # print(ac.parse_new_customer_group_list())
     # print(ac.parse_trigger_tasks())
-    print(ac.execute_flow_task())
+    # print(ac.execute_flow_task())
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
