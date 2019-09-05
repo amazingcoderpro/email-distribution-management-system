@@ -995,7 +995,8 @@ class ShopifyDataProcessor:
 
             for store in stores:
                 # update_time = datetime.datetime.now()
-                logger.info("update_new_shopify begin update data store_id={}".format(store[0]))
+                store_id = store[0]
+                logger.info("update_new_shopify begin update data store_id={}".format(store_id))
                 store = (store,)
                 if store[0][4] == 1:
                     self.create_template(store)
@@ -1016,6 +1017,11 @@ class ShopifyDataProcessor:
                     site_name = self.sync_shop_info_from_mongo(store)
                     if site_name:
                         self.update_top_products_mongo(site_name)
+                    else:
+                        cursor.execute(
+                            '''update `store` set init=%s,update_time=%s where id=%s''',
+                            (0, datetime.datetime.now(), store_id))
+                        conn.commit()
 
         except Exception as e:
             logger.exception("update_collection e={}".format(e))
@@ -1040,12 +1046,21 @@ class ShopifyDataProcessor:
                 logger.error("update_top_products_mongo error, connect mongo db failed.")
                 return None
 
+
+
             shop_collection = db["shopify_shop_info"]
             shop = shop_collection.find_one({"myshopify_domain": shopify_domain},
                                            {"_id": 0, "site_name": 1, "email": 1, "domain": 1, "name": 1,
                                             "money_in_emails_format": 1, "timezone": 1, "customer_email": 1, "created_at": 1})
             if not shop:
-                logger.error("Not find shop information in mongo db. shopify_domain={}".format(shopify_domain))
+                logger.warning("Not find shop information in mongo db. shopify_domain={}".format(shopify_domain))
+                return None
+
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor() if conn else None
+            if not cursor:
+                logger.error("cannot connect MySQL.")
                 return None
 
             site_name = shop.get("site_name", "")
@@ -1061,13 +1076,6 @@ class ShopifyDataProcessor:
             timezone = shop.get("timezone", "(GMT+08:00) Asia/Shanghai")
             create_time_str = shop.get("created_at", "")
             create_time = datetime.datetime.strptime(create_time_str[0:19], "%Y-%m-%dT%H:%M:%S")
-            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
-                          password=self.db_password).get_instance()
-            cursor = conn.cursor() if conn else None
-            if not cursor:
-                logger.error("cannot connect MySQL.")
-                return site_name
-
             cursor.execute(
                 "update `store` set name=%s, domain=%s, email=%s, timezone=%s, sender=%s, sender_address=%s, "
                 "service_email=%s, currency=%s, site_name=%s, update_time=%s, store_create_time=%s where id=%s",

@@ -176,6 +176,7 @@ class EMSDataProcessor:
     def delete_draft_data_in_trigger_and_template(self):
         """
         每24小时删除更新时间距离现在超过48小时的草稿数据（涉及trigger, template两张表）
+        每24小时删除email_task中超过72小时重复的数据，status=5，
         :return:
         """
         try:
@@ -194,6 +195,8 @@ class EMSDataProcessor:
             cursor.execute("""delete from email_template where email_trigger_id in %s""", (trigger_id_list,))
             # 删除相关的triiger数据
             cursor.execute("""delete from email_trigger where id in %s""", (trigger_id_list,))
+            # 删除email_task中的repeat数据
+            cursor.execute("""delete from email_task where status=5 and finished_time <= %s""", (ago_48_hours+datetime.timedelta(hours=-24),))
             conn.commit()
             logger.info("delete_draft_data_in_trigger_and_template success.")
         except Exception as e:

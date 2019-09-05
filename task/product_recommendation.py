@@ -2,6 +2,8 @@
 # Created by: Leemon7
 # Created on: 2019/8/12
 # Function:
+import copy
+
 import pymongo
 import pymysql
 import json
@@ -44,6 +46,7 @@ class ProductRecommend:
         cart_product_str = ""
         abandoned_checkout_url = "javascript:;"
         for product in cart_product_list:
+            logger.info("cart product info is %s" % str(product))
             abandoned_checkout_url = product["abandoned_checkout_url"]
             cart_product_str += self.cart_str.format(**product)
         # 拼接top产品html
@@ -90,11 +93,11 @@ class ProductRecommend:
                 logger.exception("get store's(store_name: %s) money_in_emails_format exception, use default '$'." % store_name)
                 money_in_emails_format = "$"
             # 通过ID获取firstname和shop_name
-
+            firstname = ""
             if customer_email:
                 res = db.shopify_customer.find_one({"email": customer_email, "site_name": store_name},
                                                    {"_id": 0, "first_name": 1})
-            firstname = res["first_name"] if customer_email else ""
+                firstname = res.get("first_name", "")
             products.append({"shop_name": money_format["name"],
                              "firstname": firstname,
                              "domain": domain,
@@ -134,8 +137,6 @@ class ProductRecommend:
                                                     {"_id": 0, "id": 1, "handle": 1, "site_name": 1, "image.src": 1,
                                                      "title": 1, "variants": 1})
             for product in product_infos:
-                # if len(product_dict) >= length:
-                #     break
                 if product["id"] in product_dict:
                     product_uuid_template_id = "{}_{}".format(product["id"], template_id)
                     product_url = "https://{}.myshopify.com/products/{}".format(product["site_name"],
@@ -143,6 +144,14 @@ class ProductRecommend:
                                   f"?utm_source=smartsend&utm_medium=flow&utm_campaign={flow_title}&utm_term={product_uuid_template_id}"
                     product_dict[product["id"]].update(
                         {"product_url": product_url, "image_src": product["image"]["src"]})
+
+            # 过滤掉product_info没有product_url 和 image_src的item,
+            # 即过滤掉产品表中查找不到购物车产品id的产品
+            product_dict_copy = copy.deepcopy(product_dict)
+            for p_id, val in product_dict_copy.items():
+                if val.get("product_url", None) is None or val.get("image_src", None) is None:
+                    del product_dict[p_id]
+
             products += list(product_dict.values())
             if len(product_dict) > length:
                 products = products[0:length+1]
