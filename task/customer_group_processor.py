@@ -2675,7 +2675,7 @@ class AnalyzeCondition:
                         logger.info("no customers need to send email, need to delete the email_task, email_task id is %s" % res["id"])
                         self.remove_email_task_by_id(res["id"])
                         continue
-                if "customer makes a purchase" in eval(res["note"]) and res["remark"] != "first":
+                if ("customer makes a purchase" in res["note"]) and (res["remark"] != "first"):
                     # 对customer_list里的收件人进行note筛选(从task创建时间开始)
                     customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_site_name)
                     customer_list = list(set(customer_list) - set(customers_purchased))
