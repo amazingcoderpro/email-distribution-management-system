@@ -21,11 +21,10 @@ def count_time(func):
         tn = datetime.datetime.now()
         logger.info("----start call {} at {}".format(func.__name__, tn))
         ret = func(*args, **kwargs)
-        logger.info("----call {}, spend time={}".format(
+        logger.info("----call {} end, spend time={}".format(
             func.__name__, round((datetime.datetime.now()-tn).microseconds/1000, 6)
         ))
         return ret
-
     return wrapper
 
 class AnalyzeCondition:
@@ -2295,6 +2294,7 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return uuid_list
 
+    @count_time
     def customer_uuid_to_email_mongo(self, customer_uuid_list, store_name):
         """
         将customer_uuid转换成email
@@ -2312,14 +2312,13 @@ class AnalyzeCondition:
             for cus in customers:
                 if cus.get("email", ""):
                     email_list.append(cus["email"])
+            email_list = [em for em in email_list if em]  # 只要不为空的邮箱
+            return list(set(email_list))
         except Exception as e:
             logger.exception("customer_uuid_to_email_mongo catch exception={}".format(e))
             return email_list
         finally:
             mdb.close()
-
-        email_list = [em for em in email_list if em]  # 只要不为空的邮箱
-        return list(set(email_list))
 
     def insert_customer_list_id_from_email_trigger(self, customer_list_id, trigger_id):
         """
@@ -2680,6 +2679,7 @@ class AnalyzeCondition:
                         continue
                 if ("customer makes a purchase" in res["note"]) and (res["remark"] != "first"):
                     # 对customer_list里的收件人进行note筛选(从task创建时间开始)
+                    logger.info("start filter the customer makes a purchase.")
                     customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_site_name)
                     customer_list = list(set(customer_list) - set(customers_purchased))
                     logger.info("filter the customer makes a purchase.")
