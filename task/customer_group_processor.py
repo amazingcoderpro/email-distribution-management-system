@@ -21,11 +21,10 @@ def count_time(func):
         tn = datetime.datetime.now()
         logger.info("----start call {} at {}".format(func.__name__, tn))
         ret = func(*args, **kwargs)
-        logger.info("----call {}, spend time={}".format(
+        logger.info("----call {} end, spend time={}".format(
             func.__name__, round((datetime.datetime.now()-tn).microseconds/1000, 6)
         ))
         return ret
-
     return wrapper
 
 class AnalyzeCondition:
@@ -2295,6 +2294,7 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return uuid_list
 
+    @count_time
     def customer_uuid_to_email_mongo(self, customer_uuid_list, store_name):
         """
         将customer_uuid转换成email
@@ -2312,14 +2312,13 @@ class AnalyzeCondition:
             for cus in customers:
                 if cus.get("email", ""):
                     email_list.append(cus["email"])
+            email_list = [em for em in email_list if em]  # 只要不为空的邮箱
+            return list(set(email_list))
         except Exception as e:
             logger.exception("customer_uuid_to_email_mongo catch exception={}".format(e))
             return email_list
         finally:
             mdb.close()
-
-        email_list = [em for em in email_list if em]  # 只要不为空的邮箱
-        return list(set(email_list))
 
     def insert_customer_list_id_from_email_trigger(self, customer_list_id, trigger_id):
         """
@@ -2588,7 +2587,7 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return result["subject"], result["html"], result["product_condition"], result["is_cart"]
 
-    def remove_email_task_by_id(self, task_id):
+    def update_repeat_task_by_id(self, task_id):
         """
         通过task_id删除此条数据
         :param task_id: 主键ID
@@ -2600,12 +2599,14 @@ class AnalyzeCondition:
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
                 return False
-            cursor.execute("delete from email_task where id=%s", (task_id))
+            # cursor.execute("delete from email_task where id=%s", (task_id))
+            now_time = datetime.datetime.now()
+            cursor.execute("update email_task set status=5,remark='repeat',finished_time=%s,update_time=%s where id=%s", (now_time, now_time, task_id))
             conn.commit()
-            logger.info("remove email task success. id = %s" % task_id)
+            logger.info("update email repeat task success. id = %s" % task_id)
             return True
         except Exception as e:
-            logger.exception("remove email task by id({}) exception: {}".format(task_id, e))
+            logger.exception("update email repeat task by id({}) exception: {}".format(task_id, e))
             return False
         finally:
             cursor.close() if cursor else 0
@@ -2621,6 +2622,7 @@ class AnalyzeCondition:
                           password=self.db_password).get_instance()
             cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
             if not cursor:
+                logger.warning("execute_flow_task function no get mysql cursor.")
                 return False
             now_time = datetime.datetime.now()
             cursor.execute("""select t.id as id,t.remark as remark,t.execute_time as execute_time,f.id as trigger_id,
@@ -2628,7 +2630,7 @@ class AnalyzeCondition:
             t.create_time as create_time,f.customer_list_id as customer_list_id, t.template_id as template_id
             from email_task as t join email_trigger as f on t.email_trigger_id=f.id 
             where t.type=1 and t.status=0 and t.uuid is not null and f.customer_list_id is not null and execute_time between %s and %s""",
-                           (now_time-datetime.timedelta(seconds=35), now_time+datetime.timedelta(seconds=35)))
+                           (now_time-datetime.timedelta(minutes=10), now_time+datetime.timedelta(seconds=35)))
             result = cursor.fetchall()
             logger.info("get need to execute flow email tasks success. reslut is %s" % str(result))
             update_tuple_list = []
@@ -2643,9 +2645,9 @@ class AnalyzeCondition:
                 # 如果没有需要发送的邮件，应该把此条任务直接从emil_task表中删掉
                 if not customer_list:
                     logger.info(
-                        "no customers need to send email, need to delete the email_task, email_task id is %s" % res[
+                        "no customers need to send email, need to update the email_task status, email_task id is %s" % res[
                             "id"])
-                    self.remove_email_task_by_id(res["id"])
+                    self.update_repeat_task_by_id(res["id"])
                     continue
                 # 获取store的from_type, store_name
                 from_type, store_site_name = self.get_store_source(res["store_id"])
@@ -2659,32 +2661,33 @@ class AnalyzeCondition:
                             customers_7day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(**time_dict))
                             customer_list = list(set(customer_list)-set(customers_7day))
                             logger.info("filter %s" % note)
-                            if not customer_list:
-                                logger.info(
-                                    "no customers need to send email, need to delete the email_task, email_task id is %s" %
-                                    res[
-                                        "id"])
-                                self.remove_email_task_by_id(res["id"])
-                                continue
+                            # if not customer_list:
+                            #     logger.info(
+                            #         "no customers need to send email, need to delete the email_task, email_task id is %s" %
+                            #         res[
+                            #             "id"])
+                            #     self.update_repeat_task_by_id(res["id"])
+                            #     continue
                 else:
                     # 默认排除一天之内收到过此邮件的收件人
                     customers_1day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(days=-1))
                     customer_list = list(set(customer_list) - set(customers_1day))
                     logger.info("users did not choose to receive mail time filtering, default filter customers who received this email within a day.")
                     if not customer_list:
-                        logger.info("no customers need to send email, need to delete the email_task, email_task id is %s" % res["id"])
-                        self.remove_email_task_by_id(res["id"])
+                        logger.info("no customers need to send email, need to update the email_task status, email_task id is %s" % res["id"])
+                        self.update_repeat_task_by_id(res["id"])
                         continue
-                if "customer makes a purchase" in eval(res["note"]) and res["remark"] != "first":
+                if ("customer makes a purchase" in res["note"]) and (res["remark"] != "first"):
                     # 对customer_list里的收件人进行note筛选(从task创建时间开始)
+                    logger.info("start filter the customer makes a purchase.")
                     customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_site_name)
                     customer_list = list(set(customer_list) - set(customers_purchased))
                     logger.info("filter the customer makes a purchase.")
                     if not customer_list:
                         logger.info(
-                            "no customers need to send email, need to delete the email_task, email_task id is %s" % res[
+                            "no customers need to send email, need to update the email_task status, email_task id is %s" % res[
                                 "id"])
-                        self.remove_email_task_by_id(res["id"])
+                        self.update_repeat_task_by_id(res["id"])
                         continue
                 # 需要将uuid 转换成email
                 email_list = self.customer_uuid_to_email(customer_list) if from_type else self.customer_uuid_to_email_mongo(customer_list, store_site_name)
@@ -2698,8 +2701,8 @@ class AnalyzeCondition:
                 recipients = []
                 # 如果没有需要发送的邮件，应该把此条任务直接从emil_task表中删掉
                 if not email_list:
-                    logger.info("no customers need to send email, need to delete the email_task, email_task id is %s" % res["id"])
-                    self.remove_email_task_by_id(res["id"])
+                    logger.info("no customers need to send email, need to update the email_task status, email_task id is %s" % res["id"])
+                    self.update_repeat_task_by_id(res["id"])
                     continue
 
                 # 开始对筛选过的用户发送邮件
@@ -2899,7 +2902,8 @@ if __name__ == '__main__':
     # print(ac.create_trigger_email_by_template(53, 216, "Update Html TEST", """Update Html TEST""", 124))
     # print(ac.parse_new_customer_group_list())
     # print(ac.parse_trigger_tasks())
-    # print(ac.execute_flow_task())
+    print(ac.execute_flow_task())
+    # print(ac.update_repeat_task_by_id(7443))
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
     # print(ac.customer_email_to_uuid_mongo(["mosa_rajvosa87@outlook.com","Quinonesbautista@Gmail.com"],"Astrotrex"))
