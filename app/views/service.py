@@ -17,7 +17,8 @@ from app.filters import service as service_filter
 from app.permission.permission import CustomerGroupOptPermission, StorePermission
 from sdk.ems import ems_api
 from app.serializers import opstores_service
-
+from task.customer_group_processor import AnalyzeCondition
+from config import MYSQL_CONFIG, MONGO_CONFIG
 
 class CustomerGroupView(generics.ListCreateAPIView):
     """客户组列表 增加"""
@@ -241,6 +242,34 @@ class EmailTriggerEditView(generics.UpdateAPIView):
     serializer_class = service.EmailTriggerSerializer
     permission_classes = (IsAuthenticated, CustomerGroupOptPermission)
     authentication_classes = (JSONWebTokenAuthentication,)
+
+
+class EmailTriggerTestEmailView(generics.CreateAPIView):
+    """flow发送测试邮件"""
+    permission_classes = (IsAuthenticated, StorePermission)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+    def post(self, request, *args, **kwargs):
+        store = models.Store.objects.filter(user=request.user).first()
+        if store.id == 1:
+            return Response({"detail": "Admin store unable to send test email."}, status=status.HTTP_400_BAD_REQUEST)
+        site_name = store.site_name
+        # 先检测需要发送的邮箱是否正常
+        customers_email_list = eval(request.data.get("customers_email_list", "[]"))
+        if not customers_email_list:
+            return Response({"detail": "Input email list is null."}, status=status.HTTP_400_BAD_REQUEST)
+        ac = AnalyzeCondition(mysql_config=MYSQL_CONFIG, mongo_config=MONGO_CONFIG)
+        customers_id_list = ac.customer_email_to_uuid_mongo(customers_email_list, site_name)
+        if not customers_id_list:
+            return Response({"detail": "Input email list is invalid."}, status=status.HTTP_400_BAD_REQUEST)
+        elif len(customers_id_list) < len(customers_email_list):
+            detail = "Part email address is valid in input email list."
+        else:
+            detail = "Test mail has been sent, please check it."
+        #通过trigger_id和email_list去创建任务
+        trigger_id = request.data.get("trigger_id")
+        valid_email_list = ac.parse_trigger_tasks(trigger_id, customers_id_list)
+        return Response({"detail": detail+"Successful email include: "+str(valid_email_list)}, status=status.HTTP_200_OK)
 
 
 class SendMailView(generics.CreateAPIView):

@@ -2343,19 +2343,23 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return True
 
-    def parse_trigger_tasks(self):
+    def parse_trigger_tasks(self, trigger_id=None, email_id_list=None):
         """
         解析触发邮件任务, 定时获取符合触发信息的新用户，并且创建定时任务
         :return: True or False
         """
         # 获取所有trigger条件
-        trigger_conditions = self.get_trigger_conditions()
+        return_res_email_list = email_id_list
+        trigger_conditions = self.get_trigger_conditions(condition_id=trigger_id)  # 可以直接通过triggerID获取trigger信息
         for cond in trigger_conditions:
             update_list = []
             insert_list = []
             store_id, t_id, title, relation_info, email_delay, note, old_customer_list, customer_list_id = cond.values()
-            customer_list = self.get_customers_by_condition(condition=json.loads(cond["relation_info"]),
-                                                          store_id=cond["store_id"])
+            if email_id_list is None:
+                customer_list = self.get_customers_by_condition(condition=json.loads(cond["relation_info"]),
+                                                              store_id=cond["store_id"])
+            else:
+                customer_list = email_id_list
             logger.info("search customers by trigger conditions success. trigger_id = %s" % t_id)
             if not customer_list:
                 # 无符合触发条件的用户
@@ -2421,6 +2425,7 @@ class AnalyzeCondition:
             invalid_email = rest.get("invalid_email", [])
             valid_email = list(set(email_list) - set(invalid_email))  # 添加到收件人列表成功的邮箱
             logger.info("add subscriber success.customer_list_id is %s" % customer_list_id)
+            return_res_email_list = valid_email
             if not valid_email:
                 # 无新增符合触发条件的用户
                 logger.warning("No new customers were successfully added to the subscriber list.")
@@ -2432,9 +2437,12 @@ class AnalyzeCondition:
                     template_id, unit = item["value"], item["unit"]
                     # 通过template_id去创建一个事务性邮件，并返回email_uuid
                     subject, html, product_condition, is_cart = self.get_template_info_by_id(template_id)
+                    if not subject:
+                        continue
                     email_uuid = self.create_trigger_email_by_template(store_id, template_id, subject, html, t_id)
                     # 将触发邮件任务参数增加到待入库数据列表中
                     valid_email_id_list = self.customer_email_to_uuid(valid_email, store_id) if from_type else self.customer_email_to_uuid_mongo(valid_email, store_site_name)
+                    return_res_email_list = valid_email_id_list
                     insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(valid_email_id_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now(), store_id))
                 elif item["type"] == "Delay":  # 代表是delay
                     num, unit = item["value"], item["unit"]
@@ -2450,7 +2458,7 @@ class AnalyzeCondition:
             # 2、拆解的任务入库email_task
             self.insert_email_task_from_trigger(insert_list)
             logger.info("email_trigger insert_email_task_from_trigger success.")
-        return True
+        return return_res_email_list
 
     def update_customer_list_from_trigger(self, customer_lists):
         """
@@ -2579,13 +2587,17 @@ class AnalyzeCondition:
             cursor.execute("select subject, html, product_condition, is_cart from email_template where id=%s", (template_id))
             result = cursor.fetchone()
             logger.info("get template info by id success.")
+            if result:
+                return result["subject"], result["html"], result["product_condition"], result["is_cart"]
+            else:
+                logger.error("Not found this email_template(id=%s)" % template_id)
+                return None,None,None,None
         except Exception as e:
             logger.exception("get template info by id exception: {}".format(e))
             return False
         finally:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
-        return result["subject"], result["html"], result["product_condition"], result["is_cart"]
 
     def update_repeat_task_by_id(self, task_id):
         """
@@ -2903,6 +2915,7 @@ if __name__ == '__main__':
     # print(ac.parse_new_customer_group_list())
     # print(ac.parse_trigger_tasks())
     print(ac.execute_flow_task())
+    # print(ac.get_template_info_by_id(84))
     # print(ac.update_repeat_task_by_id(7443))
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
     # print(ac.get_site_name_by_sotre_id(2))
