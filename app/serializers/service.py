@@ -116,10 +116,12 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
         data["revenue"] = float(data["revenue"])
         data["click_rate"] = 0
         data["open_rate"] = 0
+        data["total_sent"] = sents
+        data["total_click"] = clicks
+        data["total_open"] = opens
         if sents > 0:
             data["click_rate"] = clicks/sents
             data["open_rate"] = opens/sents
-
         return data
 
 
