@@ -201,7 +201,7 @@ def run():
     ems = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
     tp.create_cron_task(ems.insert_subscriber_activity, "*", 23, 20)  # 每天00:30:00拉取昨天一整天的行为记录
     tp.create_cron_task(ems.update_customer_group_data, "*", 23, 35)  # 每天00:05:00更新到目前时间用户组最新ems数据
-    tp.create_cron_task(ems.update_email_reocrd_data, "*", 23, 20)  # 每天00:05:00更新到目前时间已发送邮件最新ems数据
+    tp.create_periodic_task(ems.update_email_reocrd_data, seconds=3600*4)  # 每天00:05:00更新到目前时间已发送邮件最新ems数据
     tp.create_cron_task(ems.insert_dashboard_data, "*", 23, 40)  # 每天23:40:00更新dashboard最新数据
     tp.create_cron_task(ems.delete_draft_data_in_trigger_and_template, "*", 1, 00)  # 每天01:00:00删除超过48小时的草稿数据
     tp.create_periodic_task(ems.update_unsubscriber_and_snoozed_customers, seconds=60)  # 每一分钟更新一下取消订阅和休眠的收件人，因为flow是两分钟检测一次customer
