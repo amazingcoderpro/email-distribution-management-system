@@ -82,30 +82,30 @@ WSGI_APPLICATION = 'edm.wsgi.application'
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
 # 生产数据库
-DATABASES = {
-    'default': {
-    'ENGINE': 'django.db.backends.mysql',
-    'NAME': 'edm',
-    'USER': 'edm2',
-    'PASSWORD': "quh8dcGQYPBr",
-    'HOST': "rm-j6cn4tr3569ij4tu535890.mysql.rds.aliyuncs.com",  # 本地如果要调试生产环境数据，需使用外网IP:"rm-j6cn4tr3569ij4tu5lo.mysql.rds.aliyuncs.com",
-    'PORT': '3306',
-    'OPTIONS': {"init_command": "SET foreign_key_checks = 0;",}
-    }
-}
-
-# 测试数据库,测试时使用
 # DATABASES = {
 #     'default': {
 #     'ENGINE': 'django.db.backends.mysql',
 #     'NAME': 'edm',
-#     'USER': 'edm',
-#     'PASSWORD': "edm@orderplus.com",
-#     'HOST': "47.244.107.240",
+#     'USER': 'edm2',
+#     'PASSWORD': "quh8dcGQYPBr",
+#     'HOST': "rm-j6cn4tr3569ij4tu535890.mysql.rds.aliyuncs.com",  # 本地如果要调试生产环境数据，需使用外网IP:"rm-j6cn4tr3569ij4tu5lo.mysql.rds.aliyuncs.com",
 #     'PORT': '3306',
 #     'OPTIONS': {"init_command": "SET foreign_key_checks = 0;",}
 #     }
 # }
+
+# 测试数据库,测试时使用
+DATABASES = {
+    'default': {
+    'ENGINE': 'django.db.backends.mysql',
+    'NAME': 'edm',
+    'USER': 'edm',
+    'PASSWORD': "edm@orderplus.com",
+    'HOST': "47.244.107.240",
+    'PORT': '3306',
+    'OPTIONS': {"init_command": "SET foreign_key_checks = 0;",}
+    }
+}
 
 
 
