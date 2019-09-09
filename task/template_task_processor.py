@@ -40,7 +40,7 @@ class TemplateProcessor:
 
             logger.info("analyze_templates start. template_id={}".format(template_id))
             if template_id:
-                cursor.execute("""select id, send_rule from `email_template` where status=0 and id=%s""", (template_id, ))
+                cursor.execute("""select id, send_rule, store_id from `email_template` where status=1 and id=%s""", (template_id, ))
             else:
                 # 找到所有状态是待解析，已启用且类型为模板邮件的模板
                 # 剔除admin店铺
@@ -221,6 +221,6 @@ class TemplateProcessor:
 
 if __name__ == '__main__':
     at = TemplateProcessor(db_info={"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"})
-    at.execute_email_task()
+    at.analyze_templates(526)
     # at.execute_email_task(interval=666600)
 
