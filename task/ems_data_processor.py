@@ -133,7 +133,7 @@ class EMSDataProcessor:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
-    def update_email_reocrd_data(self):
+    def update_email_reocrd_data(self, store_id=None):
         """
         更新已发送邮件的ems数据
         :return:
@@ -144,7 +144,10 @@ class EMSDataProcessor:
             if not cursor:
                 return False
             # 获取当前所有已发送邮件
-            cursor.execute("""select uuid,store_id from email_record""")
+            if store_id is None:
+                cursor.execute("""select uuid,store_id from email_record""")
+            else:
+                cursor.execute("""select uuid,store_id from email_record where store_id=%s""", (store_id,))
             uuid_list = cursor.fetchall()
             # 获取每一个listId对应的ems数据
             update_list = []
@@ -404,7 +407,7 @@ if __name__ == '__main__':
     obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
     # obj.insert_subscriber_activity()
     # obj.update_customer_group_data()
-    # obj.update_email_reocrd_data()
-    obj.insert_dashboard_data()
+    obj.update_email_reocrd_data()
+    # obj.insert_dashboard_data()
     # obj.update_unsubscriber_and_snoozed_customers()
     # print(obj.delete_draft_data_in_trigger_and_template())
