@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "f7840cd11d659394f80700e54fccbf48df453d759ba67abab4f0d8d7f66b4c1e"
+            "sha256": "621975ca669cdd5a9714edc0491dad9b40d6b0ef42aa5b6da813b6b06a4a983c"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -97,6 +97,7 @@
                 "sha256:e1ff2748c84d97b065cc95429814cdba39bcbd77c9c85c89344b317dc0d9cbff",
                 "sha256:ed851c75d1e0e043cbf5ca9a8e1b13c4c90f3fbd863dacb01c0808e2b5204201"
             ],
+            "markers": "sys_platform == 'win32' and platform_python_implementation == 'CPython'",
             "version": "==1.12.3"
         },
         "chardet": {
@@ -126,6 +127,14 @@
                 "sha256:f57b76e46a58b63d1c6375017f4564a28f19a5ca912691fd2e4261b3414b618d"
             ],
             "version": "==2.7"
+        },
+        "dingtalkchatbot": {
+            "hashes": [
+                "sha256:83ad216a3c8255906fde4b1ca733490f5b944efdb872c65bc705b0de8ebd6b21",
+                "sha256:cb1eba079f80682c6754062c575c8466dd79e40066218f56a39a28a725abfd83"
+            ],
+            "index": "pypi",
+            "version": "==1.3.0"
         },
         "django": {
             "hashes": [
@@ -168,10 +177,10 @@
         },
         "djangorestframework": {
             "hashes": [
-                "sha256:42979bd5441bb4d8fd69d0f385024a114c3cae7df0f110600b718751250f6929",
-                "sha256:aedb48010ebfab9651aaab1df5fd3b4848eb4182afc909852a2110c24f89a359"
+                "sha256:5488aed8f8df5ec1d70f04b2114abc52ae6729748a176c453313834a9ee179c8",
+                "sha256:dc81cbf9775c6898a580f6f1f387c4777d12bd87abf0f5406018d32ccae71090"
             ],
-            "version": "==3.10.2"
+            "version": "==3.10.3"
         },
         "djangorestframework-jwt": {
             "hashes": [
@@ -336,10 +345,10 @@
         },
         "pyasn1": {
             "hashes": [
-                "sha256:3bb81821d47b17146049e7574ab4bf1e315eb7aead30efe5d6a9ca422c9710be",
-                "sha256:b773d5c9196ffbc3a1e13bdf909d446cad80a039aa3340bcad72f395b76ebc86"
+                "sha256:62cdade8b5530f0b185e09855dd422bc05c0bbff6b72ff61381c09dac7befd8c",
+                "sha256:a9495356ca1d66ed197a0f72b41eb1823cf7ea8b5bd07191673e8147aecf8604"
             ],
-            "version": "==0.4.6"
+            "version": "==0.4.7"
         },
         "pyasn1-modules": {
             "hashes": [

@@ -9,6 +9,7 @@ from sdk.shopify.get_shopify_data import ProductsApi
 from config import logger, ROOT_PATH, MONGO_CONFIG, MYSQL_CONFIG
 from sdk.shopify import shopify_webhook
 from task.db_util import DBUtil, MongoDBUtil
+from dingtalkchatbot.chatbot import DingtalkChatbot
 
 
 class ShopifyDataProcessor:
@@ -513,7 +514,7 @@ class ShopifyDataProcessor:
             for store in stores:
                 store_id, store_url, store_token, *_ = store
                 logger.info("update_top_product is checking... store_id={}".format(store_id))
-                top_three_product_list,top_seven_product_list,top_fifteen_product_list,top_thirty_product_list = [],[],[],[]
+                top_three_product_list, top_seven_product_list, top_fifteen_product_list, top_thirty_product_list = [],[],[],[]
                 top_three_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=3),datetime.time.min)
                 top_seven_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=7),datetime.time.min)
                 top_fifteen_time = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=15),datetime.time.min)
@@ -665,7 +666,7 @@ class ShopifyDataProcessor:
         logger.info("update_top_product is finished...")
         return True
 
-    def updata_shopify_ga(self):
+    def updata_shopify_ga(self, store_id=None):
         logger.info("update_shopify GA is cheking...")
         """
         每天凌晨十分拉取GA数据
@@ -679,7 +680,10 @@ class ShopifyDataProcessor:
             if not cursor:
                 return False
             # 获取所有店铺
-            cursor.execute("""select id, store_view_id, source, site_name from store where id != 1""")
+            if store_id:
+                cursor.execute("""select id, store_view_id, source, site_name from store where id = %s""", (store_id, ))
+            else:
+                cursor.execute("""select id, store_view_id, source, site_name from store where id != 1""")
             stores = cursor.fetchall()
 
             mdb = MongoDBUtil(mongo_config=self.mongo_config)
@@ -781,33 +785,10 @@ class ShopifyDataProcessor:
                         # 重复的购买率 支付订单数≥2的用户数据÷总用户数量
                         avg_repeat_purchase_rate = round(orders_gte2 / total_paid_customers, 6) if total_paid_customers else 0
 
-                    email_trigger_list = []
-                    for results_email_template in results_list:
-                        results_email_template_id = results_email_template[4]
-                        try:
-                            cursor.execute("""select email_trigger_id from email_template where id=%s""",
-                                           (results_email_template_id,))
-                            results_email_template_info = cursor.fetchone()[0]
-                            if results_email_template_info is not None:
-                                cursor.execute("""select revenue from email_template where email_trigger_id=%s""",
-                                               (results_email_template_info,))
-                                email_trigger = cursor.fetchall()
-                                trigger_total_revenues = 0.0
-                                for trigger_revenue in email_trigger:
-                                    trigger_total_revenues += float(trigger_revenue[0])
-                                    res = (trigger_total_revenues, datetime.datetime.now(), results_email_template_info)
-                                    email_trigger_list.append(res)
-                        except Exception as e:
-                            logger.error("email_trigger_id does not exist, {}".format(e))
-                            # continue
-
                     # 更新email_template的数据
                     cursor.executemany(
                         """update email_template set sessions=%s, transcations=%s, revenue=%s ,update_time=%s where id =%s""",
                         results_list)
-
-                    # 更新email_tiggers数据
-                    cursor.executemany("""update email_trigger set revenue=%s, update_time=%s where id=%s""", email_trigger_list)
 
                     # 更新dashboard数据
                     cursor.execute("""select id from dashboard where store_id=%s and create_time between %s and %s""",
@@ -831,6 +812,25 @@ class ShopifyDataProcessor:
                                 .format(store_id, now_date.strftime("%Y-%m-%d"), revenue, total_revenue, total_orders, total_sessions, avg_conversion_rate, avg_repeat_purchase_rate))
                 else:
                     logger.warning("updata_shopify_ga store_view_id does not exist")
+                conn.commit()
+
+                update_email_trigger_dict = {}
+                update_trigger_value = []
+                cursor.execute(
+                    """select email_trigger_id, revenue from email_template where store_id= %s""", (store_id,))
+                email_trigger_list = cursor.fetchall()
+                for k, v in email_trigger_list:
+                    if k in update_email_trigger_dict.keys():
+                        v += update_email_trigger_dict.get(k)
+                    else:
+                        v = v
+                    update_email_trigger_dict.update({k: v})
+                for list_email_trigger in update_email_trigger_dict.items():
+                    res = (float(list_email_trigger[1]), list_email_trigger[0])
+                    update_trigger_value.append(res)
+
+                # 更新email_tiggers数据
+                cursor.executemany("""update email_trigger set revenue=%s where id=%s""", update_trigger_value)
                 conn.commit()
             mdb.close()
         except Exception as e:
@@ -1346,7 +1346,7 @@ class ShopifyDataProcessor:
                                                        total_customers=%s, clicks=%s, sents=%s, opens=%s
                                                        where create_time between %s and %s and store_id =1""",
                                (datetime.datetime.now(), dashboard_revenue, dashboard_total_revenue, dashboard_order, dashboard_total_orders,
-                                dashboard_session, dashboard_total_sessions,dashboard_total_sent, dashboard_total_open, dashboard_total_click,
+                                dashboard_session, dashboard_total_sessions, dashboard_total_sent, dashboard_total_open, dashboard_total_click,
                                 dashboard_total_unsubscribe, avg_conversion_rate, avg_open_rate, avg_click_rate,
                                 avg_unsubscribe_rate, avg_repeat_purchase_rate, dashboard_repeat_customers, dashboard_total_customers,
                                 dashboard_clicks, dashboard_sents, dashboard_opens, zero_time, last_time))
@@ -1362,6 +1362,17 @@ class ShopifyDataProcessor:
                        avg_unsubscribe_rate, avg_repeat_purchase_rate, dashboard_repeat_customers, dashboard_total_customers,now_date,
                        dashboard_clicks, dashboard_sents, dashboard_opens, 1))
             conn.commit()
+            webhook = 'https://oapi.dingtalk.com/robot/send?access_token=632942b6178eefc929ac9156f3378292945b95490d5fc9e55aeedbd6dd0fa48f'
+            xiaoding = DingtalkChatbot(webhook)
+            xiaoding.send_text(msg=f'各位大佬, 新一天的收益为您呈现\n'
+                                   f'累计收益={dashboard_total_revenue} \n'
+                                   f'总订单数量={dashboard_total_orders}\n'
+                                   f'平均转化率={round(avg_conversion_rate, 4)*100}%\n'
+                                   f'平均复购率={round(avg_repeat_purchase_rate, 4)*100}%\n'
+                                   f'总发送量={dashboard_total_sent}\n'
+                                   f'平均点击率={round(avg_click_rate*100, 2)}%\n'
+                                   f'总打开率={round(avg_open_rate, 4)*100}%\n'
+                                   f'总退订率={round(avg_unsubscribe_rate, 4)*100}%\n', is_at_all=True)
             logger.info("update_admin_dashboard update is successful")
         except Exception as e:
             logger.exception("update update_admin_dashboard data exception e={}".format(e))
@@ -1376,11 +1387,10 @@ if __name__ == '__main__':
     # db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
     # ShopifyDataProcessor(db_info=db_info).update_shopify_collections()
     # ShopifyDataProcessor(db_info=db_info).create_template()
-
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
-    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
+    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
     # 统计admin的数据
     ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
     # 订单表 和  用户表 之间的数据同步
@@ -1389,7 +1399,6 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer((4,1))
     # ShopifyDataProcessor(db_info=db_info).update_store_webhook((4,"tiptopfree.myshopify.com","84ae42dd2bda781f84d8fd1d199dba88", "iii"))
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
-
     # ShopifyDataProcessor(db_info=db_info).update_new_shopify()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_template_trigger()

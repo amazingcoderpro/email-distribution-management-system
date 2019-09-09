@@ -38,6 +38,7 @@ v1_urlpatterns = [
     url(r'^email_trigger/(?P<pk>[0-9]+)/$', service.EmailTriggerOptView.as_view()),                 # trigger修改状态
     url(r'^email_trigger/clone/(?P<pk>[0-9]+)/$', service.EmailTriggerCloneView.as_view()),         # trigger克隆
     url(r'^email_trigger/edit/(?P<pk>[0-9]+)/$', service.EmailTriggerEditView.as_view()),           # trigger克隆保存
+    url(r'^email_trigger/test/$', service.EmailTriggerTestEmailView.as_view()),                     # trigger发送测试邮件
 
     # 测试发送邮件
     url(r'^send_mail/$', service.SendMailView.as_view()),
