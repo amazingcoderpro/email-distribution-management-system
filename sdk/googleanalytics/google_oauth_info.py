@@ -76,10 +76,12 @@ class GoogleApi():
                     dateRangeValues = row.get('metrics', [])
                     if dimensions[1] == key_word or not key_word:
                         temp_key = dimensions[1].split('_')
-                        if len(temp_key)==1:
+                        if len(temp_key) == 1:
                             temp_key_word = temp_key[0]
                         elif len(temp_key) == 2:
                             temp_key_word = temp_key[1]
+                        elif temp_key_word == "test":
+                            continue
                         else:
                             pass
                         values = dateRangeValues[0].get('values', [])
