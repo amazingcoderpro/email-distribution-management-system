@@ -19,6 +19,8 @@ from sdk.ems import ems_api
 from app.serializers import opstores_service
 from task.customer_group_processor import AnalyzeCondition
 from config import MYSQL_CONFIG, MONGO_CONFIG
+from task.product_recommendation import ProductRecommend
+
 
 class CustomerGroupView(generics.ListCreateAPIView):
     """客户组列表 增加"""
@@ -268,7 +270,7 @@ class EmailTriggerTestEmailView(generics.CreateAPIView):
             detail = "Test mail has been sent, please check it."
         #通过trigger_id和email_list去创建任务
         trigger_id = request.data.get("trigger_id")
-        valid_email_list = ac.parse_trigger_tasks(trigger_id, customers_id_list)
+        valid_email_list = ac.parse_trigger_tasks(trigger_id, customers_id_list, test_email=True)
         return Response({"detail": detail+"Successful email include: "+str(valid_email_list)}, status=status.HTTP_200_OK)
 
 
@@ -285,8 +287,10 @@ class SendMailView(generics.CreateAPIView):
         email_address = request.data["email_address"]
         html = request.data["html"]
         subject = request.data["subject"]
-        html = html.replace(store_url+"?utm_source=smartsend", store_url+"?utm_source=smartsend&utm_medium=newsletter")
-        html = html.replace("*[tr_shop_name]*", store.name)
+        email_title = request.data["email_title"]
+        product_condition = request.data["product_condition"]
+        # html = html.replace(store_url+"?utm_source=smartsend", store_url+"?utm_source=smartsend&utm_medium=newsletter")
+        # html = html.replace("*[tr_shop_name]*", store.name)
         product_list = request.data.get("product_list", None)
         if product_list:
             if product_list != "[]":
@@ -297,20 +301,35 @@ class SendMailView(generics.CreateAPIView):
                     new_image_url = item["url"] + uri_structure
                     html = html.replace(item["url"], new_image_url)
 
-        store_instance = models.Store.objects.filter(user=request.user).first()
-        ems_instance = ems_api.ExpertSender(store_instance.name, store_instance.email)
+        # 替换 html
+        pr = ProductRecommend()
+        shop_info = pr.get_card_product_mongo("", store.name, email_title, "test", store_url,
+                                              store.service_email, length=0, utm_medium="Newsletter")
 
-        subscribers_res = ems_instance.create_subscribers_list(store_instance.name)
+        top_products = []
+        if "top" in product_condition:
+            # 获取top_products
+            top_products = pr.get_top_product_by_condition(product_condition, store.id,
+                                                           email_title, "test",
+                                                           utm_medium="Newsletter")
+
+        snippets_dict = pr.generate_snippets(shop_info, top_products, flow=False)
+        for key, val in snippets_dict.items():
+            html = html.replace("*[tr_{}]*".format(key), val)
+
+        # store_instance = models.Store.objects.filter(user=request.user).first()
+        ems_instance = ems_api.ExpertSender(store.name, store.email)
+
+        subscribers_res = ems_instance.create_subscribers_list(store.name)
         if subscribers_res["code"] != 1:
             return Response({"detail": subscribers_res["msg"]}, status=status.HTTP_400_BAD_REQUEST)
         subscriber_flag = ems_instance.add_subscriber(subscribers_res["data"], [email_address])
         if subscriber_flag["code"] != 1:
             return Response({"detail": subscriber_flag["msg"]}, status=status.HTTP_400_BAD_REQUEST)
-        result = ems_instance.create_and_send_newsletter([subscribers_res["data"]], store_instance.name, html=html)
+        result = ems_instance.create_and_send_newsletter([subscribers_res["data"]], subject, html=html)
         if result["code"] != 1:
             return Response({"detail": result["msg"]}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"status":"successful"}, status=status.HTTP_200_OK)
-
 
 
 class TopDashboardView(generics.ListAPIView):
