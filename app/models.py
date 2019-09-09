@@ -5,15 +5,15 @@ from django.utils import timezone
 from django_mysql.models import JSONField
 
 # 迁移之前将期改为True
-ENABLE_MIGRATE = False
+ENABLE_MIGRATE = True
 
 
 class User(AbstractUser):
     """系统用户表"""
-    username = models.CharField(max_length=255, unique=True, verbose_name="账户")
-    email = models.EmailField(max_length=255, blank=True, null=True, verbose_name="账户邮箱")
+    username = models.CharField(max_length=64, unique=True, verbose_name="账户")
+    email = models.EmailField(max_length=64, blank=True, null=True, verbose_name="账户邮箱")
     password = models.CharField(max_length=128, blank=True, null=True,  verbose_name="密码")
-    code = models.CharField(max_length=255, blank=True, null=True, unique=True, verbose_name="用户唯一标识")
+    code = models.CharField(max_length=16, blank=True, null=True, unique=True, verbose_name="用户唯一标识")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -23,34 +23,30 @@ class User(AbstractUser):
 
 class Store(models.Model):
     """店铺表"""
-    name = models.CharField(blank=True, null=True, max_length=255, verbose_name="店铺名称")
-    url = models.CharField(db_index=True, blank=True, null=False, max_length=255, unique=True, verbose_name="店铺URL")
-    domain = models.CharField(blank=True, null=True, max_length=255, unique=True, verbose_name="店铺domain")
+    name = models.CharField(blank=True, null=True, max_length=64, verbose_name="店铺名称")
+    url = models.CharField(db_index=True, blank=True, null=False, max_length=64, unique=True, verbose_name="店铺URL")
+    domain = models.CharField(blank=True, null=True, max_length=64, unique=True, verbose_name="店铺domain")
     email = models.EmailField(
         verbose_name='email address',
-        max_length=255,
+        max_length=64,
         blank=True,
     )
-    token = models.CharField(blank=True, null=True, max_length=255, verbose_name="账号使用标识")
-    hmac = models.CharField(blank=True, null=True, max_length=255, verbose_name="hmac")
-    timezone = models.CharField(blank=True, null=True, max_length=255, verbose_name="店铺的时区")
-    # shop_alias = models.CharField(blank=True, null=True, max_length=255, verbose_name="your shop")
-    sender = models.CharField(blank=True, null=True, max_length=255, verbose_name="sender")
-    # letter_domain = models.CharField(blank=True, null=True, max_length=255, verbose_name="letter_domain")
-    # news_domain = models.CharField(blank=True, null=True, max_length=255, verbose_name="news_domain")
-    # message_domain = models.CharField(blank=True, null=True, max_length=255, verbose_name="message_domain")
-    customer_shop = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_shop")
-    sender_address = models.CharField(blank=True, null=True, max_length=255, verbose_name="customer_email")
+    token = models.CharField(blank=True, null=True, max_length=64, verbose_name="账号使用标识")
+    hmac = models.CharField(blank=True, null=True, max_length=64, verbose_name="hmac")
+    timezone = models.CharField(blank=True, null=True, max_length=64, verbose_name="店铺的时区")
+    sender = models.CharField(blank=True, null=True, max_length=64, verbose_name="sender")
+    customer_shop = models.CharField(blank=True, null=True, max_length=64, verbose_name="customer_shop")
+    sender_address = models.CharField(blank=True, null=True, max_length=64, verbose_name="customer_email")
     logo = models.CharField(blank=True, null=True, max_length=255, verbose_name="邮件logo")
-    service_email = models.EmailField(verbose_name='service_email',max_length=255,blank=True,null=True,)
-    currency = models.CharField(verbose_name='currency',max_length=255,blank=True,null=True,)
-    site_name = models.CharField(verbose_name='site_name',max_length=255,blank=True,null=True,)
-    store_view_id = models.CharField(blank=True, null=True, max_length=100, verbose_name=u"店铺的GA中的view id")
+    service_email = models.EmailField(verbose_name='service_email',max_length=64,blank=True,null=True,)
+    currency = models.CharField(verbose_name='currency',max_length=8,blank=True,null=True,)
+    site_name = models.CharField(verbose_name='site_name',max_length=32,blank=True,null=True,)
+    store_view_id = models.CharField(blank=True, null=True, max_length=24, verbose_name=u"店铺的GA中的view id")
     init_choices = ((0, '新店铺'), (1, '旧店铺'))
     init = models.SmallIntegerField(db_index=True, choices=init_choices, default=0, verbose_name="店铺初始化")
     source_choices = ((0, 'opstores'), (1, 'foreign_store'))
     source = models.SmallIntegerField(db_index=True, choices=source_choices, default=0, verbose_name="店铺来自")
-    op_user = models.CharField(blank=True, null=True, max_length=255, verbose_name="opstore用户")
+    op_user = models.CharField(blank=True, null=True, max_length=64, verbose_name="opstore用户")
     if ENABLE_MIGRATE:
         user_id = models.IntegerField(db_index=True, verbose_name="用户id")
     else:
@@ -152,7 +148,7 @@ class EmailTemplate(models.Model):
 
 
 class EmailRecord(models.Model):
-    uuid = models.CharField(db_index=True, max_length=255, blank=True, null=False, verbose_name="邮件ID")
+    uuid = models.CharField(db_index=True, max_length=64, blank=True, null=False, verbose_name="邮件ID")
     # customer_group_list = models.TextField(blank=True, null=False, verbose_name="邮件对应的客户组列表")
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
     opens = models.IntegerField(blank=True, null=True,  verbose_name="打开量")
@@ -180,7 +176,7 @@ class EmailRecord(models.Model):
 
 class EmailTrigger(models.Model):
     """邮件触发器"""
-    customer_list_id = models.CharField(db_index=True, max_length=255, blank=True, null=True, verbose_name="flows筛选出来的ListId")
+    customer_list_id = models.CharField(db_index=True, max_length=32, blank=True, null=True, verbose_name="flows筛选出来的ListId")
     title = models.CharField(db_index=True, max_length=255, verbose_name="标题")
     description = models.TextField(blank=True, null=True, verbose_name="描述")
     total_sents = models.IntegerField(blank=True, null=True, default=0, verbose_name="flow总发送量")
@@ -215,7 +211,7 @@ class EmailTrigger(models.Model):
 
 class EmailTask(models.Model):
 
-    uuid = models.CharField(db_index=True, max_length=255, blank=True, null=True, verbose_name="事务邮件ID")
+    uuid = models.CharField(db_index=True, max_length=64, blank=True, null=True, verbose_name="事务邮件ID")
     status_choices = ((0, '待发送'), (1, '已发送(成功)'),(2, '已发送但发送失败'), (3, '模版禁用'), (4, "模板已删除"), (5, "重复发送人员"))
     status = models.SmallIntegerField(db_index=True, choices=status_choices, default=0, verbose_name="邮件发送状态")
     remark = models.TextField(blank=True, null=True, verbose_name="备注")
@@ -244,7 +240,7 @@ class EmailTask(models.Model):
 
 class CustomerGroup(models.Model):
     """客户组"""
-    uuid = models.CharField(db_index=True, max_length=255, blank=True, null=True, verbose_name="收件人列表ID")
+    uuid = models.CharField(db_index=True, max_length=64, blank=True, null=True, verbose_name="收件人列表ID")
     title = models.CharField(db_index=True, max_length=255, verbose_name="标题")
     description = models.TextField(blank=True, null=True, verbose_name="描述")
     sents = models.IntegerField(blank=True, null=True,  verbose_name="发送量")
@@ -271,7 +267,7 @@ class CustomerGroup(models.Model):
 
 class CustomerUnsubscribe(models.Model):
     """客户表"""
-    email = models.CharField(max_length=255, db_index=True, blank=True, null=True, verbose_name="客户的email")
+    email = models.CharField(max_length=64, db_index=True, blank=True, null=True, verbose_name="客户的email")
     unsubscribe_choices = ((0, 'is false'), (1, 'is true'), (2, 'is sleep'))
     unsubscribe_status = models.SmallIntegerField(db_index=True, choices=unsubscribe_choices, default=0, verbose_name="取消订阅或者休眠")
     unsubscribe_date = models.DateTimeField(blank=True, null=True, verbose_name="取消订阅时间/休眠的截止时间")  # unsubscribe_status
@@ -289,10 +285,10 @@ class CustomerUnsubscribe(models.Model):
 
 class Customer(models.Model):
     """客户表"""
-    uuid = models.CharField(max_length=255, db_index=True, verbose_name="客户的唯一id")
-    first_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="first_name")
-    last_name = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_name")
-    customer_email = models.EmailField(max_length=255, blank=True, null=True, verbose_name="客户邮箱")
+    uuid = models.CharField(max_length=64, db_index=True, verbose_name="客户的唯一id")
+    first_name = models.CharField(blank=True, null=True, max_length=32, verbose_name="first_name")
+    last_name = models.CharField(blank=True, null=True, max_length=32, verbose_name="last_name")
+    customer_email = models.EmailField(max_length=64, blank=True, null=True, verbose_name="客户邮箱")
     subscribe_time = models.DateTimeField(blank=True, null=True, verbose_name="最近购物时间")
     sign_up_time = models.DateTimeField(blank=True, null=True, db_index=True, verbose_name="客户登陆时间")
     last_cart_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后一次购物时间")
@@ -306,7 +302,7 @@ class Customer(models.Model):
     accept_marketing_choices = ((0, 'is true'), (1, 'is false'))
     accept_marketing_status = models.SmallIntegerField(db_index=True, choices=accept_marketing_choices, blank=True,null=True, verbose_name="")
 
-    payment_amount = models.CharField(blank=True, null=True, max_length=255, verbose_name="客户付款金额")
+    payment_amount = models.CharField(blank=True, null=True, max_length=32, verbose_name="客户付款金额")
 
     # last_opened_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后打开邮箱时间")
     # opened_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户打开邮箱次数")
@@ -314,7 +310,7 @@ class Customer(models.Model):
     # last_click_email_time = models.DateTimeField(blank=True, null=True, verbose_name="客户最后单击邮箱时间")
     # clicked_email_times = models.CharField(blank=True, null=False, max_length=255, verbose_name="客户单击邮箱次数")
     orders_count = models.IntegerField(blank=True, null=True, verbose_name="订单数量")
-    last_order_id = models.CharField(blank=True, null=True, max_length=255, verbose_name="last_order_id")
+    last_order_id = models.CharField(blank=True, null=True, max_length=64, verbose_name="last_order_id")
     if ENABLE_MIGRATE:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
@@ -334,7 +330,7 @@ class Customer(models.Model):
 class SubscriberActivity(models.Model):
     "收件人记录表"
     opt_time = models.DateTimeField(blank=True, null=True, verbose_name="客户登陆时间")
-    email = models.CharField(db_index=True, max_length=255, verbose_name="客户邮件地址")
+    email = models.CharField(db_index=True, max_length=64, verbose_name="客户邮件地址")
     message_uuid = models.IntegerField(db_index=True, null=True, blank=True, verbose_name="关联的邮件ID")
     type_choices = ((0, 'Opens'), (1, 'Clicks'), (2, 'Sends'))
     type = models.SmallIntegerField(default=0, verbose_name="客户操作类型")
@@ -354,7 +350,7 @@ class ProductCategory(models.Model):
     """产品类目表"""
     title = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品类目标题")
     url = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品类目标题url")
-    category_id = models.CharField(db_index=True, max_length=255,blank=True, null=True, verbose_name="产品类目id")
+    category_id = models.CharField(db_index=True, max_length=64,blank=True, null=True, verbose_name="产品类目id")
     if ENABLE_MIGRATE:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
@@ -376,9 +372,9 @@ class Product(models.Model):
     # sku = models.CharField(db_index=True, max_length=255, verbose_name="产品标识符")
     url = models.CharField(max_length=255, blank=True, null=True, verbose_name="产品URL")
     uuid = models.CharField(max_length=64, verbose_name="产品唯一标识")
-    name = models.CharField(db_index=True, max_length=255, verbose_name="产品名称")
+    name = models.CharField(db_index=True, max_length=128, verbose_name="产品名称")
     image_url = models.CharField(max_length=255, verbose_name="图片URL")
-    price = models.CharField(blank=True, null=True, max_length=255, verbose_name="产品价格")
+    price = models.CharField(blank=True, null=True, max_length=32, verbose_name="产品价格")
     product_category = models.ForeignKey(ProductCategory, on_delete=models.DO_NOTHING,blank=True, null=True)
     # state = models.SmallIntegerField(default=0, verbose_name="前端判断是否勾选状态")
     if ENABLE_MIGRATE:
@@ -401,17 +397,17 @@ class OrderEvent(models.Model):
     """
     订单事件信息
     """
-    event_uuid = models.CharField(max_length=255, blank=True, null=True, verbose_name="事件的唯一标识符")
-    order_uuid = models.CharField(max_length=255, verbose_name="订单的唯一标识符")
-    checkout_id = models.CharField(db_index=True, max_length=255, verbose_name="checkout的唯一标识符")
+    event_uuid = models.CharField(max_length=64, blank=True, null=True, verbose_name="事件的唯一标识符")
+    order_uuid = models.CharField(max_length=64, verbose_name="订单的唯一标识符")
+    checkout_id = models.CharField(db_index=True, max_length=64, verbose_name="checkout的唯一标识符")
     status = models.IntegerField(db_index=True, default=0, verbose_name="订单事件类型, 0-创建(未支付)，1-支付")
-    status_tag = models.CharField(max_length=255, blank=True, null=True, verbose_name="订单类型tag")
+    status_tag = models.CharField(max_length=64, blank=True, null=True, verbose_name="订单类型tag")
     status_url = models.CharField(max_length=255, blank=True, null=True, verbose_name="订单类型url")
     # store_url = models.CharField(db_index=True, max_length=255, verbose_name="订单对应的店铺的url")
-    customer_uuid = models.CharField(db_index=True,max_length=255, verbose_name="订单对应客户id")
+    customer_uuid = models.CharField(db_index=True,max_length=64, verbose_name="订单对应客户id")
     # [{"product": "123456", "sales": 2, "amount": 45.22}, {"product": "123456", "sales": 1, "amount": 49.22}]
     product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
-    total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
+    total_price = models.CharField(blank=True, null=True, max_length=32, verbose_name="订单总金额")
     if ENABLE_MIGRATE:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
@@ -435,16 +431,16 @@ class CheckoutEvent(models.Model):
     """
     checkout事件信息
     """
-    checkout_id = models.CharField(db_index=True, max_length=255, verbose_name="checkout的唯一标识符")
-    customer_uuid = models.CharField(max_length=255, db_index=True, verbose_name="订单对应客户id")
+    checkout_id = models.CharField(db_index=True, max_length=64, verbose_name="checkout的唯一标识符")
+    customer_uuid = models.CharField(max_length=64, db_index=True, verbose_name="订单对应客户id")
     #product_list = models.TextField(blank=True, null=True, verbose_name="所涉及到的产品id列表, eg:['121213']")
     abandoned_checkout_url = models.TextField(blank=True, null=True, verbose_name="checkout_url")
     status = models.IntegerField(db_index=True, default=0, verbose_name="checkouts事件类型, 0-创建(未支付)，1-支付, 2-删除")
     product_info = JSONField(blank=True, null=True, verbose_name="订单所涉及到的产品及其销量信息")
-    total_price = models.CharField(blank=True, null=True, max_length=255, verbose_name="订单总金额")
+    total_price = models.CharField(blank=True, null=True, max_length=32, verbose_name="订单总金额")
     checkout_create_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单创建时间")
     checkout_update_time = models.DateTimeField(db_index=True, blank=True, null=True, verbose_name="订单更新时间")
-    cart_token = models.CharField(db_index=True,blank=True, null=True, max_length=255, verbose_name="cart_token")
+    cart_token = models.CharField(db_index=True,blank=True, null=True, max_length=64, verbose_name="cart_token")
     if ENABLE_MIGRATE:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
     else:
