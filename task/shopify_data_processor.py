@@ -761,7 +761,7 @@ class ShopifyDataProcessor:
                 if store_view_id:
                     papi = GoogleApi(view_id=store_view_id,
                                      json_path=os.path.join(self.root_path, r"sdk//googleanalytics//client_secrets.json"))
-                    shopify_google_data = papi.get_report(key_word="", start_time="1daysAgo", end_time="today")
+                    shopify_google_data = papi.get_report(key_word="", start_time="10daysAgo", end_time="today")
                     # data_list = {}
                     if shopify_google_data["code"] == 2:
                         logger.error("updata_shopify_ga msg is error. msg={},store_id={}, view_id={}".format(shopify_google_data["msg"], store_id, store_view_id))
@@ -787,7 +787,7 @@ class ShopifyDataProcessor:
 
                     # 更新email_template的数据
                     cursor.executemany(
-                        """update email_template set sessions=%s, transcations=%s, revenue=%s ,update_time=%s where id =%s""",
+                        """update email_template set sessions=sessions+%s, transcations=transcations+%s, revenue=revenue+%s ,update_time=%s where id =%s""",
                         results_list)
 
                     # 更新dashboard数据
@@ -819,18 +819,17 @@ class ShopifyDataProcessor:
                 cursor.execute(
                     """select email_trigger_id, revenue from email_template where store_id= %s""", (store_id,))
                 email_trigger_list = cursor.fetchall()
-                for k, v in email_trigger_list:
-                    if k in update_email_trigger_dict.keys():
-                        v += update_email_trigger_dict.get(k)
+                for tg_id, rev in email_trigger_list:
+                    if tg_id in update_email_trigger_dict.keys():
+                        update_email_trigger_dict[tg_id] += rev
                     else:
-                        v = v
-                    update_email_trigger_dict.update({k: v})
+                        update_email_trigger_dict[tg_id] = rev
                 for list_email_trigger in update_email_trigger_dict.items():
                     res = (float(list_email_trigger[1]), list_email_trigger[0])
                     update_trigger_value.append(res)
 
                 # 更新email_tiggers数据
-                cursor.executemany("""update email_trigger set revenue=%s where id=%s""", update_trigger_value)
+                cursor.executemany("""update email_trigger set revenue=revenue+%s where id=%s""", update_trigger_value)
                 conn.commit()
             mdb.close()
         except Exception as e:
@@ -1367,12 +1366,12 @@ class ShopifyDataProcessor:
             xiaoding.send_text(msg=f'各位大佬, 新一天的收益为您呈现\n'
                                    f'累计收益={dashboard_total_revenue} \n'
                                    f'总订单数量={dashboard_total_orders}\n'
-                                   f'平均转化率={round(avg_conversion_rate, 4)*100}%\n'
-                                   f'平均复购率={round(avg_repeat_purchase_rate, 4)*100}%\n'
+                                   f'平均转化率={round(avg_conversion_rate*100, 2)}%\n'
+                                   f'平均复购率={round(avg_repeat_purchase_rate*100, 2)}%\n'
                                    f'总发送量={dashboard_total_sent}\n'
                                    f'平均点击率={round(avg_click_rate*100, 2)}%\n'
-                                   f'总打开率={round(avg_open_rate, 4)*100}%\n'
-                                   f'总退订率={round(avg_unsubscribe_rate, 4)*100}%\n', is_at_all=True)
+                                   f'总打开率={round(avg_open_rate*100, 2)}%\n'
+                                   f'总退订率={round(avg_unsubscribe_rate*100, 2)}%\n', is_at_all=True)
             logger.info("update_admin_dashboard update is successful")
         except Exception as e:
             logger.exception("update update_admin_dashboard data exception e={}".format(e))
@@ -1390,7 +1389,7 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
-    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
+    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
     # 统计admin的数据
     ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
     # 订单表 和  用户表 之间的数据同步
