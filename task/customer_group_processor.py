@@ -2343,10 +2343,13 @@ class AnalyzeCondition:
             conn.close() if conn else 0
         return True
 
-    def parse_trigger_tasks(self, trigger_id=None, email_id_list=None):
+    def parse_trigger_tasks(self, trigger_id=None, email_id_list=None, test_email=False):
         """
         解析触发邮件任务, 定时获取符合触发信息的新用户，并且创建定时任务
-        :return: True or False
+        :param trigger_id: 若为测试邮件时的triggerID
+        :param email_id_list: 若为测试邮件时，需要发送邮件的email地址列表
+        :param test_email: 是否为测试邮件
+        :return:
         """
         # 获取所有trigger条件
         return_res_email_list = email_id_list
@@ -2408,12 +2411,13 @@ class AnalyzeCondition:
             from_type, store_site_name = self.get_store_source(store_id)
             # 将new_customer_list转换成邮箱地址列表
             email_list = self.customer_uuid_to_email(new_customer_list) if from_type else self.customer_uuid_to_email_mongo(new_customer_list, store_site_name)
-            # 对new_customer_list里的收件人进行取消订阅或休眠过滤
-            unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(store_id)
-            if ENABLE_SUBSCRIBE:
-                email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
-            logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (
-            store_id, set(unsubscribed_and_snoozed)))
+            if not test_email:
+                # 对new_customer_list里的收件人进行取消订阅或休眠过滤
+                unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(store_id)
+                if ENABLE_SUBSCRIBE:
+                    email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
+                logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (
+                store_id, set(unsubscribed_and_snoozed)))
             logger.info("new customer list length is %s" % len(email_list))
             # 添加收件人,每次添加不能超过100个收件人
             times = int(len(email_list)//99) + 1
@@ -2443,7 +2447,8 @@ class AnalyzeCondition:
                     # 将触发邮件任务参数增加到待入库数据列表中
                     valid_email_id_list = self.customer_email_to_uuid(valid_email, store_id) if from_type else self.customer_email_to_uuid_mongo(valid_email, store_site_name)
                     return_res_email_list = valid_email_id_list
-                    insert_list.append((email_uuid, template_id, 0, unit, excute_time, str(valid_email_id_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now(), store_id))
+                    remark = unit if not test_email else "test"
+                    insert_list.append((email_uuid, template_id, 0, remark, excute_time, str(valid_email_id_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now(), store_id))
                 elif item["type"] == "Delay":  # 代表是delay
                     num, unit = item["value"], item["unit"]
                     if unit in ["weeks", "days", "hours", "minutes"]:
@@ -2651,63 +2656,58 @@ class AnalyzeCondition:
                 if not eval(str(res["customer_list"])):
                     continue
                 customer_list = eval(res["customer_list"])
-                # 先排除2分钟之内收到过此邮件的收件人
-                customers_2minutes = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(minutes=-2))
-                customer_list = list(set(customer_list) - set(customers_2minutes))
-                # 如果没有需要发送的邮件，应该把此条任务直接从emil_task表中删掉
-                if not customer_list:
-                    logger.info(
-                        "no customers need to send email, need to update the email_task status, email_task id is %s" % res[
-                            "id"])
-                    self.update_repeat_task_by_id(res["id"])
-                    continue
                 # 获取store的from_type, store_name
                 from_type, store_site_name = self.get_store_source(res["store_id"])
-                # 对customer_list里的收件人进行note筛选(收到过此邮件的人)
-                if "customer received an email from this campaign in the last" in res["note"]:
-                    for note in eval(res["note"]):
-                        if "customer received an email from this campaign in the last" in note:
-                            num, unit = note.split("last")[-1].strip().split(".")[0].split(" ")
-                            time_dict = {unit: -int(num)}
-                            # customers_7day = self.filter_received_customer(res["store_id"], res["uuid"]) if from_type else self.filter_received_customer_mongo(res["store_id"], res["uuid"], store_name)
-                            customers_7day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(**time_dict))
-                            customer_list = list(set(customer_list)-set(customers_7day))
-                            logger.info("filter %s" % note)
-                            # if not customer_list:
-                            #     logger.info(
-                            #         "no customers need to send email, need to delete the email_task, email_task id is %s" %
-                            #         res[
-                            #             "id"])
-                            #     self.update_repeat_task_by_id(res["id"])
-                            #     continue
-                else:
-                    # 默认排除一天之内收到过此邮件的收件人
-                    customers_1day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(days=-1))
-                    customer_list = list(set(customer_list) - set(customers_1day))
-                    logger.info("users did not choose to receive mail time filtering, default filter customers who received this email within a day.")
-                    if not customer_list:
-                        logger.info("no customers need to send email, need to update the email_task status, email_task id is %s" % res["id"])
-                        self.update_repeat_task_by_id(res["id"])
-                        continue
-                if ("customer makes a purchase" in res["note"]) and (res["remark"] != "first"):
-                    # 对customer_list里的收件人进行note筛选(从task创建时间开始)
-                    logger.info("start filter the customer makes a purchase.")
-                    customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_site_name)
-                    customer_list = list(set(customer_list) - set(customers_purchased))
-                    logger.info("filter the customer makes a purchase.")
+                test_email = True if res["remark"] == "test" else False
+                if not test_email:
+                    # 先排除2分钟之内收到过此邮件的收件人
+                    customers_2minutes = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(minutes=-2))
+                    customer_list = list(set(customer_list) - set(customers_2minutes))
+                    # 如果没有需要发送的邮件，应该把此条任务直接从emil_task表中删掉
                     if not customer_list:
                         logger.info(
                             "no customers need to send email, need to update the email_task status, email_task id is %s" % res[
                                 "id"])
                         self.update_repeat_task_by_id(res["id"])
                         continue
+                    # 对customer_list里的收件人进行note筛选(收到过此邮件的人)
+                    if "customer received an email from this campaign in the last" in res["note"]:
+                        for note in eval(res["note"]):
+                            if "customer received an email from this campaign in the last" in note:
+                                num, unit = note.split("last")[-1].strip().split(".")[0].split(" ")
+                                time_dict = {unit: -int(num)}
+                                customers_7day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(**time_dict))
+                                customer_list = list(set(customer_list)-set(customers_7day))
+                                logger.info("filter %s" % note)
+                    else:
+                        # 默认排除一天之内收到过此邮件的收件人
+                        customers_1day = self.get_recipients_from_email_record_by_timedelta(res["store_id"], res["uuid"], time_delta=datetime.timedelta(days=-1))
+                        customer_list = list(set(customer_list) - set(customers_1day))
+                        logger.info("users did not choose to receive mail time filtering, default filter customers who received this email within a day.")
+                        if not customer_list:
+                            logger.info("no customers need to send email, need to update the email_task status, email_task id is %s" % res["id"])
+                            self.update_repeat_task_by_id(res["id"])
+                            continue
+                    if ("customer makes a purchase" in res["note"]) and (res["remark"] != "first"):
+                        # 对customer_list里的收件人进行note筛选(从task创建时间开始)
+                        logger.info("start filter the customer makes a purchase.")
+                        customers_purchased = self.filter_purchase_customer(res["store_id"], res["create_time"]) if from_type else self.filter_purchase_customer_mongo(res["store_id"], res["create_time"], store_site_name)
+                        customer_list = list(set(customer_list) - set(customers_purchased))
+                        logger.info("filter the customer makes a purchase.")
+                        if not customer_list:
+                            logger.info(
+                                "no customers need to send email, need to update the email_task status, email_task id is %s" % res[
+                                    "id"])
+                            self.update_repeat_task_by_id(res["id"])
+                            continue
                 # 需要将uuid 转换成email
                 email_list = self.customer_uuid_to_email(customer_list) if from_type else self.customer_uuid_to_email_mongo(customer_list, store_site_name)
-                # 对customer_list里的收件人进行取消订阅或休眠过滤
-                unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(res["store_id"])
-                email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
-                logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (
-                res["store_id"], set(unsubscribed_and_snoozed)))
+                if not test_email:
+                    # 对customer_list里的收件人进行取消订阅或休眠过滤
+                    unsubscribed_and_snoozed = self.filter_unsubscribed_and_snoozed_in_the_customer_list(res["store_id"])
+                    email_list = list(set(email_list) - set(unsubscribed_and_snoozed))
+                    logger.info("filter unsubscribed and snoozed in the customer list in store(id=%s), include: %s" % (
+                    res["store_id"], set(unsubscribed_and_snoozed)))
                 send_error_info = ""
                 status = 2
                 recipients = []
@@ -2726,7 +2726,6 @@ class AnalyzeCondition:
                 for customer in email_list:
                     # 发送邮件前，有可能需要先更新一下html,获取html模板
                     subject, html, product_condition, is_cart = self.get_template_info_by_id(res["template_id"])
-                    # if int(is_cart) == 1 or "top" in product_condition:
                     # 筛选产品，并更新邮件
                     pr = ProductRecommend()
                     if int(is_cart) == 1:
@@ -2742,8 +2741,6 @@ class AnalyzeCondition:
                         top_products = pr.get_top_product_by_condition(product_condition, res["store_id"], res["flow_title"], res["template_id"])
                     snippets_list = pr.generate_snippets(cart_products, top_products)
                     rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"], snippets=snippets_list)
-                    # else:
-                    #     rest = ems.send_transactional_messages(res["uuid"], customer, res["customer_list_id"])
                     if rest["code"] != 1:
                         logger.error("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
                         msg = rest["msg"]["Message"] if isinstance(rest["msg"], dict) else str(rest["msg"])
@@ -2884,7 +2881,6 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
         return True
-
 
 
 if __name__ == '__main__':
