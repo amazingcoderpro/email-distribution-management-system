@@ -47,13 +47,22 @@ EMS_CONFIG = {
     "api_key": "0x53WuKGWlbq2MQlLhLk"
 }
 
+# # 测试数据库
+# MYSQL_CONFIG = {
+#     "host": os.getenv("MYSQL_HOST", "47.244.107.240"),
+#     "port": 3306,
+#     "db": "edm",
+#     "user": "edm",
+#     "password": os.getenv("MYSQL_PASSWD", "edm@orderplus.com")
+# }
 
+# 生产数据库
 MYSQL_CONFIG = {
-    "host": os.getenv("MYSQL_HOST", "47.244.107.240"),
+    "host": os.getenv("MYSQL_HOST", "rm-j6cn4tr3569ij4tu535890.mysql.rds.aliyuncs.com"),    # 本地如果要调试生产环境数据，需使用外网IP:"rm-j6cn4tr3569ij4tu5lo.mysql.rds.aliyuncs.com",
     "port": 3306,
     "db": "edm",
-    "user": "edm",
-    "password": os.getenv("MYSQL_PASSWD", "edm@orderplus.com")
+    "user": "edm2",
+    "password": os.getenv("MYSQL_PASSWD", "quh8dcGQYPBr")
 }
 
 

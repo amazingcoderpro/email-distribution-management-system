@@ -119,4 +119,13 @@ if __name__ == '__main__':
     mdb = MongoDBUtil(mongo_config=MONGO_CONFIG)
     db = mdb.get_instance()
     print(db.collection_names(include_system_collections=False))
+    from collections import Counter
+    col = db['shopify_customer']
+    res = col.find({"created_at": {"$gte": "2019-06-12T01:22:34+08:00"}, "email":{"$exists":1}, "email":{"$ne": None}}, {"_id": 0, "email":1})
+    email_count =[]
+    for r in res:
+        mail = r.get("email", "")
+        mail_pfx = mail.split("@")[1].lower()
+        email_count.append(mail_pfx)
+    print(Counter(email_count))
     mdb.close()

@@ -5,7 +5,7 @@ from django.utils import timezone
 from django_mysql.models import JSONField
 
 # 迁移之前将期改为True
-ENABLE_MIGRATE = True
+ENABLE_MIGRATE = False
 
 
 class User(AbstractUser):
