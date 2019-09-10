@@ -145,6 +145,7 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
                   "status",     # 0--disable, 1-enable
                   "title",
                   "description",
+                  "total_sents"
                   "open_rate",
                   "click_rate",
                   "revenue",
