@@ -32,19 +32,23 @@ class EmailTriggerView(generics.ListAPIView):
                         ]
                     }, status=400)
         store = models.Store.objects.filter(url=url).first()
-        query_trigger = models.EmailTrigger.objects.filter(store=store,status__in=[0,1]).values("email_trigger_id")
+        query_trigger = models.EmailTrigger.objects.filter(store=store, status__in=[0,1]).values("email_trigger_id", "status")
+        user_triggers = {}
         if query_trigger:
-            query_trigger = [item["email_trigger_id"] for item in query_trigger]
+            for item in query_trigger:
+                user_triggers[item["email_trigger_id"]] = item['status']
+            # query_trigger_ids = [item["email_trigger_id"] for item in query_trigger]
 
         #print("###", query_trigger)
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         response = serializer.data
         for item in response:
-            if item["id"] not in query_trigger:
+            if item["id"] not in user_triggers.keys():
                 item["is_auth"] = 0
             else:
                 item["is_auth"] = 1
+                item['status'] = user_triggers.get(item['id'], 1)
         return Response(response)
 
 

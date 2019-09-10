@@ -148,9 +148,9 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
                   "open_rate",
                   "click_rate",
                   "revenue",
-                  "relation_info",
-                  "email_delay",
-                  "note",
+                  # "relation_info",
+                  # "email_delay",
+                  # "note",
                   "create_time",
                   "update_time"
         )
