@@ -2629,6 +2629,31 @@ class AnalyzeCondition:
             cursor.close() if cursor else 0
             conn.close() if conn else 0
 
+    def update_task_status(self, task_id_list):
+        """
+        更新task的状态为正在执行中
+        :param task_id_list: 需要更新状态的task_id 列表
+        :return:
+        """
+        try:
+            conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
+                          password=self.db_password).get_instance()
+            cursor = conn.cursor(cursor=pymysql.cursors.DictCursor) if conn else None
+            if not cursor:
+                return False
+            # cursor.execute("delete from email_task where id=%s", (task_id))
+            # now_time = datetime.datetime.now()
+            cursor.execute("update email_task set status=6 where id in %s", (tuple(task_id_list),))
+            conn.commit()
+            logger.info("update email executing task success. id = %s" % task_id_list)
+            return True
+        except Exception as e:
+            logger.exception("update email executing task by id({}) exception: {}".format(task_id_list, e))
+            return False
+        finally:
+            cursor.close() if cursor else 0
+            conn.close() if conn else 0
+
     def execute_flow_task(self):
         """
         定时获取未执行的flow任务
@@ -2650,6 +2675,11 @@ class AnalyzeCondition:
                            (now_time-datetime.timedelta(minutes=10), now_time+datetime.timedelta(seconds=35)))
             result = cursor.fetchall()
             logger.info("get need to execute flow email tasks success. reslut is %s" % str(result))
+            # 将搜索到的task状态改为正在执行中
+            task_id_list = [item["id"] for item in result]
+            if not self.update_task_status(task_id_list):
+                logger.error("Update email task executing status exception.waitting for next search task.")
+                raise Exception("Update email task executing status exception.waitting for next search task.")
             update_tuple_list = []
             recipients_list = []
             for res in result:
