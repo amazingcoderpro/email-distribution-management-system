@@ -2643,7 +2643,7 @@ class AnalyzeCondition:
                 return False
             # cursor.execute("delete from email_task where id=%s", (task_id))
             # now_time = datetime.datetime.now()
-            cursor.execute("update email_task set status=6 where id in %s", (task_id_list))
+            cursor.execute("update email_task set status=6 where id in %s", (tuple(task_id_list),))
             conn.commit()
             logger.info("update email executing task success. id = %s" % task_id_list)
             return True
@@ -2677,7 +2677,7 @@ class AnalyzeCondition:
             logger.info("get need to execute flow email tasks success. reslut is %s" % str(result))
             # 将搜索到的task状态改为正在执行中
             task_id_list = [item["id"] for item in result]
-            if not self.update_task_status(task_id_list):
+            if task_id_list and not self.update_task_status(task_id_list):
                 logger.exception("Update email task executing status exception.waitting for next search task.")
             update_tuple_list = []
             recipients_list = []
