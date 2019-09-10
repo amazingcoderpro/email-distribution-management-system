@@ -32,14 +32,20 @@ class EmailTriggerView(generics.ListAPIView):
                         ]
                     }, status=400)
         store = models.Store.objects.filter(url=url).first()
-        query_trigger = models.EmailTrigger.objects.filter(store=store, status__in=[0, 1]).values("email_trigger_id", "status", 'total_sents', 'open_rate', 'click_rate', 'revenue')
+        query_trigger = models.EmailTrigger.objects.filter(store=store, status__in=[0, 1]).values("email_trigger_id",
+                                                                                                  "status",
+                                                                                                  "total_sents",
+                                                                                                  "open_rate",
+                                                                                                  "click_rate",
+                                                                                                  "revenue")
         user_triggers = {}
         if query_trigger:
             for item in query_trigger:
                 user_triggers[item["email_trigger_id"]] = {"status": item['status'],
                                                            "total_sents": item["total_sents"],
                                                            "open_rate": item['open_rate'],
-                                                           "click_rate": item['click_rate']
+                                                           "click_rate": item['click_rate'],
+                                                           "revenue": item['revenue']
                                                            }
             # query_trigger_ids = [item["email_trigger_id"] for item in query_trigger]
 
@@ -57,6 +63,7 @@ class EmailTriggerView(generics.ListAPIView):
                 item['total_sents'] = trg.get("total_sents", 0)
                 item['open_rate'] = trg.get("open_rate", 0)
                 item['click_rate'] = trg.get("click_rate", 0)
+                item['revenue'] = trg.get("revenue", 0)
         return Response(response)
 
 
