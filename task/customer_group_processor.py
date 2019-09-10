@@ -2677,8 +2677,9 @@ class AnalyzeCondition:
             logger.info("get need to execute flow email tasks success. reslut is %s" % str(result))
             # 将搜索到的task状态改为正在执行中
             task_id_list = [item["id"] for item in result]
-            if task_id_list and not self.update_task_status(task_id_list):
-                logger.exception("Update email task executing status exception.waitting for next search task.")
+            if not self.update_task_status(task_id_list):
+                logger.error("Update email task executing status exception.waitting for next search task.")
+                raise Exception("Update email task executing status exception.waitting for next search task.")
             update_tuple_list = []
             recipients_list = []
             for res in result:
