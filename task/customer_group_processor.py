@@ -2421,12 +2421,13 @@ class AnalyzeCondition:
             logger.info("new customer list length is %s" % len(email_list))
             # 添加收件人,每次添加不能超过100个收件人
             times = int(len(email_list)//99) + 1
+            invalid_email = []
             for t in range(times):
                 rest = ems.add_subscriber(customer_list_id, email_list[99*t:99*(t+1)])
                 if rest["code"]==-1 or rest["code"]==2:
                     logger.error("add subscribers failed, the reason is %s" % rest["msg"])
                     continue
-            invalid_email = rest.get("invalid_email", [])
+                invalid_email += rest.get("invalid_email", [])
             valid_email = list(set(email_list) - set(invalid_email))  # 添加到收件人列表成功的邮箱
             logger.info("add subscriber success.customer_list_id is %s" % customer_list_id)
             return_res_email_list = valid_email
@@ -2778,7 +2779,7 @@ class AnalyzeCondition:
                     if rest["code"] != 1:
                         logger.error("send to email(%s) failed, the reason is %s" % (customer, rest["msg"]))
                         msg = rest["msg"]["Message"] if isinstance(rest["msg"], dict) else str(rest["msg"])
-                        send_error_info += msg + "; "
+                        send_error_info += customer + msg + "; "
                     else:
                         status = 1
                         # 发送成功的收件人记录email_record的表中
