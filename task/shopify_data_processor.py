@@ -1434,6 +1434,32 @@ class ShopifyDataProcessor:
             cursor.execute("select `id` from store where id!=1")
             all_store = cursor.fetchall()
 
+            # 更新admin eamil_trigger的数据
+            cursor.execute("SELECT id from email_trigger where store_id=1 and `status`=1 AND draft=0")
+            all_trigger_id = cursor.fetchall()
+            for trigger_id in all_trigger_id:
+                email_trigger_id = trigger_id.get("id", "")
+                total_revenue = 0.0
+                trigger_total_sents = 0
+                total_sessions = 0
+                total_transcations = 0
+                cursor.execute("SELECT revenue, total_sents, sessions, transcations from email_trigger where store_id!=1 and email_trigger_id=%s", (email_trigger_id,))
+                trigger_value = cursor.fetchall()
+                for trigger_num in trigger_value:
+                    revenue = trigger_num.get("revenue", "")
+                    total_sents = trigger_num.get("total_sents", "")
+                    sessions = trigger_num.get("sessions", "")
+                    transcations = trigger_num.get("transcations", "")
+                    total_revenue += float(revenue)
+                    trigger_total_sents += total_sents
+                    total_sessions += sessions
+                    total_transcations += transcations
+                conversion_rate = round(total_transcations / total_sessions, 4) if total_sessions else 0
+                cursor.execute("""update email_trigger set revenue=%s, total_sents=%s, sessions=%s, transcations=%s, conversion_rate=%s and email_trigger_id=email_trigger_id""",
+                                  (total_revenue, trigger_total_sents, total_sessions, total_transcations, conversion_rate))
+                logger.info("update email_trigger admin date is successful, email_trigger_id={}".format(trigger_id.get('id', '')))
+                conn.commit()
+
             webhook = 'https://oapi.dingtalk.com/robot/send?access_token=28aaa98ec46c76bed2bbb114f1a3713280dbbf1c652bdb36b11aa680013d58d4'
             xiaoding = DingtalkChatbot(webhook)
             text = f'各位大佬, SmartSend每日收益快报为您呈现:\n当前用户数: {len(all_store)}\n促成总订单数: {dashboard_total_orders}\n系统累计收益: {round(dashboard_total_revenue, 2)}$ \n平均转化率: {round(avg_conversion_rate*100, 2)}%\n平均复购率: {round(avg_repeat_purchase_rate*100, 2)}%\n累计发送邮件量: {dashboard_total_sent}\n平均点击率: {round(avg_click_rate*100, 2)}%\n平均打开率: {round(avg_open_rate*100, 2)}%\n邮件退订率: {round(avg_unsubscribe_rate*100, 2)}%\n'
@@ -1462,7 +1488,7 @@ if __name__ == '__main__':
     # 拉取shopify GA 数据
     # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
     # 统计admin的数据
-    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
+    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
     # 订单表 和  用户表 之间的数据同步
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
@@ -1472,5 +1498,5 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_new_shopify()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_template_trigger()
-    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_trigger_ga()
+    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_trigger_ga()
 
