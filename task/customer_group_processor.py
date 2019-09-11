@@ -2448,7 +2448,11 @@ class AnalyzeCondition:
                     valid_email_id_list = self.customer_email_to_uuid(valid_email, store_id) if from_type else self.customer_email_to_uuid_mongo(valid_email, store_site_name)
                     return_res_email_list = valid_email_id_list
                     remark = unit if not test_email else "test"
-                    insert_list.append((email_uuid, template_id, 0, remark, excute_time, str(valid_email_id_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now(), store_id))
+                    # 如果需要发送的收件人超过100，则需要将收件人分成最多100人的若干份
+                    nums = int(len(valid_email_id_list) // 100) + 1
+                    for t in range(nums):
+                        part_email_list = valid_email_id_list[100 * t:100 * (t + 1)]
+                        insert_list.append((email_uuid, template_id, 0, remark, excute_time, str(part_email_list), t_id, 1, datetime.datetime.now(), datetime.datetime.now(), store_id))
                 elif item["type"] == "Delay":  # 代表是delay
                     num, unit = item["value"], item["unit"]
                     if unit in ["weeks", "days", "hours", "minutes"]:
@@ -2680,9 +2684,9 @@ class AnalyzeCondition:
             if not self.update_task_status(task_id_list):
                 logger.error("Update email task executing status exception.waitting for next search task.")
                 raise Exception("Update email task executing status exception.waitting for next search task.")
-            update_tuple_list = []
-            recipients_list = []
             for res in result:
+                update_tuple_list = []
+                recipients_list = []
                 if not eval(str(res["customer_list"])):
                     continue
                 customer_list = eval(res["customer_list"])
@@ -2789,11 +2793,11 @@ class AnalyzeCondition:
                 # 邮件发送完毕，回填数据
                 update_tuple_list.append((str(customer_uuid_list), send_error_info, datetime.datetime.now(), str(customer_list), datetime.datetime.now(), status, res["id"]))
                 recipients_list.append((str(old_recipients_dict), datetime.datetime.now(), res["uuid"]))
-            if recipients_list:
-                self.update_email_record_recipients_list(recipients_list)
-            if update_tuple_list:
-                self.update_flow_email_task(update_tuple_list)
-            logger.info("execute flow task finished.")
+                if recipients_list:
+                    self.update_email_record_recipients_list(recipients_list)
+                if update_tuple_list:
+                    self.update_flow_email_task(update_tuple_list)
+                logger.info("execute flow task(id=%s) finished." % res["id"])
             return True
         except Exception as e:
             logger.exception("execute flow task exception: {}".format(e))
@@ -2939,8 +2943,8 @@ if __name__ == '__main__':
     # print(ac.update_customer_group_list(store_id=29))
     # print(ac.create_trigger_email_by_template(53, 216, "Update Html TEST", """Update Html TEST""", 124))
     # print(ac.parse_new_customer_group_list())
-    # print(ac.parse_trigger_tasks())
-    print(ac.execute_flow_task())
+    print(ac.parse_trigger_tasks())
+    # print(ac.execute_flow_task())
     # print(ac.get_template_info_by_id(84))
     # print(ac.update_repeat_task_by_id(7443))
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
