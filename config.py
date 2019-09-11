@@ -58,7 +58,7 @@ EMS_CONFIG = {
 
 # 生产数据库
 MYSQL_CONFIG = {
-    "host": os.getenv("MYSQL_HOST", "rm-j6cn4tr3569ij4tu5lo.mysql.rds.aliyuncs.com"),    # 本地如果要调试生产环境数据，需使用外网IP:"rm-j6cn4tr3569ij4tu5lo.mysql.rds.aliyuncs.com",
+    "host": os.getenv("MYSQL_HOST", "rm-j6cn4tr3569ij4tu535890.mysql.rds.aliyuncs.com"),    # 本地如果要调试生产环境数据，需使用外网IP:"rm-j6cn4tr3569ij4tu5lo.mysql.rds.aliyuncs.com",
     "port": 3306,
     "db": "edm",
     "user": "edm2",
