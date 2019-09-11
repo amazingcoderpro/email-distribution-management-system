@@ -212,7 +212,7 @@ class EmailTrigger(models.Model):
 class EmailTask(models.Model):
 
     uuid = models.CharField(db_index=True, max_length=64, blank=True, null=True, verbose_name="事务邮件ID")
-    status_choices = ((0, '待发送'), (1, '已发送(成功)'),(2, '已发送但发送失败'), (3, '模版禁用'), (4, "模板已删除"), (5, "重复发送人员"))
+    status_choices = ((0, '待发送'), (1, '已发送(成功)'),(2, '已发送但发送失败'), (3, '模版禁用'), (4, "模板已删除"), (5, "重复发送人员"), (6, "正在执行中"))
     status = models.SmallIntegerField(db_index=True, choices=status_choices, default=0, verbose_name="邮件发送状态")
     remark = models.TextField(blank=True, null=True, verbose_name="备注")
     execute_time = models.DateTimeField(db_index=True, verbose_name="执行时间")
