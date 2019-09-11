@@ -183,6 +183,11 @@ class EmailTrigger(models.Model):
     open_rate = models.DecimalField(default=0,  max_digits=10, decimal_places=4, verbose_name="邮件打开率")
     click_rate = models.DecimalField(default=0,  max_digits=10, decimal_places=4, verbose_name="邮件单击率")
     revenue = models.DecimalField(default=0,  max_digits=10, decimal_places=4, verbose_name="对应的销售额")
+
+    sessions = models.IntegerField(default=0, verbose_name="流量数")
+    transcations = models.IntegerField(default=0, verbose_name="交易次数")
+    conversion_rate = models.DecimalField(default=0, max_digits=10, decimal_places=4, verbose_name="转化率")
+
     # members = models.IntegerField(blank=True, null=True,  verbose_name="数量")
     relation_info = models.TextField(blank=True, null=True, verbose_name="筛选条件")
     email_delay = models.TextField(blank=True, null=True, verbose_name="发送邮件顺序")
@@ -194,7 +199,7 @@ class EmailTrigger(models.Model):
     # is_open = models.SmallIntegerField(db_index=True, choices=is_open_choices, default=1, verbose_name="是否对外")
     draft_choices = ((0, '线上'), (1, '草稿'))
     draft = models.SmallIntegerField(db_index=True, choices=draft_choices, default=0, verbose_name="是否是草稿状态")
-    if ENABLE_MIGRATE:
+    if 1:
         store_id = models.IntegerField(db_index=True, verbose_name="店铺id")
         email_trigger_id = models.IntegerField(db_index=True, null=True, blank=True, default=None, verbose_name="email_trigger_id")
     else:
@@ -204,7 +209,7 @@ class EmailTrigger(models.Model):
     update_time = models.DateTimeField(db_index=True,auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        managed = ENABLE_MIGRATE
+        managed = True
         db_table = 'email_trigger'
         ordering = ["-id"]
 
