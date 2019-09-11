@@ -213,6 +213,9 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
                   "open_rate",
                   "click_rate",
                   "revenue",
+                  "sessions",
+                  "transcations",
+                  "conversion_rate",
                   "relation_info",
                   "email_delay",
                   "note",
@@ -252,7 +255,6 @@ class EmailTriggerSerializer(serializers.ModelSerializer):
             if val["type"] == "Email":
                 models.EmailTemplate.objects.filter(id=val["value"], store_id=store_id).update(email_trigger_id=instance.id)
         return instance
-
 
 
 class EmailTriggerOptSerializer(serializers.ModelSerializer):

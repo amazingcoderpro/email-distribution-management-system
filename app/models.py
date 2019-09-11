@@ -183,6 +183,11 @@ class EmailTrigger(models.Model):
     open_rate = models.DecimalField(default=0,  max_digits=10, decimal_places=4, verbose_name="邮件打开率")
     click_rate = models.DecimalField(default=0,  max_digits=10, decimal_places=4, verbose_name="邮件单击率")
     revenue = models.DecimalField(default=0,  max_digits=10, decimal_places=4, verbose_name="对应的销售额")
+
+    sessions = models.IntegerField(default=0, verbose_name="流量数")
+    transcations = models.IntegerField(default=0, verbose_name="交易次数")
+    conversion_rate = models.DecimalField(default=0, max_digits=10, decimal_places=4, verbose_name="转化率")
+
     # members = models.IntegerField(blank=True, null=True,  verbose_name="数量")
     relation_info = models.TextField(blank=True, null=True, verbose_name="筛选条件")
     email_delay = models.TextField(blank=True, null=True, verbose_name="发送邮件顺序")
