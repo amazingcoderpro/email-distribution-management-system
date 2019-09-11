@@ -726,19 +726,25 @@ class ShopifyDataProcessor:
         update_email_trigger_dict = {}
         update_trigger_value = []
         cursor.execute(
-            """select email_trigger_id, revenue from email_template where store_id= %s""", (store_id,))
+            """select email_trigger_id, revenue, sessions, transcations from email_template where store_id= %s""", (store_id,))
         email_trigger_list = cursor.fetchall()
-        for tg_id, rev in email_trigger_list:
+
+        for tg_id, rev, tg_sess, tg_order in email_trigger_list:
             if tg_id in update_email_trigger_dict.keys():
-                update_email_trigger_dict[tg_id] += rev
+                update_email_trigger_dict[tg_id][0] += rev
+                update_email_trigger_dict[tg_id][1] += tg_sess
+                update_email_trigger_dict[tg_id][2] += tg_order
             else:
-                update_email_trigger_dict[tg_id] = rev
-        for list_email_trigger in update_email_trigger_dict.items():
-            res = (float(list_email_trigger[1]), list_email_trigger[0])
+                update_email_trigger_dict[tg_id] = [rev, tg_sess, tg_order]
+        for trigger_id, list_email_trigger in update_email_trigger_dict.items():
+            # trigger 转化率
+            conversion_rate = round(list_email_trigger[2] / list_email_trigger[1], 4) if list_email_trigger[1] else 0
+            res = (float(list_email_trigger[0]), list_email_trigger[1], list_email_trigger[2], conversion_rate, trigger_id)
             update_trigger_value.append(res)
 
         # 更新email_tiggers数据
-        cursor.executemany("""update email_trigger set revenue=revenue+%s where id=%s""", update_trigger_value)
+        cursor.executemany("""update email_trigger set revenue=revenue+%s, sessions=sessions+%s, transcations=transcations+%s, conversion_rate=%s where id=%s""", update_trigger_value)
+        logger.info("update_trigger_ga is successful store_id={},".format(store_id))
         conn.commit()
 
     def update_dashboard_ga(self, store_id, shopify_total_results, now_date, zero_time, last_time, orders_gte2, total_paid_customers, cursor, conn):
@@ -775,16 +781,14 @@ class ShopifyDataProcessor:
             cursor.execute("""update dashboard set  update_time=%s, session=%s, orders=%s, revenue=%s, total_orders=%s,
                                     total_sessions=%s, total_revenue=%s, avg_conversion_rate=%s, avg_repeat_purchase_rate=%s where id=%s""",
                            (datetime.datetime.now(), sessions, orders, revenue, total_orders, total_sessions,
-                            total_revenue,
-                            avg_conversion_rate, avg_repeat_purchase_rate, dashboard_id[0]))
+                            total_revenue, avg_conversion_rate, avg_repeat_purchase_rate, dashboard_id[0]))
         else:
             # insert
             cursor.execute("""insert into dashboard (create_time, update_time, store_id, session, orders, revenue,
                                   total_orders, total_sessions, total_revenue, avg_conversion_rate, avg_repeat_purchase_rate)
-                        values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                            values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                            (now_date, datetime.datetime.now(), store_id, sessions, orders, revenue, total_orders,
-                            total_sessions, total_revenue,
-                            avg_conversion_rate, avg_repeat_purchase_rate))
+                            total_sessions, total_revenue,avg_conversion_rate, avg_repeat_purchase_rate))
 
         logger.info(
             "update store {} dashboard data in [{}] successful. revenue={}, total_revenue={},total_orders={},total_sessions={}, avg_conversion_rate={}, avg_repeat_purchase_rate={} "
@@ -849,6 +853,9 @@ class ShopifyDataProcessor:
                     """update email_template set sessions=sessions+%s, transcations=transcations+%s, revenue=revenue+%s ,update_time=%s where id =%s""",
                     results_list)
                 conn.commit()
+
+                # 更新email_trigger的数据
+                self.update_trigger_ga(store_id, cursor, conn)
 
                 # 更新dashboard数据
                 self.update_dashboard_ga(store_id, shopify_data.get("total_results", {}), now_date, zero_time, last_time,
@@ -1409,8 +1416,8 @@ class ShopifyDataProcessor:
                        dashboard_clicks, dashboard_sents, dashboard_opens, 1))
             conn.commit()
 
-            max_revenue_store = today_max_revenue_store= ""
-            if max_revenue_store_id>0:
+            max_revenue_store = today_max_revenue_store = ""
+            if max_revenue_store_id > 0:
                 cursor.execute("select `domain`, `currency` from store where id=%s", (max_revenue_store_id, ))
                 res = cursor.fetchone()
                 if res:
@@ -1427,14 +1434,13 @@ class ShopifyDataProcessor:
             cursor.execute("select `id` from store where id!=1")
             all_store = cursor.fetchall()
 
-
             webhook = 'https://oapi.dingtalk.com/robot/send?access_token=28aaa98ec46c76bed2bbb114f1a3713280dbbf1c652bdb36b11aa680013d58d4'
             xiaoding = DingtalkChatbot(webhook)
-            text = f'各位大佬, SmartSend每日收益快报为您呈现:\n当前用户数: {len(all_store)}\n促成总订单数: {dashboard_total_orders}\n系统累计收益: {dashboard_total_revenue}$ \n平均转化率: {round(avg_conversion_rate*100, 2)}%\n平均复购率: {round(avg_repeat_purchase_rate*100, 2)}%\n累计发送邮件量: {dashboard_total_sent}\n平均点击率: {round(avg_click_rate*100, 2)}%\n平均打开率: {round(avg_open_rate*100, 2)}%\n邮件退订率: {round(avg_unsubscribe_rate*100, 2)}%\n'
+            text = f'各位大佬, SmartSend每日收益快报为您呈现:\n当前用户数: {len(all_store)}\n促成总订单数: {dashboard_total_orders}\n系统累计收益: {round(dashboard_total_revenue, 2)}$ \n平均转化率: {round(avg_conversion_rate*100, 2)}%\n平均复购率: {round(avg_repeat_purchase_rate*100, 2)}%\n累计发送邮件量: {dashboard_total_sent}\n平均点击率: {round(avg_click_rate*100, 2)}%\n平均打开率: {round(avg_open_rate*100, 2)}%\n邮件退订率: {round(avg_unsubscribe_rate*100, 2)}%\n'
             if today_max_revenue_store:
-                text += f"昨日收益最佳店铺：{today_max_revenue_store}, 昨日订单数:{today_max_orders}, 收益金额:{today_max_revenue}{today_max_store_currency}\n"
+                text += f"昨日收益最佳店铺：{today_max_revenue_store}, 昨日订单数:{today_max_orders}, 收益金额:{round(today_max_revenue, 2)}{today_max_store_currency}\n"
             if max_revenue_store:
-                text += f"累计收益最佳店铺：{max_revenue_store}, 累计订单数:{max_orders}, 收益金额:{max_revenue}{max_store_currency}\n"
+                text += f"累计收益最佳店铺：{max_revenue_store}, 累计订单数:{max_orders}, 收益金额:{round(max_revenue, 2)}{max_store_currency}\n"
             xiaoding.send_text(msg=text, is_at_all=True)
 
             logger.info("update_admin_dashboard update is successful")
@@ -1454,9 +1460,9 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
-    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
+    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
     # 统计admin的数据
-    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
+    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
     # 订单表 和  用户表 之间的数据同步
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
@@ -1466,4 +1472,5 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_new_shopify()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_template_trigger()
+    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_trigger_ga()
 
