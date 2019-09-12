@@ -2352,6 +2352,7 @@ class AnalyzeCondition:
         :return:
         """
         # 获取所有trigger条件
+        logger.info("parse_trigger_tasks start.")
         return_res_email_list = email_id_list
         trigger_conditions = self.get_trigger_conditions(condition_id=trigger_id)  # 可以直接通过triggerID获取trigger信息
         for cond in trigger_conditions:
@@ -2664,6 +2665,7 @@ class AnalyzeCondition:
         定时获取未执行的flow任务
         :return:
         """
+        logger.info("execute_flow_task start.")
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user,
                           password=self.db_password).get_instance()
@@ -2682,7 +2684,7 @@ class AnalyzeCondition:
             logger.info("get need to execute flow email tasks success. reslut is %s" % str(result))
             # 将搜索到的task状态改为正在执行中
             task_id_list = [item["id"] for item in result]
-            if not self.update_task_status(task_id_list):
+            if task_id_list and not self.update_task_status(task_id_list):
                 logger.error("Update email task executing status exception.waitting for next search task.")
                 raise Exception("Update email task executing status exception.waitting for next search task.")
             for res in result:

@@ -24,6 +24,7 @@ class EMSDataProcessor:
         :param query_date: 需要查询的日期，单位为一天，格式为2019-07-15
         :return:
         """
+        logger.info("insert_subscriber_activity start.")
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
@@ -81,6 +82,7 @@ class EMSDataProcessor:
         更新状态未删除的客户组ems数据
         :return:
         """
+        logger.info("update_customer_group_data start.")
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
@@ -138,6 +140,7 @@ class EMSDataProcessor:
         更新已发送邮件的ems数据
         :return:
         """
+        logger.info("update_email_reocrd_data start.")
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
@@ -182,6 +185,7 @@ class EMSDataProcessor:
         每24小时删除email_task中超过72小时重复的数据，status=5，
         :return:
         """
+        logger.info("delete_draft_data_in_trigger_and_template start.")
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
@@ -215,6 +219,7 @@ class EMSDataProcessor:
         每天定时拉取数据入库，最新数据为截止到昨天23:59:59
         :return:
         """
+        logger.info("insert_dashboard_data start.")
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
@@ -321,6 +326,7 @@ class EMSDataProcessor:
         定时更新取消订阅和休眠的收件人，时间间隔为半小时
         :return:
         """
+        logger.info("update_unsubscriber_and_snoozed_customers start.")
         try:
             conn = DBUtil(host=self.db_host, port=self.db_port, db=self.db_name, user=self.db_user, password=self.db_password).get_instance()
             cursor = conn.cursor() if conn else None
