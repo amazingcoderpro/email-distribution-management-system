@@ -25,7 +25,7 @@ class TaskProcessor:
         self.bk_scheduler.start()
         self.tasks = []
 
-    def create_periodic_task(self, func, seconds, max_instances=10, *args, **kwargs):
+    def create_periodic_task(self, func, seconds, max_instances=50, *args, **kwargs):
         """
         创建间隔性任务
         :param func: 任务处理函数
@@ -154,11 +154,15 @@ class TaskProcessor:
 
 
 def test_task_processor():
+    import datetime
     def test_processor(a, b):
-        print("I'm a test processor, a={}, b={}".format(a, b))
+        print("I'm a test processor, a={}, b={}, time is {}".format(a, b, datetime.datetime.now()))
+        time.sleep(20)
 
     tp = TaskProcessor()
-    tp.create_periodic_task(test_processor, seconds=5, a="aa", b="bb")
+    tp.create_periodic_task(test_processor, seconds=1, max_instances=50, a="aa", b="bb", )
+    # tp.create_periodic_task(test_processor, seconds=1, max_instances=50, a="cc", b="dd", )
+    tp.create_cron_task(test_processor, "*", 10, 41, a="ee",b="ff")
     while 1:
         time.sleep(1)
 
@@ -211,4 +215,5 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    # run()
+    test_task_processor()
