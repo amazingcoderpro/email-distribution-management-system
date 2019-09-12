@@ -2679,8 +2679,8 @@ class AnalyzeCondition:
             t.create_time as create_time,f.customer_list_id as customer_list_id, t.template_id as template_id
             from email_task as t join email_trigger as f on t.email_trigger_id=f.id 
             where t.type=1 and t.status=0 and t.uuid is not null and f.customer_list_id is not null and execute_time between %s and %s""",
-                           (now_time-datetime.timedelta(minutes=10), now_time+datetime.timedelta(seconds=35)))
-            result = cursor.fetchall()
+                           (now_time-datetime.timedelta(hours=1), now_time+datetime.timedelta(seconds=35)))
+            result = cursor.fetchall()[:25]
             logger.info("get need to execute flow email tasks success. reslut is %s" % str(result))
             # 将搜索到的task状态改为正在执行中
             task_id_list = [item["id"] for item in result]
@@ -2946,8 +2946,8 @@ if __name__ == '__main__':
     # print(ac.update_customer_group_list(store_id=29))
     # print(ac.create_trigger_email_by_template(53, 216, "Update Html TEST", """Update Html TEST""", 124))
     # print(ac.parse_new_customer_group_list())
-    print(ac.parse_trigger_tasks())
-    # print(ac.execute_flow_task())
+    # print(ac.parse_trigger_tasks())
+    print(ac.execute_flow_task())
     # print(ac.get_template_info_by_id(84))
     # print(ac.update_repeat_task_by_id(7443))
     # print(ac.filter_unsubscribed_and_snoozed_in_the_customer_list(5))
