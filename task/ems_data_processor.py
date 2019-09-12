@@ -203,7 +203,7 @@ class EMSDataProcessor:
             # 删除相关的triiger数据
             cursor.execute("""delete from email_trigger where id in %s""", (trigger_id_list,))
             # 删除email_task中的repeat数据
-            cursor.execute("""delete from email_task where status=5 and finished_time <= %s""", (ago_48_hours+datetime.timedelta(hours=-24),))
+            cursor.execute("""delete from email_task where status=5 and finished_time <= %s""", (ago_48_hours+datetime.timedelta(hours=24),))
             conn.commit()
             logger.info("delete_draft_data_in_trigger_and_template success.")
         except Exception as e:
@@ -409,8 +409,9 @@ class EMSDataProcessor:
 
 
 if __name__ == '__main__':
-    db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
-    obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=db_info)
+    from config import MYSQL_CONFIG
+    # db_info = {"host": "47.244.107.240", "port": 3306, "db": "edm", "user": "edm", "password": "edm@orderplus.com"}
+    obj = EMSDataProcessor("Leemon", "leemon.li@orderplus.com", db_info=MYSQL_CONFIG)
     # obj.insert_subscriber_activity()
     # obj.update_customer_group_data()
     obj.update_email_reocrd_data()
