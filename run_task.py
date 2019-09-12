@@ -5,7 +5,7 @@
 import os
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
-
+from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 from task.ems_data_processor import EMSDataProcessor
 from task.shopify_data_processor import ShopifyDataProcessor
 from config import logger, MYSQL_CONFIG, MONGO_CONFIG
@@ -15,13 +15,17 @@ from task.template_task_processor import TemplateProcessor
 MYSQL_PASSWD = os.getenv('MYSQL_PASSWD', None)
 MYSQL_HOST = os.getenv('MYSQL_HOST', None)
 
+executors = {
+    'default': ThreadPoolExecutor(20),
+    'processpool': ProcessPoolExecutor(5)
+}
 
 class TaskProcessor:
     """
     任务处理类，用于创建，暂停，启动定时任务
     """
     def __init__(self):
-        self.bk_scheduler = BackgroundScheduler()
+        self.bk_scheduler = BackgroundScheduler(executors=executors)
         self.bk_scheduler.start()
         self.tasks = []
 
