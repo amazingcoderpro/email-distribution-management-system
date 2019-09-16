@@ -739,7 +739,7 @@ class ShopifyDataProcessor:
         for trigger_id, list_email_trigger in update_email_trigger_dict.items():
             # trigger 转化率
             conversion_rate = round(list_email_trigger[2] / list_email_trigger[1], 4) if list_email_trigger[1] else 0
-            res = (float(list_email_trigger[0]), list_email_trigger[1], list_email_trigger[2], conversion_rate, trigger_id)
+            res = (round(float(list_email_trigger[0]), 4), list_email_trigger[1], list_email_trigger[2], conversion_rate, trigger_id)
             update_trigger_value.append(res)
 
         # 更新email_tiggers数据
@@ -1436,8 +1436,8 @@ class ShopifyDataProcessor:
 
             # 更新admin eamil_trigger的数据
             cursor.execute("SELECT id from email_trigger where store_id=1 and `status`=1 AND draft=0")
-            all_trigger_id = cursor.fetchall()
-            for trigger_id in all_trigger_id:
+            admin_trigger_ids = cursor.fetchall()
+            for trigger_id in admin_trigger_ids:
                 email_trigger_id = trigger_id.get("id", "")
                 total_revenue = 0.0
                 trigger_total_sents = 0
@@ -1450,14 +1450,14 @@ class ShopifyDataProcessor:
                     total_sents = trigger_num.get("total_sents", "")
                     sessions = trigger_num.get("sessions", "")
                     transcations = trigger_num.get("transcations", "")
-                    total_revenue += float(revenue)
+                    total_revenue += round(float(revenue), 4)
                     trigger_total_sents += total_sents
                     total_sessions += sessions
                     total_transcations += transcations
                 conversion_rate = round(total_transcations / total_sessions, 4) if total_sessions else 0
-                cursor.execute("""update email_trigger set revenue=%s, total_sents=%s, sessions=%s, transcations=%s, conversion_rate=%s and email_trigger_id=email_trigger_id""",
-                                  (total_revenue, trigger_total_sents, total_sessions, total_transcations, conversion_rate))
-                logger.info("update email_trigger admin date is successful, email_trigger_id={}".format(trigger_id.get('id', '')))
+                cursor.execute("""update email_trigger set revenue=%s, total_sents=%s, sessions=%s, transcations=%s, conversion_rate=%s where id=%s""",
+                                  (total_revenue, trigger_total_sents, total_sessions, total_transcations, conversion_rate, email_trigger_id))
+                logger.info("update email_trigger admin date is successful, id={}".format(email_trigger_id))
                 conn.commit()
 
             webhook = 'https://oapi.dingtalk.com/robot/send?access_token=28aaa98ec46c76bed2bbb114f1a3713280dbbf1c652bdb36b11aa680013d58d4'
@@ -1486,9 +1486,9 @@ if __name__ == '__main__':
     # ShopifyDataProcessor(db_info=db_info).update_shopify_orders()
     # ShopifyDataProcessor(db_info=db_info).update_top_products_mongo()
     # 拉取shopify GA 数据
-    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
+    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).updata_shopify_ga()
     # 统计admin的数据
-    ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
+    # ShopifyDataProcessor(db_info=MYSQL_CONFIG, mongo_config=MONGO_CONFIG).update_admin_dashboard()
     # 订单表 和  用户表 之间的数据同步
     # ShopifyDataProcessor(db_info=db_info).update_shopify_order_customer()
     # ShopifyDataProcessor(db_info=db_info).update_shopify_customers()
