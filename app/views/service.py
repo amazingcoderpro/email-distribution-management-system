@@ -175,7 +175,7 @@ class UploadPicture(APIView):
     def post(self, request, *args, **kwargs):
         picture_path = "/data/nginx/edm/dist/media/"
         web_path = "https://smartsend.seamarketings.com/media/"
-        #picture_path = "/Users/shaowei/"
+        # picture_path = "/Users/shaowei/"
         file = request.FILES["file"]
         store_id = models.Store.objects.filter(user=request.user).first().id
         store_path = "{}{}/".format(picture_path,store_id)
@@ -366,3 +366,24 @@ class BottomDashboardView(generics.ListAPIView):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class StoreViewList(generics.ListAPIView):
+    """STORE LIST"""
+    queryset = models.Store.objects.all()
+    serializer_class = service.StoreSerializer
+    pagination_class = PNPagination
+    filter_backends = (service_filter.StoreListFilter,)
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+    # def list(self, request, *args, **kwargs):
+    #     queryset = self.filter_queryset(self.get_queryset())
+    #     if request.query_params.get("page", ''):
+    #         page = self.paginate_queryset(queryset)
+    #         if page is not None:
+    #             serializer = self.get_serializer(page, many=True)
+    #             return self.get_paginated_response(serializer.data)
+    #
+    #     serializer = self.get_serializer(queryset, many=True)
+    #     return Response(serializer.data)

@@ -51,10 +51,9 @@ v1_urlpatterns = [
 
     # 店铺管理
     url(r'store/$', service.StoreView.as_view()),
+    url(r'store/list/$', service.StoreViewList.as_view()),
     url(r'store/create/$', service.StoreExcelCreateView.as_view()),       # Excel 创建店铺
     url(r'store/(?P<pk>[0-9]+)/$', service.StoreOperView.as_view()),
-
-
 ]
 
 

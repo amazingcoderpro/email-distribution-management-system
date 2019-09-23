@@ -358,7 +358,6 @@ class EmailTriggerCloneSerializer(serializers.ModelSerializer):
         return data
 
 
-
 class SendMailSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.EmailTemplate
@@ -426,3 +425,32 @@ class DashboardSerializer(serializers.ModelSerializer):
             "create_time",
             "update_time",
         )
+#
+#
+# class StoreSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = models.Store
+#         fields = ("id",
+#                   "name",     # 0--disable, 1-enable
+#                   "url",
+#                   "domain",
+#                   "email",
+#                   "token",
+#                   "hmac",
+#                   "timezone",
+#                   "sender",
+#                   "customer_shop",
+#                   "logo",
+#                   "sender_address",
+#                   "service_email",
+#                   "currency",
+#                   "site_name",
+#                   "store_view_id",
+#                   "init",
+#                   "source",
+#                   "user_id",
+#                   "store_create_time",
+#                   "create_time",
+#                   "update_time",
+#                   "op_user"
+#         )

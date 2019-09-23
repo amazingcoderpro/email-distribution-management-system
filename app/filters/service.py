@@ -19,6 +19,27 @@ class CustomerGroupFilter(BaseFilterBackend):
                     filte_kwargs[self.filter_keys[filter_key]] = ".*" + val.replace(" ", ".*") + ".*"
                     continue
                 filte_kwargs[self.filter_keys[filter_key]] = val
+        print(queryset.filter(**filte_kwargs))
+        return queryset.filter(**filte_kwargs)
+
+
+class StoreListFilter(BaseFilterBackend):
+    """StoreList过滤"""
+    filter_keys = {
+        "name": "name__iregex",
+    }
+
+    def filter_queryset(self, request, queryset, view):
+        # store = models.Store.objects.filter(user=request.user).first()
+        filte_kwargs = {}
+        for filter_key in self.filter_keys.keys():
+            val = request.query_params.get(filter_key, '')
+            if val is not '':
+                # if filter_key == "name":
+                #     filte_kwargs[self.filter_keys[filter_key]] = ".*" + val.replace(" ", ".*") + ".*"
+                #     continue
+                filte_kwargs[self.filter_keys[filter_key]] = val
+        print(filte_kwargs)
         return queryset.filter(**filte_kwargs)
 
 
