@@ -291,7 +291,7 @@ class EMSDataProcessor:
 
                 # 计算当天的的增量数据
                 delta_sent, delta_open, delta_click = 0, 0, 0
-                cursor.execute("""select total_sent,total_open,total_click from dashboard where store_id=%s and create_time between %s and %s""",
+                cursor.execute("""select total_sent,total_open,total_click from dashboard where store_id=%s and update_time between %s and %s""",
                                (store_id, zero_time-datetime.timedelta(days=1), last_time-datetime.timedelta(days=1)))
                 yesterday_data = cursor.fetchall()
                 if yesterday_data:
