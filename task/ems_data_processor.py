@@ -153,8 +153,9 @@ class EMSDataProcessor:
                 cursor.execute("""select uuid,store_id from email_record where store_id=%s""", (store_id,))
             uuid_list = cursor.fetchall()
             # 获取每一个listId对应的ems数据
-            update_list = []
+
             for uuid, store_id in uuid_list:
+                update_list = []
                 if not uuid:
                     continue
                 datas = self.ems.get_message_statistics(uuid)
@@ -162,15 +163,15 @@ class EMSDataProcessor:
                     statistic = datas["data"]
                     sents, opens, clicks, unsubscribes = int(statistic["Sent"]), int(statistic["Opens"]), int(statistic["Clicks"]), int(statistic["Unsubscribes"])
                     if sents:
-                        open_rate, click_rate, unsubscribe_rate = (opens/sents), (clicks/sents), (unsubscribes/sents)
+                        open_rate, click_rate, unsubscribe_rate = float(opens/sents), float(clicks/sents), float(unsubscribes/sents)
                     else:
                         open_rate = click_rate = unsubscribe_rate = 0
                     update_list.append((sents, opens, clicks, unsubscribes, open_rate, click_rate, unsubscribe_rate, datetime.datetime.now(), uuid, store_id))
-            # 更新数据库
-            cursor.executemany("""update email_record set sents=%s, opens=%s, clicks=%s, unsubscribes=%s, open_rate=%s, click_rate=%s, unsubscribe_rate=%s, update_time=%s where uuid=%s and store_id=%s""",
-                           update_list)
-            logger.info("update all email record success.")
-            conn.commit()
+                # 更新数据库
+                cursor.executemany("""update email_record set sents=%s, opens=%s, clicks=%s, unsubscribes=%s, open_rate=%s, click_rate=%s, unsubscribe_rate=%s, update_time=%s where uuid=%s and store_id=%s""",
+                               update_list)
+                logger.info("update all email record success.")
+                conn.commit()
         except Exception as e:
             logger.exception("update email reocrd data exception e={}".format(e))
             return False
@@ -291,7 +292,7 @@ class EMSDataProcessor:
 
                 # 计算当天的的增量数据
                 delta_sent, delta_open, delta_click = 0, 0, 0
-                cursor.execute("""select total_sent,total_open,total_click from dashboard where store_id=%s and update_time between %s and %s""",
+                cursor.execute("""select total_sent,total_open,total_click from dashboard where store_id=%s and create_time between %s and %s""",
                                (store_id, zero_time-datetime.timedelta(days=1), last_time-datetime.timedelta(days=1)))
                 yesterday_data = cursor.fetchall()
                 if yesterday_data:
