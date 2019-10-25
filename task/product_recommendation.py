@@ -123,12 +123,12 @@ class ProductRecommend:
                 for pro in cart["line_items"]:
                     variant_title = pro["variant_title"]
                     color, size = variant_title.split("/") if "/" in variant_title else (variant_title, "")
-                    product_dict.update({pro["product_id"]: {"title": pro["title"], "color": color.strip(),
+                    product_dict.update({pro["product_id"]: {"title": pro.get("title", ""), "color": color.strip(),
                                                              "size": size.strip(),
-                                                             "compare_at_price": money_in_emails_format+pro["compare_at_price"],
-                                                             "line_price": money_in_emails_format+pro["line_price"],
-                                                             "price": money_in_emails_format+pro["price"],
-                                                             "quantity": pro["quantity"],
+                                                             "compare_at_price": money_in_emails_format + pro.get("compare_at_price", 0),
+                                                             "line_price": money_in_emails_format + pro.get("line_price", 0),
+                                                             "price": money_in_emails_format+pro.get("price", 0),
+                                                             "quantity": pro.get("quantity"),
                                                              "abandoned_checkout_url": abandoned_checkout_url}})
             if not product_dict:
                 return products
