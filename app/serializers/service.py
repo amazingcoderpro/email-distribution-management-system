@@ -47,6 +47,30 @@ class StoreSerializer(serializers.ModelSerializer):
             'email': {'write_only': False, 'read_only': True},
         }
 
+#
+# class StoreListSerializer(serializers.ModelSerializer):
+#     """stor列表展示"""
+#     class Meta:
+#         model = models.Store
+#         fields = ("id",
+#                   "name",
+#                   "url",
+#                   "email",
+#                   "service_email",
+#                   "sender",
+#                   "domain",
+#                   "logo",
+#                   "customer_shop",
+#                   "sender_address",
+#                   "timezone",
+#                   "update_time",
+#                   "store_view_id")
+#         extra_kwargs = {
+#             'name': {'write_only': False, 'read_only': True},
+#             'url': {'write_only': False, 'read_only': True},
+#             'email': {'write_only': False, 'read_only': True},
+#         }
+
 
 class EmailTemplateSerializer(serializers.ModelSerializer):
     class Meta:

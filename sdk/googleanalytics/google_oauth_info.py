@@ -108,7 +108,7 @@ class GoogleApi():
 
 if __name__ == '__main__':
 
-    google_data = GoogleApi(view_id="195406097")
+    google_data = GoogleApi(view_id="195776851")
     print(google_data.get_report(key_word="", start_time="1daysAgo", end_time="today"))
     print(1)
 

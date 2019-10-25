@@ -153,9 +153,8 @@ class EMSDataProcessor:
                 cursor.execute("""select uuid,store_id from email_record where store_id=%s""", (store_id,))
             uuid_list = cursor.fetchall()
             # 获取每一个listId对应的ems数据
-
+            update_list = []
             for uuid, store_id in uuid_list:
-                update_list = []
                 if not uuid:
                     continue
                 datas = self.ems.get_message_statistics(uuid)
@@ -167,11 +166,12 @@ class EMSDataProcessor:
                     else:
                         open_rate = click_rate = unsubscribe_rate = 0
                     update_list.append((sents, opens, clicks, unsubscribes, open_rate, click_rate, unsubscribe_rate, datetime.datetime.now(), uuid, store_id))
-                # 更新数据库
-                cursor.executemany("""update email_record set sents=%s, opens=%s, clicks=%s, unsubscribes=%s, open_rate=%s, click_rate=%s, unsubscribe_rate=%s, update_time=%s where uuid=%s and store_id=%s""",
-                               update_list)
-                logger.info("update all email record success.")
-                conn.commit()
+                    logger.info("pull emailreocrd data is successful store_id={}, uuid={}".format(store_id, uuid))
+            # 更新数据库
+            cursor.executemany("""update email_record set sents=%s, opens=%s, clicks=%s, unsubscribes=%s, open_rate=%s, click_rate=%s, unsubscribe_rate=%s, update_time=%s where uuid=%s and store_id=%s""",
+                           update_list)
+            logger.info("update all email record success.")
+            conn.commit()
         except Exception as e:
             logger.exception("update email reocrd data exception e={}".format(e))
             return False
